@@ -931,3 +931,42 @@ def pit_scouting_delete(team_number):
     else:
         flash("Error deleting pit scouting data", "error")
     return redirect(url_for("scouting.pit_scouting"))
+
+@scouting_bp.route("/submit_report", methods=["POST"])
+@login_required
+def submit_report():
+    try:
+        data = {
+            "data_id": request.form.get("data_id"),
+            "report_type": request.form.get("report_type"),
+            "reason": request.form.get("reason"),
+            "details": request.form.get("details"),
+            "reporter_id": current_user.get_id()
+        }
+        
+        if not all([data["data_id"], data["report_type"], 
+                   data["reason"], data["details"]]):
+            return jsonify({
+                "success": False,
+                "message": "All fields are required"
+            }), 400
+            
+        success, message = scouting_manager.add_report(data)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Report submitted successfully"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": message
+            }), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Error submitting report: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "An error occurred while submitting the report"
+        }), 500

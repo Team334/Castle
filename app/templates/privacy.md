@@ -33,14 +33,6 @@ Castle is committed to protecting your privacy and securing your data. This poli
 - End-to-end encryption for sensitive data
 - Regular security audits and updates
 - Restricted access controls
-- Automated threat detection
-- Regular data backups
-
-### 2.3 Data Sharing Controls
-- Team administrators control sharing settings
-- Explicit consent required for data sharing
-- Granular permission settings
-- Clear sharing status indicators
 
 ## 3. Your Data Rights
 ### 3.1 Access and Control
@@ -61,7 +53,7 @@ Castle is committed to protecting your privacy and securing your data. This poli
 
 ### 4.2 Reporting Security Concerns
 - In-app reporting system
-- Direct email: no-reply@castle-scouting.com
+- Direct email: (email here)
 - 24-hour response commitment
 - Regular security status updates
 
@@ -99,5 +91,16 @@ We adhere to:
 - FIRST youth protection policies
 - Industry security standards
 - Privacy best practices
+
+## 9. User Consent
+### 9.1 Obtaining Consent
+- Explanation of how consent is obtained
+- Methods for users to give consent
+- Record-keeping of consent
+
+### 9.2 Withdrawing Consent
+- Process for withdrawing consent
+- Impact of withdrawing consent on services
+- Contact information for consent withdrawal
 
 Last Updated: [Current Date]

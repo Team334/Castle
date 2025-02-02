@@ -74,7 +74,81 @@ We may terminate or suspend access to the Service:
 - At the request of FIRST Robotics
 - To protect other users
 
-### 10. Contact
-For questions about these terms:
-- Email: [support email]
-- Submit feedback through the platform
+### 10. Privacy
+Castle is committed to protecting your privacy and securing your data. This section explains how we collect, use, and protect information in accordance with data protection laws and FIRST Robotics Competition values.
+
+
+#### 11.1 Information We Collect
+- Team number and FIRST affiliation
+- Team member names and roles
+- Contact information for team administrators
+- Account credentials
+- Match and competition data
+- Team performance metrics
+- Robot capabilities and strategies
+- Pit scouting information
+- Access logs and timestamps
+- Device information for security
+- Error reports for system improvement
+- Usage patterns for feature enhancement
+
+#### 11.2 How We Use Your Data
+- Providing scouting services
+- Team performance analysis
+- Competition preparation
+- System maintenance and security
+
+#### 11.3 Data Protection Measures
+- End-to-end encryption for sensitive data
+- Regular security audits and updates
+- Restricted access controls
+
+#### 11.4 Your Data Rights
+- View all collected data
+- Update or correct information
+- Request data deletion
+
+#### 11.5 Data Retention
+- Active data maintained securely
+- Regular data accuracy reviews
+
+#### 11.6 Security Incident Response
+- Immediate incident investigation
+- Prompt notification of affected users
+- Transparent incident reporting
+- Corrective action implementation
+
+#### 11.7 Reporting Security Concerns
+- In-app reporting system
+- Direct email: support@castle-scouting.com
+- 24-hour response commitment
+- Regular security status updates
+
+#### 11.8 Third-Party Services
+- Essential FIRST Robotics services only
+- The Blue Alliance API integration
+- Secure hosting providers
+- Carefully vetted service providers
+
+#### 11.9 Data Processing Agreements
+- Strict confidentiality requirements
+- Data protection obligations
+- Regular compliance verification
+- Limited data access
+
+#### 11.10 Updates to Privacy Policy
+- Advance notice of changes
+- In-app announcements
+- Change log maintenance
+
+#### 11.11 Data Protection Rights
+You have the right to:
+- Access your personal data
+- Correct inaccurate data
+- Request data deletion
+- Restrict data processing
+- Data portability
+- Object to processing
+- Withdraw consent
+
+Last Updated: [Current Date]

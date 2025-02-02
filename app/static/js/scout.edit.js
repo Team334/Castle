@@ -91,7 +91,9 @@ function resizeCanvas() {
 }
 
 function drawBackground() {
-    if (!bgImage || !bgImage.complete) return;
+    if (!bgImage || !bgImage.complete) {
+      return;
+    }
     
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -138,7 +140,9 @@ function startDrawing(e) {
 
 function draw(e) {
     e.preventDefault();
-    if (!isDrawing) return;
+    if (!isDrawing) {
+      return;
+    }
     
     const pos = getPointerPosition(e);
     

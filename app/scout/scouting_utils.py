@@ -20,11 +20,7 @@ class ScoutingManager(DatabaseManager):
     def _ensure_collections(self):
         """Ensure required collections exist"""
         if "team_data" not in self.db.list_collection_names():
-            self.db.create_collection("team_data")
-            # Create indexes
-            self.db.team_data.create_index([("team_number", 1)])
-            self.db.team_data.create_index([("scouter_id", 1)])
-            logger.info("Created team_data collection and indexes")
+            self.create_collections()
 
     def connect(self):
         """Establish connection to MongoDB with basic error handling"""
@@ -38,14 +34,17 @@ class ScoutingManager(DatabaseManager):
 
                 # Ensure team_data collection exists
                 if "team_data" not in self.db.list_collection_names():
-                    self.db.create_collection("team_data")
-                    # Create indexes
-                    self.db.team_data.create_index([("team_number", 1)])
-                    self.db.team_data.create_index([("scouter_id", 1)])
-                    logger.info("Created team_data collection and indexes")
+                    self._extracted_from_connect_4()
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
             raise
+
+    def create_collections(self):
+        self.db.create_collection("team_data")
+        self.db.team_data.create_index([("team_number", 1)])
+        self.db.team_data.create_index([("scouter_id", 1)])
+        logger.info("Created team_data collection and indexes")
+
 
     def ensure_connected(self):
         """Ensure we have a valid connection, reconnect if necessary"""
@@ -671,3 +670,64 @@ class ScoutingManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error deleting pit scouting data: {str(e)}")
             return False
+
+    @with_mongodb_retry(retries=3, delay=2)
+    def add_report(self, data):
+        """Add a new report"""
+        self.ensure_connected()
+        try:
+            report_data = {
+                "data_id": ObjectId(data["data_id"]),
+                "report_type": data["report_type"],
+                "reason": data["reason"],
+                "details": data["details"],
+                "reporter_id": ObjectId(data["reporter_id"]),
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc)
+            }
+            
+            result = self.db.reports.insert_one(report_data)
+            return True, str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"Error adding report: {str(e)}")
+            return False, "An error occurred while submitting the report."
+
+    @with_mongodb_retry(retries=3, delay=2)
+    def get_reports(self, status=None):
+        """Get all reports with optional status filter"""
+        self.ensure_connected()
+        try:
+            query = {}
+            if status:
+                query["status"] = status
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "reporter_id",
+                        "foreignField": "_id",
+                        "as": "reporter"
+                    }
+                },
+                {"$unwind": "$reporter"},
+                {
+                    "$project": {
+                        "_id": 1,
+                        "data_id": 1,
+                        "report_type": 1,
+                        "reason": 1,
+                        "details": 1,
+                        "status": 1,
+                        "created_at": 1,
+                        "reporter_name": "$reporter.username",
+                        "reporter_team": "$reporter.teamNumber"
+                    }
+                }
+            ]
+            
+            return list(self.db.reports.aggregate(pipeline))
+        except Exception as e:
+            logger.error(f"Error fetching reports: {str(e)}")
+            return []

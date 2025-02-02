@@ -12,7 +12,7 @@ Castle is committed to making FRC scouting accessible to every team, regardless 
 
 ## Expected Behavior
 1. **Data Integrity**
-   - Submiting data that isn't disrespected to the team or their robot.
+   - Submitting data that isn't disrespected to the team or their robot.
    - Double-check your entries before submission
    - Report any errors or inconsistencies you notice
 
