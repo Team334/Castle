@@ -34,7 +34,7 @@
     <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
     <link rel="shortcut icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
-
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}"/>
 
     <meta property="twitter:image" content="{{ url_for('static', filename='logo.png') }}">
     <meta property="twitter:card" content="{{ url_for('static', filename='logo.png') }}">
@@ -291,6 +291,16 @@
                 navigator.serviceWorker.register('/static/js/service-worker.js')
                     .then((registration) => {
                         console.log('ServiceWorker registration successful');
+                        
+                        // Check for push notification support
+                        if ('PushManager' in window) {
+                            console.log('Push notifications are supported');
+                            
+                            // We don't request permission here automatically
+                            // It will be requested when the user clicks the notification bell
+                        } else {
+                            console.log('Push notifications are not supported');
+                        }
                     })
                     .catch((err) => {
                         console.log('ServiceWorker registration failed: ', err);

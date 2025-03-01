@@ -433,3 +433,124 @@ class TeamStats:
             "highest_score": self.highest_score,
             "win_rate": round(self.win_rate * 100, 1)  # Convert to percentage
         }
+
+class NotificationSubscription:
+    def __init__(self, data: Dict):
+        self._id = data.get("_id")
+        self.user_id = data.get("user_id")
+        self.team_number = data.get("team_number")
+        self.subscription_json = data.get("subscription_json", {})
+        self.created_at = data.get("created_at", datetime.now())
+        self.updated_at = data.get("updated_at", datetime.now())
+        self.default_reminder_time = data.get("default_reminder_time", 1440)  # Default: 1 day in minutes
+        self.enable_all_notifications = data.get("enable_all_notifications", False)
+        self.assignment_subscriptions = data.get("assignment_subscriptions", [])  # List of assignment IDs with reminder times
+
+    @property
+    def id(self):
+        return str(self._id)
+
+    @staticmethod
+    def create_from_db(data: Dict):
+        """Create a NotificationSubscription instance from database data"""
+        if not data:
+            return None
+        if "_id" in data and not isinstance(data["_id"], ObjectId):
+            data["_id"] = ObjectId(data["_id"])
+        return NotificationSubscription(data)
+
+    def to_dict(self):
+        """Convert the object to a dictionary for database storage"""
+        return {
+            "user_id": self.user_id,
+            "team_number": self.team_number,
+            "subscription_json": self.subscription_json,
+            "created_at": self.created_at,
+            "updated_at": datetime.now(),
+            "default_reminder_time": self.default_reminder_time,
+            "enable_all_notifications": self.enable_all_notifications,
+            "assignment_subscriptions": self.assignment_subscriptions
+        }
+    
+    def add_assignment_subscription(self, assignment_id: str, reminder_time: int):
+        """Add or update an assignment subscription"""
+        # Check if assignment is already subscribed
+        for i, sub in enumerate(self.assignment_subscriptions):
+            if sub.get("assignment_id") == assignment_id:
+                # Update existing subscription
+                self.assignment_subscriptions[i] = {
+                    "assignment_id": assignment_id,
+                    "reminder_time": reminder_time
+                }
+                return
+        
+        # Add new subscription
+        self.assignment_subscriptions.append({
+            "assignment_id": assignment_id,
+            "reminder_time": reminder_time
+        })
+    
+    def remove_assignment_subscription(self, assignment_id: str):
+        """Remove an assignment subscription"""
+        self.assignment_subscriptions = [
+            sub for sub in self.assignment_subscriptions 
+            if sub.get("assignment_id") != assignment_id
+        ]
+    
+    def get_reminder_time(self, assignment_id: str):
+        """Get the reminder time for a specific assignment"""
+        for sub in self.assignment_subscriptions:
+            if sub.get("assignment_id") == assignment_id:
+                return sub.get("reminder_time")
+        
+        # Return default reminder time if not found
+        return self.default_reminder_time
+
+class ScheduledNotification:
+    def __init__(self, data: Dict):
+        self._id = data.get("_id")
+        self.user_id = data.get("user_id")
+        self.team_number = data.get("team_number")
+        self.assignment_id = data.get("assignment_id")
+        self.title = data.get("title", "Assignment Reminder")
+        self.body = data.get("body", "You have an upcoming assignment")
+        self.scheduled_time = data.get("scheduled_time")  # When to send the notification
+        self.created_at = data.get("created_at", datetime.now())
+        self.sent = data.get("sent", False)
+        self.sent_at = data.get("sent_at")
+        self.url = data.get("url", "/")
+        self.data = data.get("data", {})
+
+    @property
+    def id(self):
+        return str(self._id)
+
+    @staticmethod
+    def create_from_db(data: Dict):
+        """Create a ScheduledNotification instance from database data"""
+        if not data:
+            return None
+        if "_id" in data and not isinstance(data["_id"], ObjectId):
+            data["_id"] = ObjectId(data["_id"])
+        return ScheduledNotification(data)
+
+    def to_dict(self):
+        """Convert the object to a dictionary for database storage"""
+        return {
+            "user_id": self.user_id,
+            "team_number": self.team_number,
+            "assignment_id": self.assignment_id,
+            "title": self.title,
+            "body": self.body,
+            "scheduled_time": self.scheduled_time,
+            "created_at": self.created_at,
+            "sent": self.sent,
+            "sent_at": self.sent_at,
+            "url": self.url,
+            "data": self.data
+        }
+    
+    def mark_as_sent(self):
+        """Mark the notification as sent"""
+        self.sent = True
+        self.sent_at = datetime.now()

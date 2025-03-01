@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from datetime import datetime, timedelta
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -14,6 +15,7 @@ from app.team.team_utils import TeamManager
 from app.utils import (allowed_file, async_route, error_response,
                        handle_route_errors, limiter, save_file_to_gridfs,
                        success_response)
+from app.models import NotificationSubscription, ScheduledNotification
 
 from .forms import CreateTeamForm
 
@@ -570,3 +572,420 @@ async def update_team_info(team_number):
     except Exception as e:
         flash(f"Error updating team information: {str(e)}", "error")
         return redirect(url_for("team.manage", team_number=team_number))
+
+@team_bp.route("/notifications/vapid-public-key")
+@login_required
+def get_vapid_public_key():
+    """Return the VAPID public key for push notifications"""
+    vapid_key = current_app.config.get("VAPID_PUBLIC_KEY", "")
+    if not vapid_key:
+        current_app.logger.error("VAPID_PUBLIC_KEY not configured")
+    return vapid_key
+
+@team_bp.route("/notifications/subscribe", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+@async_route
+async def subscribe_to_push():
+    """Subscribe a user to push notifications"""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response("Invalid request data")
+
+        subscription_json = data.get("subscription")
+        if not subscription_json:
+            current_app.logger.warning("Empty subscription data received")
+            return error_response("Empty subscription data")
+
+        # Validate subscription JSON
+        if not isinstance(subscription_json, dict) or 'endpoint' not in subscription_json:
+            current_app.logger.warning(f"Invalid subscription format: {subscription_json}")
+            return error_response("Invalid subscription format")
+
+        # Get user's team number
+        user_team = await team_manager.get_user_team(current_user.get_id())
+        team_number = user_team.team_number if user_team else None
+
+        if existing := current_app.mongo.db.notification_subscriptions.find_one(
+            {"user_id": current_user.get_id()}
+        ):
+            # Update existing subscription
+            current_app.mongo.db.notification_subscriptions.update_one(
+                {"user_id": current_user.get_id()},
+                {"$set": {
+                    "subscription_json": subscription_json,
+                    "updated_at": datetime.now(),
+                    "team_number": team_number
+                }}
+            )
+        else:
+            # Create new subscription
+            subscription = NotificationSubscription({
+                "user_id": current_user.get_id(),
+                "team_number": team_number,
+                "subscription_json": subscription_json,
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+                "default_reminder_time": 1440,  # Default: 1 day
+                "enable_all_notifications": False,
+                "assignment_subscriptions": []
+            })
+
+            current_app.mongo.db.notification_subscriptions.insert_one(
+                subscription.to_dict()
+            )
+
+        return success_response("Subscription successful")
+    except Exception as e:
+        current_app.logger.error(f"Error subscribing to push: {e}")
+        return error_response(f"Error subscribing to push: {str(e)}")
+
+@team_bp.route("/notifications/resubscribe", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+@async_route
+async def resubscribe_to_push():
+    """Handle push subscription change"""
+    try:
+        data = request.get_json()
+        if not data or not data.get("newSubscription"):
+            return error_response("Invalid subscription data")
+        
+        new_subscription = data.get("newSubscription")
+        
+        # Update user's subscription
+        current_app.mongo.db.notification_subscriptions.update_one(
+            {"user_id": current_user.get_id()},
+            {"$set": {
+                "subscription_json": new_subscription,
+                "updated_at": datetime.now()
+            }}
+        )
+        
+        return success_response("Resubscription successful")
+    except Exception as e:
+        current_app.logger.error(f"Error resubscribing to push: {e}")
+        return error_response(f"Error resubscribing to push: {str(e)}")
+
+@team_bp.route("/<int:team_number>/notifications/settings", methods=["GET", "POST"])
+@login_required
+@limiter.limit("10 per minute")
+@async_route
+async def notification_settings(team_number):
+    """Get or update notification settings"""
+    try:
+        # Check if user is a member of the team
+        team = await team_manager.get_team_by_number(team_number)
+        
+        if not team or current_user.get_id() not in team.users:
+            return error_response("You are not a member of this team")
+        
+        if request.method == "GET":
+            # Get user's notification settings
+            subscription = current_app.mongo.db.notification_subscriptions.find_one({
+                "user_id": current_user.get_id()
+            })
+            
+            if not subscription:
+                return success_response("No notification settings found", {
+                    "settings": {
+                        "defaultReminderTime": 1440,
+                        "enableAllNotifications": False
+                    }
+                })
+            
+            return success_response("Notification settings retrieved", {
+                "settings": {
+                    "defaultReminderTime": subscription.get("default_reminder_time", 1440),
+                    "enableAllNotifications": subscription.get("enable_all_notifications", False)
+                }
+            })
+        else:  # POST
+            data = request.get_json()
+            if not data:
+                return error_response("Invalid settings data")
+            
+            default_reminder_time = int(data.get("defaultReminderTime", 1440))
+            enable_all_notifications = data.get("enableAllNotifications", False)
+            
+            # Update user's notification settings
+            current_app.mongo.db.notification_subscriptions.update_one(
+                {"user_id": current_user.get_id()},
+                {"$set": {
+                    "default_reminder_time": default_reminder_time,
+                    "enable_all_notifications": enable_all_notifications,
+                    "updated_at": datetime.now()
+                }},
+                upsert=True
+            )
+            
+            return success_response("Notification settings updated")
+    except Exception as e:
+        current_app.logger.error(f"Error handling notification settings: {e}")
+        return error_response(f"Error handling notification settings: {str(e)}")
+
+@team_bp.route("/<int:team_number>/notifications/subscribe-all", methods=["POST"])
+@login_required
+@limiter.limit("5 per minute")
+@async_route
+async def subscribe_to_all_assignments(team_number):
+    """Subscribe to all assignments for a team"""
+    try:
+        # Check if user is a member of the team
+        team = await team_manager.get_team_by_number(team_number)
+        
+        if not team or current_user.get_id() not in team.users:
+            return error_response("You are not a member of this team")
+        
+        data = request.get_json()
+        reminder_time = int(data.get("reminderTime", 1440))
+        
+        # Get all assignments for the team that the user is assigned to
+        assignments = current_app.mongo.db.assignments.find({
+            "team_number": team_number,
+            "assigned_to": current_user.get_id()
+        })
+        
+        # Get user's notification subscription
+        subscription = current_app.mongo.db.notification_subscriptions.find_one({
+            "user_id": current_user.get_id()
+        })
+        
+        if not subscription:
+            # Create new subscription
+            subscription = NotificationSubscription({
+                "user_id": current_user.get_id(),
+                "team_number": team_number,
+                "subscription_json": {},
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+                "default_reminder_time": reminder_time,
+                "enable_all_notifications": True,
+                "assignment_subscriptions": []
+            })
+            
+            current_app.mongo.db.notification_subscriptions.insert_one(
+                subscription.to_dict()
+            )
+        else:
+            # Update existing subscription
+            current_app.mongo.db.notification_subscriptions.update_one(
+                {"user_id": current_user.get_id()},
+                {"$set": {
+                    "default_reminder_time": reminder_time,
+                    "enable_all_notifications": True,
+                    "updated_at": datetime.now()
+                }}
+            )
+        
+        # Schedule notifications for all assignments
+        for assignment in assignments:
+            due_date = assignment.get("due_date")
+            if not due_date:
+                continue
+            
+            notification_time = due_date - timedelta(minutes=reminder_time)
+            
+            # If notification time is in the past, skip
+            if notification_time <= datetime.now():
+                continue
+            
+            # Check if notification is already scheduled
+            existing_notification = current_app.mongo.db.scheduled_notifications.find_one({
+                "user_id": current_user.get_id(),
+                "assignment_id": str(assignment["_id"]),
+                "sent": False
+            })
+            
+            if existing_notification:
+                continue
+            
+            # Schedule the notification
+            notification = {
+                "user_id": current_user.get_id(),
+                "team_number": team_number,
+                "assignment_id": str(assignment["_id"]),
+                "title": f"Assignment Reminder: {assignment.get('title')}",
+                "body": f"Due {due_date.strftime('%Y-%m-%d %I:%M %p')}",
+                "scheduled_time": notification_time,
+                "created_at": datetime.now(),
+                "sent": False,
+                "url": f"/team/{team_number}/manage",
+                "data": {
+                    "assignmentId": str(assignment["_id"]),
+                    "teamNumber": team_number
+                }
+            }
+            
+            current_app.mongo.db.scheduled_notifications.insert_one(notification)
+        
+        return success_response("Subscribed to all assignments")
+    except Exception as e:
+        current_app.logger.error(f"Error subscribing to all assignments: {e}")
+        return error_response(f"Error subscribing to all assignments: {str(e)}")
+
+@team_bp.route("/assignments/<assignment_id>/subscribe", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
+@async_route
+async def subscribe_to_assignment(assignment_id):
+    """Subscribe to a specific assignment"""
+    try:
+        current_app.logger.info(f"User {current_user.get_id()} subscribing to assignment {assignment_id}")
+        
+        # Get the assignment
+        assignment = current_app.mongo.db.assignments.find_one({
+            "_id": ObjectId(assignment_id)
+        })
+        
+        if not assignment:
+            current_app.logger.warning(f"Assignment {assignment_id} not found")
+            return error_response("Assignment not found")
+        
+        # Check if user is assigned to this assignment
+        if current_user.get_id() not in assignment.get("assigned_to", []):
+            current_app.logger.warning(f"User {current_user.get_id()} not assigned to assignment {assignment_id}")
+            return error_response("You are not assigned to this assignment")
+        
+        data = request.get_json()
+        current_app.logger.debug(f"Received data: {data}")
+        
+        if not data or "reminderTime" not in data:
+            current_app.logger.warning(f"Missing reminderTime in request data: {data}")
+            return error_response("Missing reminder time")
+            
+        try:
+            reminder_time = int(data.get("reminderTime", 1440))
+            current_app.logger.debug(f"Reminder time: {reminder_time}")
+        except (ValueError, TypeError) as e:
+            current_app.logger.error(f"Invalid reminder time format: {data.get('reminderTime')}, error: {e}")
+            return error_response(f"Invalid reminder time format: {str(e)}")
+        
+        # Get user's notification subscription
+        subscription = current_app.mongo.db.notification_subscriptions.find_one({
+            "user_id": current_user.get_id()
+        })
+        
+        if not subscription:
+            # Create new subscription
+            subscription = NotificationSubscription({
+                "user_id": current_user.get_id(),
+                "team_number": assignment.get("team_number"),
+                "subscription_json": {},
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+                "default_reminder_time": reminder_time,
+                "enable_all_notifications": False,
+                "assignment_subscriptions": [{
+                    "assignment_id": assignment_id,
+                    "reminder_time": reminder_time
+                }]
+            })
+            
+            current_app.mongo.db.notification_subscriptions.insert_one(
+                subscription.to_dict()
+            )
+        else:
+            # Update existing subscription
+            subscription_obj = NotificationSubscription.create_from_db(subscription)
+            subscription_obj.add_assignment_subscription(assignment_id, reminder_time)
+            
+            current_app.mongo.db.notification_subscriptions.update_one(
+                {"user_id": current_user.get_id()},
+                {"$set": {
+                    "assignment_subscriptions": subscription_obj.assignment_subscriptions,
+                    "updated_at": datetime.now()
+                }}
+            )
+        
+        # Schedule the notification
+        due_date = assignment.get("due_date")
+        current_app.logger.debug(f"Assignment due date: {due_date}, type: {type(due_date)}")
+        
+        if due_date:
+            # Ensure due_date is a datetime object
+            if isinstance(due_date, str):
+                current_app.logger.debug(f"Converting string due date to datetime: {due_date}")
+                try:
+                    due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                    current_app.logger.debug(f"Converted using fromisoformat: {due_date}")
+                except ValueError as e:
+                    current_app.logger.warning(f"Failed to parse with fromisoformat: {e}")
+                    # Try another format if ISO format fails
+                    try:
+                        due_date = datetime.strptime(due_date, '%Y-%m-%dT%H:%M:%S.%f')
+                        current_app.logger.debug(f"Converted using strptime with milliseconds: {due_date}")
+                    except ValueError as e:
+                        current_app.logger.warning(f"Failed to parse with strptime (ms format): {e}")
+                        try:
+                            due_date = datetime.strptime(due_date, '%Y-%m-%d %H:%M:%S')
+                            current_app.logger.debug(f"Converted using strptime without milliseconds: {due_date}")
+                        except ValueError as e:
+                            current_app.logger.error(f"All date parsing attempts failed: {e}")
+                            return error_response("Invalid due date format")
+            
+            # Now we can safely subtract
+            current_app.logger.debug(f"Final due_date: {due_date}, type: {type(due_date)}")
+            notification_time = due_date - timedelta(minutes=reminder_time)
+            current_app.logger.debug(f"Calculated notification time: {notification_time}")
+            
+            # If notification time is in the past, skip
+            now = datetime.now()
+            current_app.logger.debug(f"Current time: {now}")
+            if notification_time <= now:
+                current_app.logger.info(f"Notification time {notification_time} is in the past (current time: {now})")
+                return success_response("Assignment due date is too soon for notification")
+            
+            # Check if notification is already scheduled
+            existing_notification = current_app.mongo.db.scheduled_notifications.find_one({
+                "user_id": current_user.get_id(),
+                "assignment_id": assignment_id,
+                "sent": False
+            })
+            
+            if not existing_notification:
+                # Schedule the notification
+                notification = {
+                    "user_id": current_user.get_id(),
+                    "team_number": assignment.get("team_number"),
+                    "assignment_id": assignment_id,
+                    "title": f"Assignment Reminder: {assignment.get('title')}",
+                    "body": f"Due {due_date.strftime('%Y-%m-%d %I:%M %p')}",
+                    "scheduled_time": notification_time,
+                    "created_at": datetime.now(),
+                    "sent": False,
+                    "url": f"/team/{assignment.get('team_number')}/manage",
+                    "data": {
+                        "assignmentId": assignment_id,
+                        "teamNumber": assignment.get("team_number")
+                    }
+                }
+                
+                current_app.logger.info(f"Scheduling notification for assignment {assignment_id} at {notification_time}")
+                current_app.mongo.db.scheduled_notifications.insert_one(notification)
+        
+        return success_response("Subscribed to assignment")
+    except Exception as e:
+        current_app.logger.error(f"Error subscribing to assignment: {e}")
+        return error_response(f"Error subscribing to assignment: {str(e)}")
+
+@team_bp.route("/notifications/test", methods=["GET"])
+@login_required
+def test_notification():
+    """Test route for notifications"""
+    vapid_key = current_app.config.get("VAPID_PUBLIC_KEY", "")
+    vapid_private = current_app.config.get("VAPID_PRIVATE_KEY", "")
+    
+    return jsonify({
+        "success": True,
+        "message": "Notification test route",
+        "vapid_key_length": len(vapid_key) if vapid_key else 0,
+        "vapid_private_length": len(vapid_private) if vapid_private else 0,
+        "has_vapid_key": bool(vapid_key),
+        "has_vapid_private": bool(vapid_private),
+        "user_id": current_user.get_id(),
+        "notification_support": {
+            "mongo_collections": list(current_app.mongo.db.list_collection_names())
+        }
+    })

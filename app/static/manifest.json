@@ -51,5 +51,8 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  
+  "permissions": ["notifications"],
+  "gcm_sender_id": "103953800507"
 } 

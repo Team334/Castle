@@ -1,12 +1,37 @@
 // Main initialization
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM content loaded, initializing...');
     initializeSearch();
     initializeAssignmentForm();
     initializeStatusHandlers();
     initializeEditAssignment();
+    initializeNotifications();
+    initializeAssignmentReminders();
     const teamData = document.getElementById('teamData');
     if (teamData) {
         currentUserId = teamData.dataset.currentUserId;
+    }
+    
+    // Add direct event listener for notification bell
+    const notificationBell = document.getElementById('notificationBell');
+    if (notificationBell) {
+        console.log('Notification bell found in main init');
+        notificationBell.onclick = function(e) {
+            console.log('Notification bell clicked from main init');
+            e.preventDefault();
+            const notificationModal = document.getElementById('notificationModal');
+            if (notificationModal) {
+                notificationModal.classList.remove('hidden');
+                if (typeof checkNotificationPermission === 'function') {
+                    checkNotificationPermission();
+                }
+            } else {
+                console.error('Notification modal not found in main init');
+            }
+            return false;
+        };
+    } else {
+        console.error('Notification bell not found in main init');
     }
 });
 
@@ -470,4 +495,529 @@ function createAssignmentRow(assignment) {
     row.appendChild(actionTd);
     
     return row;
+}
+
+// Add this new function for notifications
+function initializeNotifications() {
+    console.log('Initializing notifications...');
+    const notificationBell = document.getElementById('notificationBell');
+    const notificationModal = document.getElementById('notificationModal');
+    const requestPermissionBtn = document.getElementById('requestPermissionBtn');
+    const saveSettingsBtn = document.getElementById('saveNotificationSettings');
+    const notificationStatus = document.getElementById('notificationStatus');
+    const reminderSettings = document.getElementById('reminderSettings');
+    
+    if (!notificationBell) {
+        console.error('Notification bell not found in initializeNotifications');
+        return;
+    }
+    
+    console.log('Notification bell found:', notificationBell);
+    console.log('Notification modal found:', !!notificationModal);
+    
+    // Test notification system
+    testNotificationSystem();
+    
+    // Check if browser supports notifications
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        if (notificationStatus) {
+            notificationStatus.textContent = 'Your browser does not support notifications.';
+            notificationStatus.classList.add('bg-red-100', 'text-red-800');
+        }
+        console.log('Browser does not support notifications');
+        return;
+    }
+    
+    // Open notification modal when bell is clicked
+    notificationBell.onclick = function(e) {
+        console.log('Notification bell clicked in initializeNotifications');
+        e.preventDefault();
+        if (notificationModal) {
+            notificationModal.classList.remove('hidden');
+            checkNotificationPermission();
+        } else {
+            console.error('Notification modal not found in initializeNotifications');
+            alert('Notification settings are not available');
+        }
+        return false;
+    };
+    
+    // Request notification permission
+    if (requestPermissionBtn) {
+        requestPermissionBtn.addEventListener('click', async function() {
+            try {
+                const permission = await Notification.requestPermission();
+                checkNotificationPermission();
+                
+                if (permission === 'granted') {
+                    await subscribeToPushNotifications();
+                }
+            } catch (error) {
+                console.error('Error requesting notification permission:', error);
+                notificationStatus.textContent = 'Failed to request permission: ' + error.message;
+                notificationStatus.classList.add('bg-red-100', 'text-red-800');
+            }
+        });
+    }
+    
+    // Save notification settings
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', async function() {
+            const defaultReminderTime = document.getElementById('defaultReminderTime').value;
+            const enableAllNotifications = document.getElementById('enableAllNotifications').checked;
+            
+            try {
+                const {teamNumber} = document.getElementById('teamData').dataset;
+                
+                const response = await fetch(`/team/${teamNumber}/notifications/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        defaultReminderTime,
+                        enableAllNotifications
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Notification settings saved successfully!');
+                    notificationModal.classList.add('hidden');
+                    
+                    // If user enabled all notifications, subscribe to all assignments
+                    if (enableAllNotifications) {
+                        await subscribeToAllAssignments(defaultReminderTime);
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to save notification settings');
+                }
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+                alert('Failed to save notification settings: ' + error.message);
+            }
+        });
+    }
+    
+    // Load user's notification settings
+    loadNotificationSettings();
+}
+
+// Check notification permission status
+async function checkNotificationPermission() {
+    console.log('Checking notification permission');
+    const notificationStatus = document.getElementById('notificationStatus');
+    const requestPermissionBtn = document.getElementById('requestPermissionBtn');
+    const reminderSettings = document.getElementById('reminderSettings');
+    
+    if (!notificationStatus || !requestPermissionBtn || !reminderSettings) {
+        console.error('Required notification elements not found:', {
+            notificationStatus: !!notificationStatus,
+            requestPermissionBtn: !!requestPermissionBtn,
+            reminderSettings: !!reminderSettings
+        });
+        return;
+    }
+    
+    // Check if service worker is registered
+    try {
+        const swRegistration = await getServiceWorkerRegistration();
+        if (!swRegistration) {
+            console.error('Service Worker not registered');
+            notificationStatus.textContent = 'Service Worker not registered. Notifications unavailable.';
+            notificationStatus.classList.add('bg-red-100', 'text-red-800');
+            return;
+        }
+        console.log('Service worker registration found:', swRegistration);
+        
+        const permission = Notification.permission;
+        console.log('Notification permission status:', permission);
+        
+        if (permission === 'granted') {
+            notificationStatus.textContent = 'Notifications are enabled.';
+            notificationStatus.classList.remove('bg-red-100', 'text-red-800');
+            notificationStatus.classList.add('bg-green-100', 'text-green-800');
+            requestPermissionBtn.classList.add('hidden');
+            reminderSettings.classList.remove('hidden');
+            
+            // Check if push subscription exists
+            const subscription = await swRegistration.pushManager.getSubscription();
+            console.log('Push subscription exists:', !!subscription);
+            if (!subscription) {
+                await subscribeToPushNotifications();
+            }
+        } else if (permission === 'denied') {
+            notificationStatus.textContent = 'Notifications are blocked. Please enable them in your browser settings.';
+            notificationStatus.classList.remove('bg-green-100', 'text-green-800');
+            notificationStatus.classList.add('bg-red-100', 'text-red-800');
+            requestPermissionBtn.classList.add('hidden');
+            reminderSettings.classList.add('hidden');
+        } else {
+            notificationStatus.textContent = 'Notifications require your permission.';
+            notificationStatus.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            requestPermissionBtn.classList.remove('hidden');
+            reminderSettings.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error checking notification permission:', error);
+        notificationStatus.textContent = 'Error checking notification status: ' + error.message;
+        notificationStatus.classList.add('bg-red-100', 'text-red-800');
+    }
+}
+
+// Get service worker registration
+async function getServiceWorkerRegistration() {
+    console.log('Getting service worker registration');
+    try {
+        if (!('serviceWorker' in navigator)) {
+            console.error('Service Worker not supported in this browser');
+            return null;
+        }
+        
+        // Check if service worker is already registered
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        console.log('Existing service worker registrations:', registrations.length);
+        
+        if (registrations.length === 0) {
+            console.log('No service worker registrations found, attempting to register');
+            // Try to register the service worker if not already registered
+            try {
+                const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                    scope: '/'
+                });
+                console.log('Service worker registered:', registration);
+                return registration;
+            } catch (regError) {
+                console.error('Failed to register service worker:', regError);
+                return null;
+            }
+        }
+        
+        // Return the first registration or wait for the service worker to be ready
+        return await navigator.serviceWorker.ready;
+    } catch (error) {
+        console.error('Error getting service worker registration:', error);
+        return null;
+    }
+}
+
+// Subscribe to push notifications
+async function subscribeToPushNotifications() {
+    console.log('Attempting to subscribe to push notifications');
+    try {
+        const swRegistration = await getServiceWorkerRegistration();
+        if (!swRegistration) {
+            throw new Error('Service Worker not registered');
+        }
+        
+        // Get the server's public key
+        console.log('Fetching VAPID public key');
+        const response = await fetch('/team/notifications/vapid-public-key');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch VAPID key: ${response.status} ${response.statusText}`);
+        }
+        
+        const vapidPublicKey = await response.text();
+        console.log('Received VAPID public key length:', vapidPublicKey.length);
+        
+        if (!vapidPublicKey || vapidPublicKey.trim() === '') {
+            throw new Error('No VAPID public key provided by the server');
+        }
+        
+        // Convert the public key to Uint8Array
+        try {
+            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+            console.log('Converted VAPID key to Uint8Array successfully');
+            
+            // Check if already subscribed
+            const existingSubscription = await swRegistration.pushManager.getSubscription();
+            if (existingSubscription) {
+                console.log('Already subscribed to push notifications');
+                return existingSubscription;
+            }
+            
+            // Subscribe the user
+            console.log('Creating push subscription');
+            const subscription = await swRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey
+            });
+            
+            console.log('Push subscription created successfully');
+            
+            // Send the subscription to the server
+            console.log('Sending subscription to server');
+            const saveResponse = await fetch('/team/notifications/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON()
+                })
+            });
+            
+            if (!saveResponse.ok) {
+                const errorText = await saveResponse.text();
+                throw new Error(`Failed to save subscription: ${saveResponse.status} ${saveResponse.statusText} - ${errorText}`);
+            }
+            
+            console.log('Subscription saved to server successfully');
+            return subscription;
+        } catch (keyError) {
+            console.error('Error processing VAPID key:', keyError);
+            throw new Error(`Error processing VAPID key: ${keyError.message}`);
+        }
+    } catch (error) {
+        console.error('Failed to subscribe to push notifications:', error);
+        throw error;
+    }
+}
+
+// Subscribe to all assignments
+async function subscribeToAllAssignments(reminderTime) {
+    try {
+        const {teamNumber} = document.getElementById('teamData').dataset;
+        
+        const response = await fetch(`/team/${teamNumber}/notifications/subscribe-all`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                reminderTime
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to subscribe to all assignments');
+        }
+    } catch (error) {
+        console.error('Error subscribing to all assignments:', error);
+        throw error;
+    }
+}
+
+// Load user's notification settings
+async function loadNotificationSettings() {
+    try {
+        const {teamNumber} = document.getElementById('teamData').dataset;
+        
+        const response = await fetch(`/team/${teamNumber}/notifications/settings`);
+        const data = await response.json();
+        
+        if (data.success && data.settings) {
+            const { defaultReminderTime, enableAllNotifications } = data.settings;
+            
+            // Set the values in the form
+            if (defaultReminderTime) {
+                document.getElementById('defaultReminderTime').value = defaultReminderTime;
+            }
+            
+            if (enableAllNotifications !== undefined) {
+                document.getElementById('enableAllNotifications').checked = enableAllNotifications;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading notification settings:', error);
+    }
+}
+
+// Initialize assignment reminder functionality
+function initializeAssignmentReminders() {
+    const saveReminderBtn = document.getElementById('saveAssignmentReminder');
+    if (saveReminderBtn) {
+        saveReminderBtn.addEventListener('click', handleSaveAssignmentReminder);
+    }
+}
+
+// Handle saving assignment reminder
+async function handleSaveAssignmentReminder() {
+    console.log('Saving assignment reminder...');
+    const assignmentId = document.getElementById('reminderAssignmentId').value;
+    const reminderTime = document.getElementById('assignmentReminderTime').value;
+    
+    console.log('Assignment ID:', assignmentId);
+    console.log('Reminder time:', reminderTime);
+    
+    if (!assignmentId || !reminderTime) {
+        alert('Missing assignment information');
+        return;
+    }
+    
+    try {
+        // Convert reminder time to integer
+        const reminderTimeInt = parseInt(reminderTime, 10);
+        if (isNaN(reminderTimeInt)) {
+            throw new Error('Invalid reminder time: must be a number');
+        }
+        
+        console.log('Sending subscription request...');
+        
+        // Subscribe to the assignment
+        const response = await fetch(`/team/assignments/${assignmentId}/subscribe`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                reminderTime: reminderTimeInt
+            })
+        });
+        
+        console.log('Subscription response status:', response.status);
+        
+        // Try to parse the response as JSON
+        let data;
+        try {
+            data = await response.json();
+            console.log('Subscription response data:', data);
+        } catch (jsonError) {
+            console.error('Failed to parse response as JSON:', jsonError);
+            const text = await response.text();
+            console.log('Response text:', text);
+            throw new Error(`Server returned invalid JSON: ${text}`);
+        }
+        
+        if (data.success) {
+            console.log('Reminder set successfully');
+            alert('Reminder set successfully!');
+            document.getElementById('assignmentReminderModal').classList.add('hidden');
+        } else {
+            console.error('Error setting reminder:', data.message);
+            alert('Failed to set reminder: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error setting reminder:', error);
+        alert('Failed to set reminder: ' + error.message);
+    }
+}
+
+// Subscribe to a specific assignment
+async function subscribeToAssignment(assignmentId) {
+    try {
+        // Check if notifications are supported and permission is granted
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Your browser does not support notifications.');
+            return;
+        }
+
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('You need to allow notifications to use this feature.');
+                return;
+            }
+        }
+
+        // Get service worker registration
+        const swRegistration = await navigator.serviceWorker.ready;
+        
+        // Check if push subscription exists
+        let subscription = await swRegistration.pushManager.getSubscription();
+        if (!subscription) {
+            // Get the server's public key
+            const response = await fetch('/team/notifications/vapid-public-key');
+            const vapidPublicKey = await response.text();
+            
+            // Convert the public key to Uint8Array
+            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+            
+            // Subscribe the user
+            subscription = await swRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey
+            });
+            
+            // Send the subscription to the server
+            await fetch('/team/notifications/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON()
+                })
+            });
+        }
+
+        // Show the reminder modal
+        document.getElementById('reminderAssignmentId').value = assignmentId;
+        document.getElementById('assignmentReminderModal').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error preparing assignment subscription:', error);
+        alert('Failed to prepare notification: ' + error.message);
+    }
+}
+
+// Helper function to convert base64 to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    try {
+        if (!base64String) {
+            throw new Error('Empty base64 string provided');
+        }
+        
+        // Clean the base64 string
+        const cleanedBase64 = base64String.trim();
+        console.log('Base64 string length after trimming:', cleanedBase64.length);
+        
+        if (cleanedBase64.length === 0) {
+            throw new Error('Empty base64 string after trimming');
+        }
+        
+        const padding = '='.repeat((4 - cleanedBase64.length % 4) % 4);
+        const base64 = (cleanedBase64 + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        
+        try {
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        } catch (atobError) {
+            console.error('Error decoding base64:', atobError);
+            throw new Error('Invalid base64 string: ' + atobError.message);
+        }
+    } catch (error) {
+        console.error('Error in urlBase64ToUint8Array:', error);
+        throw error;
+    }
+}
+
+// Test notification system
+async function testNotificationSystem() {
+    try {
+        console.log('Testing notification system...');
+        const response = await fetch('/team/notifications/test');
+        if (!response.ok) {
+            console.error('Notification test failed:', response.status, response.statusText);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('Notification system test results:', data);
+        
+        // Check if VAPID keys are configured
+        if (!data.has_vapid_key || !data.has_vapid_private) {
+            console.error('VAPID keys are not properly configured:', {
+                has_public_key: data.has_vapid_key,
+                has_private_key: data.has_vapid_private
+            });
+        } else {
+            console.log('VAPID keys are properly configured');
+        }
+    } catch (error) {
+        console.error('Error testing notification system:', error);
+    }
 }
