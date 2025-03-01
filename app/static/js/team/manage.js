@@ -1,4 +1,3 @@
-// Main initialization
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM content loaded, initializing...');
     initializeSearch();
@@ -7,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEditAssignment();
     initializeNotifications();
     initializeAssignmentReminders();
+    initializeDevTools();
     const teamData = document.getElementById('teamData');
     if (teamData) {
         currentUserId = teamData.dataset.currentUserId;
@@ -500,170 +500,144 @@ function createAssignmentRow(assignment) {
 // Add this new function for notifications
 function initializeNotifications() {
     console.log('Initializing notifications...');
+    
+    // Get DOM elements
     const notificationBell = document.getElementById('notificationBell');
     const notificationModal = document.getElementById('notificationModal');
-    const requestPermissionBtn = document.getElementById('requestPermissionBtn');
-    const saveSettingsBtn = document.getElementById('saveNotificationSettings');
-    const notificationStatus = document.getElementById('notificationStatus');
-    const reminderSettings = document.getElementById('reminderSettings');
     
-    if (!notificationBell) {
-        console.error('Notification bell not found in initializeNotifications');
+    // Only proceed if notification elements exist
+    if (!notificationBell || !notificationModal) {
+        console.error('Notification elements not found');
         return;
     }
     
-    console.log('Notification bell found:', notificationBell);
-    console.log('Notification modal found:', !!notificationModal);
-    
-    // Test notification system
-    testNotificationSystem();
-    
-    // Check if browser supports notifications
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-        if (notificationStatus) {
-            notificationStatus.textContent = 'Your browser does not support notifications.';
-            notificationStatus.classList.add('bg-red-100', 'text-red-800');
-        }
-        console.log('Browser does not support notifications');
-        return;
-    }
-    
-    // Open notification modal when bell is clicked
-    notificationBell.onclick = function(e) {
-        console.log('Notification bell clicked in initializeNotifications');
+    // Don't check subscription on page load - only when the bell is clicked
+    notificationBell.addEventListener('click', function(e) {
         e.preventDefault();
-        if (notificationModal) {
-            notificationModal.classList.remove('hidden');
+        
+        // Show modal first
+        notificationModal.classList.remove('hidden');
+        
+        // Then check permission (this only happens after user interaction)
+        if (typeof checkNotificationPermission === 'function') {
             checkNotificationPermission();
-        } else {
-            console.error('Notification modal not found in initializeNotifications');
-            alert('Notification settings are not available');
         }
+        
         return false;
-    };
+    });
     
-    // Request notification permission
-    if (requestPermissionBtn) {
-        requestPermissionBtn.addEventListener('click', async function() {
-            try {
-                const permission = await Notification.requestPermission();
-                checkNotificationPermission();
-                
-                if (permission === 'granted') {
-                    await subscribeToPushNotifications();
-                }
-            } catch (error) {
-                console.error('Error requesting notification permission:', error);
-                notificationStatus.textContent = 'Failed to request permission: ' + error.message;
-                notificationStatus.classList.add('bg-red-100', 'text-red-800');
-            }
-        });
-    }
-    
-    // Save notification settings
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', async function() {
-            const defaultReminderTime = document.getElementById('defaultReminderTime').value;
-            const enableAllNotifications = document.getElementById('enableAllNotifications').checked;
-            
-            try {
-                const {teamNumber} = document.getElementById('teamData').dataset;
-                
-                const response = await fetch(`/team/${teamNumber}/notifications/settings`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        defaultReminderTime,
-                        enableAllNotifications
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Notification settings saved successfully!');
-                    notificationModal.classList.add('hidden');
-                    
-                    // If user enabled all notifications, subscribe to all assignments
-                    if (enableAllNotifications) {
-                        await subscribeToAllAssignments(defaultReminderTime);
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to save notification settings');
-                }
-            } catch (error) {
-                console.error('Error saving notification settings:', error);
-                alert('Failed to save notification settings: ' + error.message);
-            }
-        });
-    }
-    
-    // Load user's notification settings
-    loadNotificationSettings();
+    // Other notification initialization code...
 }
 
-// Check notification permission status
-async function checkNotificationPermission() {
-    console.log('Checking notification permission');
-    const notificationStatus = document.getElementById('notificationStatus');
-    const requestPermissionBtn = document.getElementById('requestPermissionBtn');
-    const reminderSettings = document.getElementById('reminderSettings');
+// Add this new function to handle notification UI updates
+function updateNotificationUI(data) {
+    console.log('Updating notification UI with data:', data);
     
-    if (!notificationStatus || !requestPermissionBtn || !reminderSettings) {
-        console.error('Required notification elements not found:', {
-            notificationStatus: !!notificationStatus,
-            requestPermissionBtn: !!requestPermissionBtn,
-            reminderSettings: !!reminderSettings
-        });
+    // Check if notification modal exists
+    const notificationModal = document.getElementById('notificationModal');
+    if (!notificationModal) {
+        console.error('Notification modal not found');
         return;
     }
+
+    // Find or create the status element
+    let statusText = document.getElementById('notificationStatus');
+    if (!statusText) {
+        // Create a status text element if it doesn't exist
+        statusText = document.createElement('p');
+        statusText.id = 'notificationStatus';
+        statusText.className = 'text-sm mb-4';
+        notificationModal.querySelector('.modal-content').prepend(statusText);
+    }
     
-    // Check if service worker is registered
-    try {
-        const swRegistration = await getServiceWorkerRegistration();
-        if (!swRegistration) {
-            console.error('Service Worker not registered');
-            notificationStatus.textContent = 'Service Worker not registered. Notifications unavailable.';
-            notificationStatus.classList.add('bg-red-100', 'text-red-800');
-            return;
+    // Find or update the buttons
+    let enableButton = document.getElementById('enableNotifications');
+    let disableButton = document.getElementById('disableNotifications');
+    
+    // Get any existing notification buttons
+    const existingButtons = notificationModal.querySelectorAll('button');
+    if (existingButtons.length > 0) {
+        // Use existing buttons instead of creating new ones
+        if (!enableButton) {
+            enableButton = Array.from(existingButtons).find(btn => 
+                btn.textContent.includes('Enable') || btn.textContent.includes('Subscribe')
+            );
+            if (enableButton) enableButton.id = 'enableNotifications';
         }
-        console.log('Service worker registration found:', swRegistration);
         
-        const permission = Notification.permission;
-        console.log('Notification permission status:', permission);
+        if (!disableButton) {
+            disableButton = Array.from(existingButtons).find(btn => 
+                btn.textContent.includes('Disable') || btn.textContent.includes('Unsubscribe')
+            );
+            if (disableButton) disableButton.id = 'disableNotifications';
+        }
+    }
+    
+    // Create permission status display if doesn't exist
+    let permissionStatus = document.getElementById('permissionStatus');
+    if (!permissionStatus) {
+        permissionStatus = document.createElement('span');
+        permissionStatus.id = 'permissionStatus';
+        permissionStatus.className = 'px-2 py-1 rounded text-sm font-bold';
+        if (statusText.parentNode) {
+            statusText.parentNode.insertBefore(permissionStatus, statusText.nextSibling);
+        }
+    }
+    
+    // Update the UI based on notification status
+    if (Notification.permission === 'granted' && data.hasSubscription) {
+        // Notifications are enabled
+        statusText.textContent = 'Notifications are enabled. ';
+        statusText.className = 'text-sm text-green-500 mb-4';
         
-        if (permission === 'granted') {
-            notificationStatus.textContent = 'Notifications are enabled.';
-            notificationStatus.classList.remove('bg-red-100', 'text-red-800');
-            notificationStatus.classList.add('bg-green-100', 'text-green-800');
-            requestPermissionBtn.classList.add('hidden');
-            reminderSettings.classList.remove('hidden');
-            
-            // Check if push subscription exists
-            const subscription = await swRegistration.pushManager.getSubscription();
-            console.log('Push subscription exists:', !!subscription);
-            if (!subscription) {
-                await subscribeToPushNotifications();
-            }
-        } else if (permission === 'denied') {
-            notificationStatus.textContent = 'Notifications are blocked. Please enable them in your browser settings.';
-            notificationStatus.classList.remove('bg-green-100', 'text-green-800');
-            notificationStatus.classList.add('bg-red-100', 'text-red-800');
-            requestPermissionBtn.classList.add('hidden');
-            reminderSettings.classList.add('hidden');
+        // Show/hide appropriate buttons
+        if (enableButton) enableButton.style.display = 'none';
+        if (disableButton) disableButton.style.display = 'block';
+    } else {
+        // Notifications are disabled
+        statusText.textContent = 'Notifications are disabled. ';
+        statusText.className = 'text-sm text-red-500 mb-4';
+        
+        // Show/hide appropriate buttons
+        if (enableButton) enableButton.style.display = 'block';
+        if (disableButton) disableButton.style.display = 'none';
+    }
+    
+    // Update permission status display
+    if (permissionStatus) {
+        permissionStatus.textContent = data.permissionStatus || Notification.permission;
+        permissionStatus.className = 'px-2 py-1 rounded text-sm font-bold ml-2';
+        
+        if (Notification.permission === 'granted') {
+            permissionStatus.classList.add('bg-green-100', 'text-green-800');
+        } else if (Notification.permission === 'denied') {
+            permissionStatus.classList.add('bg-red-100', 'text-red-800');
         } else {
-            notificationStatus.textContent = 'Notifications require your permission.';
-            notificationStatus.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
-            requestPermissionBtn.classList.remove('hidden');
-            reminderSettings.classList.add('hidden');
+            permissionStatus.classList.add('bg-yellow-100', 'text-yellow-800');
         }
-    } catch (error) {
-        console.error('Error checking notification permission:', error);
-        notificationStatus.textContent = 'Error checking notification status: ' + error.message;
-        notificationStatus.classList.add('bg-red-100', 'text-red-800');
+    }
+}
+
+// Update checkNotificationPermission to handle the "no subscription" case better
+function checkNotificationPermission() {
+    console.log('Checking notification permission...');
+    
+    // Check if we already have permission
+    if (Notification.permission === 'granted') {
+        // Only make the API call to check subscription if permission is already granted
+        fetch('/team/notifications/status')
+            .then(response => response.json())
+            .then(data => {
+                updateNotificationUI(data);
+            })
+            .catch(error => {
+                console.error('Error checking notification status:', error);
+                // Don't show error message on page load - just log it
+                updateNotificationUI({ hasSubscription: false, permissionStatus: Notification.permission });
+            });
+    } else {
+        // Just update UI to reflect permission status without error message
+        updateNotificationUI({ hasSubscription: false, permissionStatus: Notification.permission });
     }
 }
 
@@ -999,25 +973,264 @@ function urlBase64ToUint8Array(base64String) {
 async function testNotificationSystem() {
     try {
         console.log('Testing notification system...');
-        const response = await fetch('/team/notifications/test');
-        if (!response.ok) {
-            console.error('Notification test failed:', response.status, response.statusText);
+        
+        // First check if the configuration is correct
+        const configResponse = await fetch('/team/notifications/test');
+        if (!configResponse.ok) {
+            console.error('Notification test failed:', configResponse.status, configResponse.statusText);
             return;
         }
         
-        const data = await response.json();
-        console.log('Notification system test results:', data);
+        const configData = await configResponse.json();
+        console.log('Notification system test results:', configData);
         
         // Check if VAPID keys are configured
-        if (!data.has_vapid_key || !data.has_vapid_private) {
+        if (!configData.has_vapid_key || !configData.has_vapid_private) {
             console.error('VAPID keys are not properly configured:', {
-                has_public_key: data.has_vapid_key,
-                has_private_key: data.has_vapid_private
+                has_public_key: configData.has_vapid_key,
+                has_private_key: configData.has_vapid_private
             });
+            alert('Notification system is not properly configured. Please contact the administrator.');
+            return;
+        }
+        
+        console.log('VAPID keys are properly configured');
+        
+        // Now actually send a test notification
+        const permission = Notification.permission;
+        if (permission !== 'granted') {
+            console.warn('Notification permission not granted:', permission);
+            const newPermission = await Notification.requestPermission();
+            if (newPermission !== 'granted') {
+                alert('You must allow notifications to continue.');
+                return;
+            }
+        }
+        
+        // Check if we have a valid service worker registration
+        const swRegistration = await getServiceWorkerRegistration();
+        if (!swRegistration) {
+            console.error('Service Worker not registered');
+            alert('Service Worker not registered. Notifications unavailable.');
+            return;
+        }
+        
+        // Check if we have a valid push subscription
+        let pushSubscription = await swRegistration.pushManager.getSubscription();
+        
+        // If no subscription exists, create one automatically
+        if (!pushSubscription) {
+            console.log('No push subscription found. Creating one now...');
+            try {
+                pushSubscription = await subscribeToPushNotifications();
+                if (!pushSubscription) {
+                    alert('Could not create push subscription. Please try enabling notifications first.');
+                    return;
+                }
+                console.log('Successfully created push subscription');
+            } catch (subscriptionError) {
+                console.error('Failed to create subscription:', subscriptionError);
+                alert(`Could not subscribe to notifications: ${subscriptionError.message}`);
+                return;
+            }
+        }
+        
+        // Send a test notification
+        console.log('Sending test notification...');
+        const testResponse = await fetch('/team/notifications/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const testResult = await testResponse.json();
+        console.log('Test notification result:', testResult);
+        
+        if (testResult.success) {
+            alert('Test notification sent successfully! You should receive it shortly.');
         } else {
-            console.log('VAPID keys are properly configured');
+            alert(`Failed to send test notification: ${testResult.message}`);
         }
     } catch (error) {
         console.error('Error testing notification system:', error);
+        alert(`Error testing notification system: ${error.message}`);
     }
+}
+
+// Direct Browser Notification
+async function showDirectNotification() {
+    console.log('Showing direct browser notification...');
+    try {
+        // Check if notifications are supported
+        if (!('Notification' in window)) {
+            alert('This browser does not support desktop notifications');
+            return;
+        }
+
+        // Check permission
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permission not granted for notifications');
+                return;
+            }
+        }
+
+        // Create and show the notification directly
+        const notification = new Notification('Test Direct Notification', {
+            body: 'This is a direct browser notification (no push)',
+            icon: '/static/logo.png',
+            timestamp: Date.now()
+        });
+
+        // Log when notification is clicked
+        notification.onclick = function() {
+            console.log('Notification clicked');
+            window.focus();
+            notification.close();
+        };
+
+        console.log('Direct notification created:', notification);
+        alert('Direct notification sent! You should see it now.');
+    } catch (error) {
+        console.error('Error showing direct notification:', error);
+        alert(`Error showing notification: ${error.message}`);
+    }
+}
+
+// Simple Push Notification - streamlined version with minimal checks
+async function sendSimplePushNotification() {
+    console.log('Sending simple push notification...');
+    try {
+        // Just make the POST request directly
+        const response = await fetch('/team/notifications/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Simple push notification response:', response);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Simple push notification result:', result);
+            alert('Simple push notification request sent! Check console for details.');
+        } else {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+    } catch (error) {
+        console.error('Error sending simple push notification:', error);
+        alert(`Error sending simple push notification: ${error.message}`);
+    }
+}
+
+// Initialize developer tools
+function initializeDevTools() {
+    // Only show dev tools in development environment
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const devReloadBtn = document.getElementById('devReloadBtn');
+    
+    if (devReloadBtn && isLocalhost) {
+        // Show the button only in development
+        devReloadBtn.style.display = 'flex';
+        
+        // Add event listener
+        devReloadBtn.addEventListener('click', clearCacheAndReload);
+    }
+}
+
+// Function to clear all caches and reload the page
+async function clearCacheAndReload() {
+    try {
+        console.log('Clearing service worker cache...');
+        
+        // Unregister all service workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            console.log('Unregistering service worker:', registration.scope);
+            await registration.unregister();
+        }
+        
+        // Clear all caches
+        const cacheNames = await caches.keys();
+        await Promise.all(
+            cacheNames.map(cacheName => {
+                console.log('Deleting cache:', cacheName);
+                return caches.delete(cacheName);
+            })
+        );
+        
+        console.log('All caches cleared successfully');
+        alert('Cache cleared successfully! Reloading page...');
+        
+        // Add a timestamp to force reload without cache
+        window.location.href = window.location.pathname + '?cache-bust=' + Date.now();
+    } catch (error) {
+        console.error('Error clearing cache:', error);
+        alert('Error clearing cache: ' + error.message);
+    }
+}
+
+// Update the refreshPushSubscription function to use the resubscribe endpoint
+async function refreshPushSubscription() {
+    console.log('Refreshing push subscription...');
+    try {
+        // Unsubscribe from any existing subscription
+        const swRegistration = await navigator.serviceWorker.ready;
+        const existingSubscription = await swRegistration.pushManager.getSubscription();
+        
+        if (existingSubscription) {
+            console.log('Unsubscribing from existing subscription');
+            await existingSubscription.unsubscribe();
+        }
+        
+        // Create a new subscription
+        const newSubscription = await subscribeToPushNotifications();
+        if (!newSubscription) {
+            throw new Error('Failed to create new subscription');
+        }
+        
+        // Send the new subscription to the server using the resubscribe endpoint
+        const response = await fetch('/team/notifications/resubscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                subscription: newSubscription.toJSON()
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to register new subscription with server');
+        }
+        
+        console.log('Successfully refreshed push subscription');
+        return newSubscription;
+    } catch (error) {
+        console.error('Error refreshing push subscription:', error);
+        throw error;
+    }
+}
+
+// Add a button to your notification modal to manually refresh
+// <button id="refreshSubscriptionBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+//   Refresh Notification Subscription
+// </button>
+
+// And add this event listener in your initializeNotifications function:
+const refreshBtn = document.getElementById('refreshSubscriptionBtn');
+if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+        try {
+            await refreshPushSubscription();
+            alert('Notification subscription refreshed successfully!');
+            checkNotificationPermission();
+        } catch (error) {
+            alert(`Failed to refresh subscription: ${error.message}`);
+        }
+    });
 }

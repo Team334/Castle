@@ -3,7 +3,16 @@
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex flex-col sm:flex-row justify-between items-center mb-8 space-y-4 sm:space-y-0">
         <h1 class="text-2xl font-bold text-center sm:text-left">Team Management</h1>
-        <div class="w-full sm:w-auto">
+        <div class="w-full sm:w-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            <!-- Developer Tools button -->
+            <button id="devReloadBtn" 
+                    class="px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 flex items-center" 
+                    style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Clear Cache & Reload
+            </button>
             <input
                 type="text"
                 id="memberSearch"
@@ -517,69 +526,65 @@
     </div>
 
     <!-- Notification Preferences Modal -->
-    <div id="notificationModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-            <div class="absolute top-0 right-0 pt-2 pr-2">
+    <div id="notificationModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Notification Settings</h3>
                 <button type="button" onclick="document.getElementById('notificationModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
-                    <span class="sr-only">Close</span>
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <div class="mt-3">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Notification Preferences</h3>
-                <div class="mb-4">
-                    <p class="text-sm text-gray-500 mb-4">
-                        Enable notifications to receive reminders for upcoming assignments.
-                    </p>
-                    <div id="notificationStatus" class="mb-4 p-3 bg-gray-100 rounded text-sm">
-                        Checking notification permission...
-                    </div>
-                    <div id="permissionControls" class="mb-4">
-                        <button id="requestPermissionBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 hidden">
+             
+            <div class="p-6">
+                <!-- Notification Status -->
+                <div id="notificationStatus" class="p-3 mb-4 text-sm rounded-md"></div>
+                
+                <!-- Permission Button -->
+                <button id="requestPermissionBtn" class="mb-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
                             Enable Notifications
                         </button>
-                    </div>
-                </div>
                 
-                <div id="reminderSettings" class="mb-4 hidden">
-                    <h4 class="font-medium text-gray-700 mb-2">Reminder Settings</h4>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Default reminder time before due date
-                            </label>
-                            <select id="defaultReminderTime" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="5">5 minutes</option>
-                                <option value="15">15 minutes</option>
-                                <option value="30">30 minutes</option>
-                                <option value="60">1 hour</option>
-                                <option value="120">2 hours</option>
-                                <option value="360">6 hours</option>
-                                <option value="720">12 hours</option>
-                                <option value="1440" selected>1 day</option>
-                                <option value="2880">2 days</option>
-                                <option value="10080">1 week</option>
+                <!-- Test Notification Button -->
+                <button onclick="testNotificationSystem()" class="mb-4 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md">
+                    Send Test Notification
+                </button>
+                
+                <!-- Direct Browser Notification Button -->
+                <button onclick="showDirectNotification()" class="mb-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                    Show Direct Browser Notification
+                </button>
+                
+                <!-- Simple Push Notification Button -->
+                <button onclick="sendSimplePushNotification()" class="mb-4 w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-md">
+                    Send Simple Push Notification
+                </button>
+                
+                <!-- Notification Settings Form -->
+                <div id="reminderSettings" class="hidden mt-4">
+                    <h4 class="font-medium text-gray-700 mb-2">Default Reminder Time</h4>
+                    <div class="flex items-center space-x-4 mb-4">
+                        <select id="defaultReminderTime" class="flex-1 border rounded-md py-2 px-3">
+                            <option value="60">1 hour before</option>
+                            <option value="180">3 hours before</option>
+                            <option value="360">6 hours before</option>
+                            <option value="720">12 hours before</option>
+                            <option value="1440" selected>1 day before</option>
+                            <option value="2880">2 days before</option>
+                            <option value="10080">1 week before</option>
                             </select>
                         </div>
                         
-                        <div class="flex items-center">
+                    <div class="flex items-center mb-4">
                             <input type="checkbox" id="enableAllNotifications" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                             <label for="enableAllNotifications" class="ml-2 block text-sm text-gray-700">
-                                Enable notifications for all assignments
+                            Enable notifications for all my assignments
                             </label>
-                        </div>
-                    </div>
                 </div>
                 
-                <div class="flex items-center justify-between mt-6">
-                    <button id="saveNotificationSettings" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <button id="saveNotificationSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
                         Save Settings
-                    </button>
-                    <button onclick="document.getElementById('notificationModal').classList.add('hidden')" 
-                            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                        Close
                     </button>
                 </div>
             </div>
@@ -677,24 +682,38 @@
     // Register service worker for push notifications
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-            // First, unregister any existing service workers to ensure clean state
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    console.log('Unregistering service worker:', registration.scope);
-                    registration.unregister();
+            // Add a timestamp parameter to ensure fresh version during development
+            const cacheBust = Date.now();
+            const swUrl = `/service-worker.js?v=${cacheBust}`;
+            
+            // First, check if there's an existing service worker
+            navigator.serviceWorker.getRegistration().then(function(registration) {
+                if (registration) {
+                    console.log('Found existing service worker:', registration.scope);
+                    // Don't immediately unregister - let the dev tools button handle that
+                    // Instead, update the existing service worker
+                    return registration.update()
+                        .then(() => {
+                            console.log('Service worker updated successfully');
+                            return registration;
+                        });
+                } else {
+                    // No existing service worker, register a new one
+                    console.log('No existing service worker, registering new one:', swUrl);
+                    return navigator.serviceWorker.register(swUrl, {
+                        scope: '/'
+                    });
                 }
-                
-                // Then register the new service worker
-                console.log('Registering new service worker...');
-                return navigator.serviceWorker.register('/service-worker.js', {
-                    scope: '/'
-                });
             })
             .then(function(registration) {
-                console.log('Service Worker registered with scope:', registration.scope);
+                console.log('ServiceWorker registration successful with scope:', registration.scope);
                 
-                // Force update the service worker
-                registration.update();
+                // Check if the service worker is active
+                if (registration.active) {
+                    console.log('Service worker is already active');
+                } else {
+                    console.log('Service worker is not yet active, waiting for activation');
+                }
             })
             .catch(function(error) {
                 console.error('Service Worker registration failed:', error);

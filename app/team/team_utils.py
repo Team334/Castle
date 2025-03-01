@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from io import BytesIO
 from typing import Dict, Optional, Tuple, Union
 
@@ -333,10 +333,8 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def create_assignment(
-        self, team_number: int, creator_id: str, assignment_data: Dict
-    ):
-        """Create a new assignment for the team"""
+    async def create_or_update_assignment(self, team_number: int, assignment_data: dict, creator_id: str):
+        """Create or update an assignment and schedule notifications"""
         self.ensure_connected()
         try:
             team = await self.get_team_by_number(team_number)
@@ -365,11 +363,13 @@ class TeamManager(DatabaseManager):
                 {"$addToSet": {"assignments": str(result.inserted_id)}},
             )
 
-            return True, Assignment.create_from_db(
-                {"_id": result.inserted_id, **assignment}
-            )
+            # After creating/updating the assignment, schedule notifications
+            assignment_id = str(result.inserted_id)
+            await self.schedule_assignment_notifications(team_number, assignment_id, assignment_data)
+            
+            return True, "Assignment created successfully"
         except Exception as e:
-            logger.error(f"Error creating assignment: {str(e)}")
+            logger.error(f"Error creating/updating assignment: {str(e)}")
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
@@ -744,3 +744,88 @@ class TeamManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error transferring ownership: {str(e)}")
             return False, "An internal error has occurred."
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def get_user_team(self, user_id: str) -> Optional[Team]:
+        """Get the team associated with a user"""
+        self.ensure_connected()
+        try:
+            # Find the user to get their team number
+            user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
+            if not user_data or not user_data.get("teamNumber"):
+                return None
+                
+            # Now get the team using the user's team number
+            return await self.get_team_by_number(user_data["teamNumber"])
+        except Exception as e:
+            logger.error(f"Error getting user team: {str(e)}")
+            return None
+
+    async def schedule_assignment_notifications(self, team_number: int, assignment_id: str, assignment_data: dict):
+        """Schedule notifications for an assignment based on user preferences"""
+        try:
+            # Get the due date from assignment data
+            due_date = assignment_data.get("due_date")
+            if not due_date:
+                logger.warning(f"No due date for assignment {assignment_id}, cannot schedule notifications")
+                return
+            
+            # Get assigned users
+            assigned_users = assignment_data.get("assigned_to", [])
+            if not assigned_users:
+                logger.warning(f"No users assigned to assignment {assignment_id}")
+                return
+            
+            # For each assigned user, schedule a notification
+            for user_id in assigned_users:
+                # Get user's notification subscription
+                subscription = self.db.notification_subscriptions.find_one({"user_id": user_id})
+                if not subscription:
+                    logger.info(f"User {user_id} has no notification subscription")
+                    continue
+                
+                # Check if they've enabled notifications
+                if not subscription.get("enabled", False):
+                    logger.info(f"User {user_id} has disabled notifications")
+                    continue
+                
+                # Get reminder time preference (hours before due date)
+                reminder_time = 24  # Default to 24 hours
+                if subscription.get("assignment_subscriptions"):
+                    for sub in subscription["assignment_subscriptions"]:
+                        if sub.get("assignment_id") == assignment_id:
+                            reminder_time = sub.get("reminder_time", 24)
+                            break
+            
+                # Calculate notification time
+                notification_time = due_date - timedelta(hours=reminder_time)
+            
+                # Create notification document
+                notification = {
+                    "user_id": user_id,
+                    "team_number": team_number,
+                    "assignment_id": assignment_id,
+                    "title": f"Reminder: {assignment_data.get('title', 'Assignment due soon')}",
+                    "body": f"You have an assignment due soon: {assignment_data.get('description', '')}",
+                    "scheduled_time": notification_time,
+                    "created_at": datetime.now(),
+                    "sent": False,
+                    "status": "pending",
+                    "url": f"/team/assignments/{assignment_id}",
+                    "data": {
+                        "assignmentId": assignment_id,
+                        "teamNumber": team_number
+                    }
+                }
+            
+                # Insert or update notification
+                self.db.scheduled_notifications.update_one(
+                    {"user_id": user_id, "assignment_id": assignment_id},
+                    {"$set": notification},
+                    upsert=True
+                )
+            
+                logger.info(f"Scheduled notification for user {user_id} at {notification_time}")
+            
+        except Exception as e:
+            logger.error(f"Error scheduling notifications for assignment {assignment_id}: {str(e)}")

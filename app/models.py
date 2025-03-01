@@ -518,6 +518,8 @@ class ScheduledNotification:
         self.created_at = data.get("created_at", datetime.now())
         self.sent = data.get("sent", False)
         self.sent_at = data.get("sent_at")
+        self.status = data.get("status", "pending")
+        self.error = data.get("error")
         self.url = data.get("url", "/")
         self.data = data.get("data", {})
 
@@ -546,6 +548,8 @@ class ScheduledNotification:
             "created_at": self.created_at,
             "sent": self.sent,
             "sent_at": self.sent_at,
+            "status": self.status,
+            "error": self.error,
             "url": self.url,
             "data": self.data
         }

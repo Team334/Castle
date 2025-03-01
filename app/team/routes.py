@@ -207,17 +207,15 @@ async def remove_admin(team_number):
 
 @team_bp.route("/<int:team_number>/assignments", methods=["POST"])
 @login_required
-@limiter.limit("15 per minute")
+@limiter.limit("10 per minute")
 @async_route
 async def create_assignment(team_number):
     """Create a new assignment"""
 
     try:
         data = request.get_json()
-        success, result = await team_manager.create_assignment(
-            team_number=team_number,
-            creator_id=current_user.get_id(),
-            assignment_data=data,
+        success, message = await team_manager.create_or_update_assignment(
+            team_number, data, current_user.get_id()
         )
 
         if success:
@@ -227,7 +225,7 @@ async def create_assignment(team_number):
                 ),
                 200,
             )
-        return jsonify({"success": False, "message": result}), 400
+        return jsonify({"success": False, "message": message}), 400
 
     except Exception as e:
         current_app.logger.error(f"Error creating assignment: {str(e)}")
@@ -644,26 +642,71 @@ async def subscribe_to_push():
 @team_bp.route("/notifications/resubscribe", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def resubscribe_to_push():
-    """Handle push subscription change"""
+def resubscribe_to_push():
+    """Resubscribe a user to push notifications (refreshes expired subscription)"""
     try:
         data = request.get_json()
-        if not data or not data.get("newSubscription"):
-            return error_response("Invalid subscription data")
-        
-        new_subscription = data.get("newSubscription")
-        
-        # Update user's subscription
-        current_app.mongo.db.notification_subscriptions.update_one(
-            {"user_id": current_user.get_id()},
-            {"$set": {
-                "subscription_json": new_subscription,
-                "updated_at": datetime.now()
-            }}
+        if not data:
+            return error_response("Invalid request data")
+
+        subscription_json = data.get("subscription")
+        if not subscription_json:
+            current_app.logger.warning("Empty subscription data received")
+            return error_response("Empty subscription data")
+
+        # Validate subscription JSON
+        if not isinstance(subscription_json, dict) or 'endpoint' not in subscription_json:
+            current_app.logger.warning(f"Invalid subscription format: {subscription_json}")
+            return error_response("Invalid subscription format")
+
+        # Get user's existing subscription
+        existing = current_app.mongo.db.notification_subscriptions.find_one(
+            {"user_id": current_user.get_id()}
         )
-        
-        return success_response("Resubscription successful")
+
+        if existing:
+            # Keep the user's preferences but update the subscription data
+            current_app.mongo.db.notification_subscriptions.update_one(
+                {"user_id": current_user.get_id()},
+                {"$set": {
+                    "subscription_json": subscription_json,
+                    "updated_at": datetime.now(),
+                }}
+            )
+            
+            current_app.logger.info(f"Resubscribed user {current_user.get_id()} with new push subscription")
+            
+            # Reschedule any pending notifications that failed
+            failed_notifications = current_app.mongo.db.scheduled_notifications.find({
+                "user_id": current_user.get_id(),
+                "sent": True,
+                "status": "failed",
+                "error": {"$regex": "expired"}
+            })
+            
+            for notification in failed_notifications:
+                # Only reschedule if it's less than 24 hours old
+                if notification.get("scheduled_time") > datetime.now() - timedelta(hours=24):
+                    # Create a new notification with the same data but scheduled for now + 1 minute
+                    new_notification = notification.copy()
+                    del new_notification["_id"]  # Remove the old ID
+                    del new_notification["sent"]
+                    del new_notification["status"]
+                    del new_notification["error"]
+                    if "sent_at" in new_notification:
+                        del new_notification["sent_at"]
+                    
+                    new_notification["scheduled_time"] = datetime.now() + timedelta(minutes=1)
+                    new_notification["created_at"] = datetime.now()
+                    
+                    current_app.mongo.db.scheduled_notifications.insert_one(new_notification)
+                    current_app.logger.info(f"Rescheduled failed notification {notification['_id']} for user {current_user.get_id()}")
+            
+            return success_response("Resubscription successful")
+        else:
+            # No existing subscription, create new
+            return subscribe_to_push()
+
     except Exception as e:
         current_app.logger.error(f"Error resubscribing to push: {e}")
         return error_response(f"Error resubscribing to push: {str(e)}")
@@ -970,22 +1013,150 @@ async def subscribe_to_assignment(assignment_id):
         current_app.logger.error(f"Error subscribing to assignment: {e}")
         return error_response(f"Error subscribing to assignment: {str(e)}")
 
-@team_bp.route("/notifications/test", methods=["GET"])
+@team_bp.route("/notifications/test", methods=["GET", "POST"])
 @login_required
+@limiter.limit("10 per minute")
 def test_notification():
-    """Test route for notifications"""
+    """Test route for notifications - sends an actual test notification"""
     vapid_key = current_app.config.get("VAPID_PUBLIC_KEY", "")
     vapid_private = current_app.config.get("VAPID_PRIVATE_KEY", "")
     
-    return jsonify({
-        "success": True,
-        "message": "Notification test route",
-        "vapid_key_length": len(vapid_key) if vapid_key else 0,
-        "vapid_private_length": len(vapid_private) if vapid_private else 0,
-        "has_vapid_key": bool(vapid_key),
-        "has_vapid_private": bool(vapid_private),
-        "user_id": current_user.get_id(),
-        "notification_support": {
-            "mongo_collections": list(current_app.mongo.db.list_collection_names())
-        }
-    })
+    # For GET requests, just return the configuration info
+    if request.method == "GET":
+        return jsonify({
+            "success": True,
+            "message": "Notification test route",
+            "vapid_key_length": len(vapid_key) if vapid_key else 0,
+            "vapid_private_length": len(vapid_private) if vapid_private else 0,
+            "has_vapid_key": bool(vapid_key),
+            "has_vapid_private": bool(vapid_private),
+            "user_id": current_user.get_id(),
+            "notification_support": {
+                "mongo_collections": list(current_app.mongo.db.list_collection_names())
+            }
+        })
+    
+    # For POST requests, send an actual test notification
+    try:
+        # Get the user's subscription
+        subscription = current_app.mongo.db.notification_subscriptions.find_one({
+            "user_id": current_user.get_id()
+        })
+        
+        if not subscription or not subscription.get("subscription_json"):
+            current_app.logger.warning(f"No subscription found for user {current_user.get_id()}")
+            return jsonify({
+                "success": False,
+                "message": "No notification subscription found for this user. Please enable notifications first."
+            }), 400
+            
+        # Send a test push notification
+        try:
+            from pywebpush import webpush, WebPushException
+            
+            current_app.logger.info(f"Sending test notification to user {current_user.get_id()}")
+            
+            webpush(
+                subscription_info=subscription["subscription_json"],
+                data=jsonify({
+                    "title": "Test Notification",
+                    "body": "This is a test notification from the Scouting App!",
+                    "url": "/team/manage",
+                    "timestamp": int(datetime.now().timestamp() * 1000)
+                }).get_data(as_text=True),
+                vapid_private_key=vapid_private,
+                vapid_claims={"sub": current_app.config.get("VAPID_SUBJECT", f"mailto:{current_app.config.get('MAIL_DEFAULT_SENDER', 'test@example.com')}")}
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Test notification sent successfully"
+            })
+            
+        except WebPushException as e:
+            current_app.logger.error(f"WebPush error: {e}")
+            return jsonify({
+                "success": False,
+                "message": f"Error sending notification: {str(e)}",
+                "error_details": {
+                    "status_code": e.response.status_code if hasattr(e, 'response') and e.response else None,
+                    "message": str(e)
+                }
+            }), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Error in test notification: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+@team_bp.route("/notifications/status", methods=["GET"])
+@login_required
+def notification_status():
+    """Get the notification status for the current user"""
+    try:
+        # Check if the user has a subscription
+        subscription = current_app.mongo.db.notification_subscriptions.find_one({
+            "user_id": current_user.get_id()
+        })
+        
+        # Return the status
+        return jsonify({
+            "success": True,
+            "hasSubscription": bool(subscription and subscription.get("subscription_json")),
+            "permissionStatus": "granted" if subscription and subscription.get("subscription_json") else "default",
+            "enabledAssignments": subscription.get("assignment_subscriptions", []) if subscription else []
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error checking notification status: {e}")
+        return jsonify({
+            "success": False,
+            "hasSubscription": False,
+            "permissionStatus": "default",
+            "message": f"Error checking notification status: {str(e)}"
+        }), 500
+
+@team_bp.route("/notifications/debug", methods=["GET"])
+@login_required
+def debug_notifications():
+    """Debug route to check scheduled notifications"""
+    # if not current_user.is_admin:
+    #     return jsonify({"success": False, "message": "Unauthorized"}), 403
+        
+    try:
+        # Get pending notifications for current user
+        pending_notifications = list(current_app.mongo.db.scheduled_notifications.find({
+            "user_id": current_user.get_id(),
+            "sent": False
+        }))
+        
+        # Get sent notifications for current user
+        sent_notifications = list(current_app.mongo.db.scheduled_notifications.find({
+            "user_id": current_user.get_id(),
+            "sent": True
+        }).sort("sent_at", -1).limit(10))
+        
+        # Convert ObjectIds to strings for JSON serialization
+        for notification in pending_notifications + sent_notifications:
+            notification["_id"] = str(notification["_id"])
+            if isinstance(notification.get("scheduled_time"), datetime):
+                notification["scheduled_time_str"] = notification["scheduled_time"].strftime("%Y-%m-%d %H:%M:%S")
+            if isinstance(notification.get("sent_at"), datetime):
+                notification["sent_at_str"] = notification["sent_at"].strftime("%Y-%m-%d %H:%M:%S")
+        
+        return jsonify({
+            "success": True,
+            "now": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pending_count": len(pending_notifications),
+            "sent_count": len(sent_notifications),
+            "pending_notifications": pending_notifications,
+            "sent_notifications": sent_notifications
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error debugging notifications: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Error debugging notifications: {str(e)}"
+        }), 500

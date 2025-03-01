@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scouting-app-v1';
+const CACHE_NAME = 'scouting-app-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/css/global.css',
@@ -8,7 +8,13 @@ const ASSETS_TO_CACHE = [
   '/static/images/default_profile.png',
 ];
 
-console.log('Service worker script loaded');
+// Set to true during development, false in production
+const DEV_MODE = true;
+
+// Files that should always bypass cache in development mode
+const DEV_BYPASS_EXTENSIONS = ['.js', '.html', '.json'];
+
+console.log('Service worker script loaded - DEV_MODE:', DEV_MODE);
 
 self.addEventListener('install', (event) => {
   console.log('Service worker installing...');
@@ -20,6 +26,8 @@ self.addEventListener('install', (event) => {
       })
       .then(() => {
         console.log('Service worker installation complete');
+        // Force the waiting service worker to become the active service worker
+        return self.skipWaiting();
       })
       .catch(error => {
         console.error('Service worker installation failed:', error);
@@ -38,6 +46,29 @@ self.addEventListener('fetch', (event) => {
       // For non-GET requests, just pass through to the network without caching
       event.respondWith(fetch(event.request));
       return;
+    }
+
+    // In DEV_MODE, bypass cache for specified file types
+    if (DEV_MODE) {
+      const url = new URL(event.request.url);
+      const shouldBypassCache = DEV_BYPASS_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
+      
+      if (shouldBypassCache) {
+        console.log('DEV_MODE: Bypassing cache for:', event.request.url);
+        // Include a cache-busting query parameter
+        const bustCacheUrl = new URL(event.request.url);
+        bustCacheUrl.searchParams.set('cache-bust', Date.now());
+        
+        event.respondWith(
+          fetch(bustCacheUrl, { cache: 'no-store' })
+            .catch(error => {
+              console.error('Fetch failed with cache bypass:', error);
+              // Try from cache as fallback
+              return caches.match(event.request);
+            })
+        );
+        return;
+      }
     }
 
     event.respondWith(
@@ -103,15 +134,27 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('Service worker activating...');
+  
+  // Take control of all clients immediately
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Take control immediately
+      self.clients.claim()
+    ])
+    .then(() => {
+      console.log('Service worker activated and controlling all pages');
     })
   );
 });
