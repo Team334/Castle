@@ -285,28 +285,6 @@
                 }
             });
         }
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/js/service-worker.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registration successful');
-                        
-                        // Check for push notification support
-                        if ('PushManager' in window) {
-                            console.log('Push notifications are supported');
-                            
-                            // We don't request permission here automatically
-                            // It will be requested when the user clicks the notification bell
-                        } else {
-                            console.log('Push notifications are not supported');
-                        }
-                    })
-                    .catch((err) => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
     </script>
 </body>
 </html>

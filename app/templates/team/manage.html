@@ -679,50 +679,6 @@
         });
     });
 
-    // Register service worker for push notifications
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            // Add a timestamp parameter to ensure fresh version during development
-            const cacheBust = Date.now();
-            const swUrl = `/service-worker.js?v=${cacheBust}`;
-            
-            // First, check if there's an existing service worker
-            navigator.serviceWorker.getRegistration().then(function(registration) {
-                if (registration) {
-                    console.log('Found existing service worker:', registration.scope);
-                    // Don't immediately unregister - let the dev tools button handle that
-                    // Instead, update the existing service worker
-                    return registration.update()
-                        .then(() => {
-                            console.log('Service worker updated successfully');
-                            return registration;
-                        });
-                } else {
-                    // No existing service worker, register a new one
-                    console.log('No existing service worker, registering new one:', swUrl);
-                    return navigator.serviceWorker.register(swUrl, {
-                        scope: '/'
-                    });
-                }
-            })
-            .then(function(registration) {
-                console.log('ServiceWorker registration successful with scope:', registration.scope);
-                
-                // Check if the service worker is active
-                if (registration.active) {
-                    console.log('Service worker is already active');
-                } else {
-                    console.log('Service worker is not yet active, waiting for activation');
-                }
-            })
-            .catch(function(error) {
-                console.error('Service Worker registration failed:', error);
-            });
-        });
-    } else {
-        console.warn('Service workers are not supported in this browser');
-    }
-
     // Add direct event listener for notification bell
     document.addEventListener('DOMContentLoaded', function() {
         const notificationBell = document.getElementById('notificationBell');

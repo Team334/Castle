@@ -7,6 +7,13 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeNotifications();
     initializeAssignmentReminders();
     initializeDevTools();
+    
+    // Register service worker for notifications
+    if ('serviceWorker' in navigator) {
+        console.log('Initializing service worker registration');
+        getServiceWorkerRegistration();
+    }
+    
     const teamData = document.getElementById('teamData');
     if (teamData) {
         currentUserId = teamData.dataset.currentUserId;
@@ -658,7 +665,11 @@ async function getServiceWorkerRegistration() {
             console.log('No service worker registrations found, attempting to register');
             // Try to register the service worker if not already registered
             try {
-                const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                // Add a timestamp parameter to ensure fresh version during development
+                const cacheBust = Date.now();
+                const swUrl = `/service-worker.js?v=${cacheBust}`;
+                
+                const registration = await navigator.serviceWorker.register(swUrl, {
                     scope: '/'
                 });
                 console.log('Service worker registered:', registration);
