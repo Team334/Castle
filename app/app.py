@@ -13,7 +13,7 @@ from flask_wtf.csrf import CSRFProtect
 from pywebpush import webpush, WebPushException
 
 from app.auth.auth_utils import UserManager
-from app.models import ScheduledNotification
+from app.models import AssignmentSubscription
 from app.utils import limiter
 
 csrf = CSRFProtect()
@@ -38,7 +38,7 @@ def create_app():
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
         VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
-        VAPID_CLAIM=os.getenv("VAPID_SUBJECT", "mailto:team334@gmail.com")
+        VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com")
     )
     
     if not app.config.get("VAPID_PUBLIC_KEY") or not app.config.get("VAPID_PRIVATE_KEY"):
@@ -62,11 +62,10 @@ def create_app():
             mongo.db.create_collection("pit_scouting")
         if "assignments" not in mongo.db.list_collection_names():
             mongo.db.create_collection("assignments")
-        if "notification_subscriptions" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("notification_subscriptions")
-        if "scheduled_notifications" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("scheduled_notifications")
-    
+        if "assignment_subscriptions" not in mongo.db.list_collection_names():
+            mongo.db.create_collection("assignment_subscriptions")
+        if "notification_preferences" not in mongo.db.list_collection_names():
+            mongo.db.create_collection("notification_preferences")
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -92,10 +91,12 @@ def create_app():
     from app.auth.routes import auth_bp
     from app.scout.routes import scouting_bp
     from app.team.routes import team_bp
+    from app.notifications.routes import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(scouting_bp, url_prefix="/")
     app.register_blueprint(team_bp, url_prefix="/team")
+    app.register_blueprint(notifications_bp, url_prefix="/notifications")
 
     @app.route("/")
     def index():
@@ -136,139 +137,8 @@ def create_app():
         response.headers['Service-Worker-Allowed'] = '/'
         response.headers['Cache-Control'] = 'no-cache'
         return response
-    
-    # Start notification scheduler
-    start_notification_scheduler(app)
-
-    # Register shutdown handler to stop the thread
-    @app.teardown_appcontext
-    def shutdown_scheduler(exception=None):
-        stop_notification_scheduler()
 
     return app
-
-
-def start_notification_scheduler(app):
-    """Start the notification scheduler in a background thread"""
-    global notification_thread, stop_notification_thread
-    
-    # Reset the stop flag
-    stop_notification_thread = False
-    
-    if notification_thread is None or not notification_thread.is_alive():
-        app.logger.info("Starting notification scheduler thread")
-        notification_thread = threading.Thread(
-            target=notification_scheduler_worker,
-            args=(app,),
-            daemon=True
-        )
-        notification_thread.start()
-        app.logger.info(f"Notification scheduler thread started: {notification_thread.name}")
-    else:
-        app.logger.info(f"Notification scheduler already running: {notification_thread.name}")
-
-
-def notification_scheduler_worker(app):
-    """Worker function that runs in the background to send scheduled notifications"""
-    with app.app_context():
-        app.logger.info("Notification scheduler worker started")
-        
-        # How often to check for notifications (in seconds)
-        check_interval = 60  # Check every minute
-        
-        while not stop_notification_thread:
-            try:
-                # Get current time
-                now = datetime.now()
-                
-                # Find notifications that need to be sent
-                pending_notifications = mongo.db.scheduled_notifications.find({
-                    "scheduled_time": {"$lte": now},
-                    "sent": False
-                })
-                
-                # Count how many we found
-                count = 0
-                for notification in pending_notifications:
-                    count += 1
-                    
-                    # Get the user's subscription
-                    subscription = mongo.db.notification_subscriptions.find_one({
-                        "user_id": notification["user_id"]
-                    })
-                    
-                    # Skip if no subscription found
-                    if not subscription or not subscription.get("subscription_json"):
-                        app.logger.warning(f"No subscription found for user {notification['user_id']}")
-                        # Mark as sent but failed
-                        mongo.db.scheduled_notifications.update_one(
-                            {"_id": notification["_id"]},
-                            {"$set": {"sent": True, "status": "failed", "sent_at": now}}
-                        )
-                        continue
-                    
-                    # Get VAPID keys
-                    vapid_private = app.config.get("VAPID_PRIVATE_KEY", "")
-                    if not vapid_private:
-                        app.logger.error("VAPID private key not found")
-                        continue
-                        
-                    # Prepare notification data
-                    notification_data = {
-                        "title": notification.get("title", "Assignment Reminder"),
-                        "body": notification.get("body", "You have an assignment due soon!"),
-                        "url": notification.get("url", "/team/manage"),
-                        "timestamp": int(now.timestamp() * 1000),
-                        "data": notification.get("data", {})
-                    }
-                    
-                    # Convert to JSON
-                    json_data = json.dumps(notification_data)
-                    
-                    try:
-                        # Send push notification
-                        webpush(
-                            subscription_info=subscription["subscription_json"],
-                            data=json_data,
-                            vapid_private_key=vapid_private,
-                            vapid_claims={"sub": app.config.get("VAPID_SUBJECT", f"mailto:{app.config.get('MAIL_DEFAULT_SENDER', 'test@example.com')}")}
-                        )
-                        
-                        # Mark as sent
-                        mongo.db.scheduled_notifications.update_one(
-                            {"_id": notification["_id"]},
-                            {"$set": {"sent": True, "status": "sent", "sent_at": now}}
-                        )
-                        
-                        app.logger.info(f"Sent notification {notification['_id']} to user {notification['user_id']}")
-                        
-                    except WebPushException as e:
-                        app.logger.error(f"Failed to send notification {notification['_id']}: {str(e)}")
-                        # Mark as sent but failed
-                        mongo.db.scheduled_notifications.update_one(
-                            {"_id": notification["_id"]},
-                            {"$set": {"sent": True, "status": "failed", "error": str(e), "sent_at": now}}
-                        )
-                
-                if count > 0:
-                    app.logger.info(f"Processed {count} pending notifications")
-                
-                # Sleep until next check
-                time.sleep(check_interval)
-                
-            except Exception as e:
-                app.logger.error(f"Error in notification scheduler: {str(e)}", exc_info=True)
-                # Sleep a bit before retrying
-                time.sleep(check_interval)
-
-
-# Add a function to stop the thread when the app shuts down
-def stop_notification_scheduler():
-    global notification_thread, stop_notification_thread
-    if notification_thread and notification_thread.is_alive():
-        stop_notification_thread = True
-        notification_thread.join(timeout=5)
-
 
 # if __name__ == "__main__":
 #     app = create_app()

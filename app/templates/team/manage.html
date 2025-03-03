@@ -4,15 +4,6 @@
     <div class="flex flex-col sm:flex-row justify-between items-center mb-8 space-y-4 sm:space-y-0">
         <h1 class="text-2xl font-bold text-center sm:text-left">Team Management</h1>
         <div class="w-full sm:w-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <!-- Developer Tools button -->
-            <button id="devReloadBtn" 
-                    class="px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 flex items-center" 
-                    style="display: none;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Clear Cache & Reload
-            </button>
             <input
                 type="text"
                 id="memberSearch"
@@ -39,19 +30,7 @@
             <div class="flex-1">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-start">
                     <h2 class="text-2xl font-semibold text-center md:text-left mb-4 md:mb-0">{{ team.team_name }}</h2>
-                    
-
                     <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 items-center md:items-start">
-                        <!-- Notification Bell Icon -->
-                        <button id="notificationBell" 
-                                onclick="showNotificationModal(event)"
-                                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                            Notifications
-                        </button>
-                        
                         {% if team.is_admin(current_user.id) %}
                         <a href="{{ url_for('team.settings', team_number=team.team_number) }}" 
                         class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -348,9 +327,11 @@
                                     </form>
                                     
                                     <!-- Add notification bell for assignment -->
-                                    <button onclick="subscribeToAssignment('{{ assignment.id }}')"
-                                            class="text-gray-600 hover:text-blue-600 ml-2 inline-flex items-center"
-                                            title="Set reminder for this assignment">
+                                    <button
+                                            class="text-gray-600 hover:text-blue-600 ml-2 inline-flex items-center assignment-reminder-btn"
+                                            title="Set reminder for this assignment"
+                                            data-assignment-id="{{ assignment.id }}"
+                                            onclick="document.getElementById('assignmentReminderModal').classList.remove('hidden'); document.getElementById('reminderAssignmentId').value = '{{ assignment.id }}';">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                         </svg>
@@ -525,72 +506,6 @@
         </div>
     </div>
 
-    <!-- Notification Preferences Modal -->
-    <div id="notificationModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-lg font-medium text-gray-900">Notification Settings</h3>
-                <button type="button" onclick="document.getElementById('notificationModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-500">
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-             
-            <div class="p-6">
-                <!-- Notification Status -->
-                <div id="notificationStatus" class="p-3 mb-4 text-sm rounded-md"></div>
-                
-                <!-- Permission Button -->
-                <button id="requestPermissionBtn" class="mb-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
-                            Enable Notifications
-                        </button>
-                
-                <!-- Test Notification Button -->
-                <button onclick="testNotificationSystem()" class="mb-4 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md">
-                    Send Test Notification
-                </button>
-                
-                <!-- Direct Browser Notification Button -->
-                <button onclick="showDirectNotification()" class="mb-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
-                    Show Direct Browser Notification
-                </button>
-                
-                <!-- Simple Push Notification Button -->
-                <button onclick="sendSimplePushNotification()" class="mb-4 w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-md">
-                    Send Simple Push Notification
-                </button>
-                
-                <!-- Notification Settings Form -->
-                <div id="reminderSettings" class="hidden mt-4">
-                    <h4 class="font-medium text-gray-700 mb-2">Default Reminder Time</h4>
-                    <div class="flex items-center space-x-4 mb-4">
-                        <select id="defaultReminderTime" class="flex-1 border rounded-md py-2 px-3">
-                            <option value="60">1 hour before</option>
-                            <option value="180">3 hours before</option>
-                            <option value="360">6 hours before</option>
-                            <option value="720">12 hours before</option>
-                            <option value="1440" selected>1 day before</option>
-                            <option value="2880">2 days before</option>
-                            <option value="10080">1 week before</option>
-                            </select>
-                        </div>
-                        
-                    <div class="flex items-center mb-4">
-                            <input type="checkbox" id="enableAllNotifications" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <label for="enableAllNotifications" class="ml-2 block text-sm text-gray-700">
-                            Enable notifications for all my assignments
-                            </label>
-                </div>
-                
-                    <button id="saveNotificationSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
-                        Save Settings
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Assignment Reminder Modal -->
     <div id="assignmentReminderModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
@@ -628,6 +543,8 @@
         </div>
     </div>
 </div>
+<!-- Push Notification Script -->
+<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
 <script src="{{ url_for('static', filename='js/team/manage.js') }}"></script>
 <script>
     function toggleDescription(button) {
@@ -637,26 +554,6 @@
         
         preview.classList.toggle('hidden');
         full.classList.toggle('hidden');
-    }
-
-    function showNotificationModal(event) {
-        console.log('showNotificationModal called from inline handler');
-        if (event) {
-            event.preventDefault();
-        }
-        const modal = document.getElementById('notificationModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            if (typeof checkNotificationPermission === 'function') {
-                checkNotificationPermission();
-            } else {
-                console.error('checkNotificationPermission function not available');
-            }
-        } else {
-            console.error('Notification modal not found in inline handler');
-            alert('Notification settings are not available');
-        }
-        return false;
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -677,33 +574,6 @@
                 }
             });
         });
-    });
-
-    // Add direct event listener for notification bell
-    document.addEventListener('DOMContentLoaded', function() {
-        const notificationBell = document.getElementById('notificationBell');
-        if (notificationBell) {
-            console.log('Notification bell found, adding click listener');
-            notificationBell.addEventListener('click', function(e) {
-                console.log('Notification bell clicked directly');
-                e.preventDefault();
-                const notificationModal = document.getElementById('notificationModal');
-                if (notificationModal) {
-                    notificationModal.classList.remove('hidden');
-                    // Try to call checkNotificationPermission if it exists
-                    if (typeof checkNotificationPermission === 'function') {
-                        checkNotificationPermission();
-                    } else {
-                        console.error('checkNotificationPermission function not found');
-                    }
-                } else {
-                    console.error('Notification modal not found');
-                    alert('Notification settings modal not found');
-                }
-            });
-        } else {
-            console.error('Notification bell element not found');
-        }
     });
 </script>
 

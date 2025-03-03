@@ -24,7 +24,12 @@ TBA_AUTH_KEY=your_tba_api_key
 DEBUG=False
 HOST=localhost
 PORT=5000
+VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+VAPID_CLAIM_EMAIL=mailto:your-email@example.com
 ```
+> To generate VAPID keys, read here: https://github.com/web-push-libs/vapid/blob/main/python/README.md
+
 4. Make a virtual environment: `python -m venv venv`
   - To activate (type into command line):
     - Windows:

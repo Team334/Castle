@@ -9,3 +9,5 @@ Flask-WTF
 requests
 Pillow
 Flask-Limiter[mongodb]
+pywebpush
+py-vapid
