@@ -263,9 +263,20 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for assignment in assignments %}
-                            <tr class="assignment-row {% if current_user.get_id() in assignment.assigned_to %}bg-blue-50{% endif %} hover:bg-gray-50"
+                            <tr class="assignment-row {% if current_user.get_id() in assignment.assigned_to %}bg-blue-50 border-l-4 border-blue-500{% endif %} hover:bg-gray-50"
                                 data-assignment-id="{{ assignment.id }}">
-                                <td class="px-6 py-4 whitespace-nowrap">{{ assignment.title }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if current_user.get_id() in assignment.assigned_to %}
+                                    <div class="flex items-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                            Assigned to you
+                                        </span>
+                                        {{ assignment.title }}
+                                    </div>
+                                    {% else %}
+                                        {{ assignment.title }}
+                                    {% endif %}
+                                </td>
                                 <td class="px-6 py-4 whitespace-normal">
                                     {% if assignment.description %}
                                         <div class="text-gray-700">

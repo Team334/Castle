@@ -307,12 +307,20 @@ async def manage(team_number=None):
     # Create a dictionary of user IDs to usernames for easier lookup
     user_dict = {str(member.get_id()): member for member in team_members}
 
-    # Ensure assignment.assigned_to contains string IDs
-    for assignment in assignments:
+    # Sort assignments by creation date (newest first) and split into two groups
+    current_user_assignments = []
+    other_assignments = []
+    
+    for assignment in sorted(assignments, key=lambda x: x.created_at if hasattr(x, 'created_at') else datetime.min, reverse=True):
         if hasattr(assignment, "assigned_to"):
-            assignment.assigned_to = [
-                str(user_id) for user_id in assignment.assigned_to
-            ]
+            assignment.assigned_to = [str(user_id) for user_id in assignment.assigned_to]
+            if str(current_user.get_id()) in assignment.assigned_to:
+                current_user_assignments.append(assignment)
+            else:
+                other_assignments.append(assignment)
+
+    # Combine the lists with user's assignments first
+    sorted_assignments = current_user_assignments + other_assignments
 
     return render_template(
         "team/manage.html",
@@ -320,7 +328,7 @@ async def manage(team_number=None):
         current_user=current_user,
         team_members=team_members,
         user_dict=user_dict,
-        assignments=assignments,
+        assignments=sorted_assignments,
         is_admin=team.is_admin(current_user.get_id()),
     )
 

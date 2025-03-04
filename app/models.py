@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from bson import ObjectId
@@ -330,7 +330,7 @@ class Team:
             raise ValueError("Expected a UserMixin instance")
 
 class Assignment:
-    def __init__(self, id, title, description, team_number, creator_id, assigned_to, due_date=None, status='pending'):
+    def __init__(self, id, title, description, team_number, creator_id, assigned_to, due_date=None, status='pending', created_at=None):
         self.id = str(id)
         self.title = title
         self.description = description
@@ -346,6 +346,15 @@ class Assignment:
                 self.due_date = None
         else:
             self.due_date = due_date
+            
+        # Handle created_at
+        if isinstance(created_at, str):
+            try:
+                self.created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                self.created_at = datetime.now(timezone.utc)
+        else:
+            self.created_at = created_at or datetime.now(timezone.utc)
 
     @classmethod
     def create_from_db(cls, data):
@@ -357,7 +366,8 @@ class Assignment:
             creator_id=data.get('creator_id'),
             assigned_to=data.get('assigned_to', []),
             due_date=data.get('due_date'),
-            status=data.get('status', 'pending')
+            status=data.get('status', 'pending'),
+            created_at=data.get('created_at')
         )
 
     def to_dict(self):
