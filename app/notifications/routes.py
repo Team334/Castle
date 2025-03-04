@@ -123,42 +123,6 @@ async def delete_subscription():
             "message": "An internal error has occurred."
         }), 500
 
-@notifications_bp.route("/preferences", methods=["POST"])
-@login_required
-@limiter.limit("10 per minute")
-@async_route
-async def update_preferences():
-    """Update notification preferences"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({
-                "success": False,
-                "message": "Preference data is required"
-            }), 400
-            
-        enable_all = data.get("enable_all_notifications", False)
-        default_reminder_time = data.get("default_reminder_time", 1440)
-        
-        success, message = await notification_manager.update_notification_preferences(
-            user_id=current_user.get_id(),
-            enable_all=enable_all,
-            default_reminder_time=default_reminder_time
-        )
-        
-        return jsonify({
-            "success": success,
-            "message": message
-        }), 200 if success else 400
-    
-    except Exception as e:
-        current_app.logger.error(f"Error updating preferences: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "An internal error has occurred."
-        }), 500
-
 # @notifications_bp.route("/test", methods=["POST"])
 # @login_required
 # @limiter.limit("3 per minute")

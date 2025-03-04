@@ -10,6 +10,7 @@ class NotificationManager {
         this.isSubscribed = false;
         this.initialized = false;
         this.subscriptionInfo = null;
+        console.log('[NotificationManager] Initialized');
     }
 
     /**
@@ -17,31 +18,39 @@ class NotificationManager {
      */
     async init() {
         try {
+            console.log('[NotificationManager] Starting initialization');
+            
             // Check if service workers are supported
             if (!('serviceWorker' in navigator)) {
-                console.warn('Service workers are not supported by this browser');
+                console.warn('[NotificationManager] Service workers are not supported by this browser');
                 return false;
             }
+            console.log('[NotificationManager] Service workers are supported');
 
             // Check if PushManager is supported
             if (!('PushManager' in window)) {
-                console.warn('Push notifications are not supported by this browser');
+                console.warn('[NotificationManager] Push notifications are not supported by this browser');
                 return false;
             }
+            console.log('[NotificationManager] Push Manager is supported');
 
             // Get VAPID public key from server
             await this.getVapidPublicKey();
+            console.log('[NotificationManager] Got VAPID public key:', this.vapidPublicKey ? 'Yes' : 'No');
 
             // Register service worker
             await this.registerServiceWorker();
+            console.log('[NotificationManager] Service worker registered:', this.swRegistration ? 'Yes' : 'No');
 
             // Check if already subscribed
             await this.checkSubscription();
+            console.log('[NotificationManager] Subscription status:', this.isSubscribed ? 'Subscribed' : 'Not subscribed');
 
             this.initialized = true;
+            console.log('[NotificationManager] Initialization complete');
             return true;
         } catch (error) {
-            console.error('Error initializing notification manager:', error);
+            console.error('[NotificationManager] Error during initialization:', error);
             return false;
         }
     }
@@ -120,35 +129,44 @@ class NotificationManager {
      */
     async subscribeToPushNotifications(assignmentId = null, reminderTime = 1440) {
         try {
+            console.log('[NotificationManager] Starting subscription process');
+            
             if (!this.initialized) {
+                console.log('[NotificationManager] Not initialized, initializing now');
                 await this.init();
             }
 
             // Request permission if not granted
             const permission = await this.requestNotificationPermission();
+            console.log('[NotificationManager] Notification permission status:', permission);
+            
             if (permission !== 'granted') {
                 throw new Error('Notification permission denied');
             }
 
             // Always try to get a fresh subscription
             if (this.subscriptionInfo) {
+                console.log('[NotificationManager] Unsubscribing from existing subscription');
                 try {
                     await this.subscriptionInfo.unsubscribe();
                 } catch (error) {
-                    console.warn('Error unsubscribing from old subscription:', error);
+                    console.warn('[NotificationManager] Error unsubscribing from old subscription:', error);
                 }
                 this.subscriptionInfo = null;
             }
 
             // Get new subscription
+            console.log('[NotificationManager] Creating new push subscription');
             const applicationServerKey = this.urlB64ToUint8Array(this.vapidPublicKey);
             this.subscriptionInfo = await this.swRegistration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: applicationServerKey
             });
             this.isSubscribed = true;
+            console.log('[NotificationManager] Successfully created push subscription');
 
             // Send subscription to server
+            console.log('[NotificationManager] Sending subscription to server');
             const response = await fetch('/notifications/subscribe', {
                 method: 'POST',
                 headers: {
@@ -162,13 +180,15 @@ class NotificationManager {
             });
 
             const result = await response.json();
+            console.log('[NotificationManager] Server response:', result);
+            
             if (!result.success) {
                 throw new Error(result.message || 'Failed to subscribe on server');
             }
 
             return result;
         } catch (error) {
-            console.error('Error subscribing to push notifications:', error);
+            console.error('[NotificationManager] Error subscribing to push notifications:', error);
             throw error;
         }
     }
@@ -222,29 +242,6 @@ class NotificationManager {
 
         // Request permission
         return await Notification.requestPermission();
-    }
-
-    /**
-     * Update notification preferences
-     */
-    async updateNotificationPreferences(enableAll, defaultReminderTime) {
-        try {
-            const response = await fetch('/notifications/preferences', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    enable_all_notifications: enableAll,
-                    default_reminder_time: defaultReminderTime
-                })
-            });
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error updating notification preferences:', error);
-            throw error;
-        }
     }
 
     /**
@@ -306,23 +303,6 @@ function initNotificationUI() {
                 alert(result.message);
             } catch (error) {
                 alert('Error sending test notification: ' + error.message);
-            }
-        });
-    }
-
-    // Find notification preference form
-    const prefForm = document.getElementById('notificationPreferencesForm');
-    if (prefForm) {
-        prefForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const enableAll = document.getElementById('enableAllNotifications').checked;
-            const reminderTime = parseInt(document.getElementById('defaultReminderTime').value, 10);
-            
-            try {
-                const result = await notificationManager.updateNotificationPreferences(enableAll, reminderTime);
-                alert(result.message);
-            } catch (error) {
-                alert('Error updating preferences: ' + error.message);
             }
         });
     }

@@ -64,9 +64,7 @@ def create_app():
             mongo.db.create_collection("assignments")
         if "assignment_subscriptions" not in mongo.db.list_collection_names():
             mongo.db.create_collection("assignment_subscriptions")
-        if "notification_preferences" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("notification_preferences")
-
+            
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "error"

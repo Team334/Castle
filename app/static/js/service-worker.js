@@ -88,11 +88,14 @@ self.addEventListener('activate', (event) => {
 const dismissedNotifications = new Set();
 
 self.addEventListener('push', (event) => {
-  console.log('Push event received');
+  console.log('[ServiceWorker] Push event received', {
+    data: event.data ? 'Has data' : 'No data',
+    timestamp: new Date().toISOString()
+  });
   
   try {
     if (!event.data) {
-      console.warn('Push event has no data');
+      console.warn('[ServiceWorker] Push event has no data');
       return;
     }
     
@@ -100,18 +103,24 @@ self.addEventListener('push', (event) => {
     let data;
     try {
       data = event.data.json();
-      console.log('Push data received:', data);
+      console.log('[ServiceWorker] Push data received:', {
+        data,
+        type: typeof data,
+        hasTitle: !!data.title,
+        hasBody: !!data.body,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
-      console.error('Failed to parse push data as JSON:', error);
+      console.error('[ServiceWorker] Failed to parse push data as JSON:', error);
       const text = event.data.text();
-      console.log('Push data as text:', text);
+      console.log('[ServiceWorker] Push data as text:', text);
       data = { title: 'New Notification', body: text };
     }
 
     // Check if this notification has been dismissed
     const notificationId = data.data?.assignment_id || 'general';
     if (dismissedNotifications.has(notificationId)) {
-      console.log('Notification was previously dismissed:', notificationId);
+      console.log('[ServiceWorker] Notification was previously dismissed:', notificationId);
       return;
     }
     
@@ -119,8 +128,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'New Notification';
     const options = {
       body: data.body || 'You have a new notification',
-      icon: '/static/images/logo.png',
-      badge: '/static/images/default_profile.png',
+      icon: '/static/images/logo.png',  // Your app logo
+      badge: '/static/images/logo.png',  // Small monochrome version of your logo
       data: {
         ...data.data || {},
         notificationId: notificationId
@@ -149,25 +158,35 @@ self.addEventListener('push', (event) => {
         }
       ],
       vibrate: [100, 50, 100],
-      tag: notificationId,  // Use consistent tag for grouping
-      renotify: false,  // Don't notify again for the same tag
-      requireInteraction: false,  // Notification stays until user interacts with it
-      timestamp: data.timestamp || Date.now()
+      tag: notificationId,
+      renotify: false,
+      requireInteraction: false,
+      timestamp: data.timestamp || Date.now(),
+      silent: false,
+      dir: 'auto',
+      lang: 'en-US',
+      badge: '/static/images/badge.png',
+      image: '/static/images/logo.png',
+      applicationName: 'Castle',
     };
     
-    console.log('Showing notification:', { title, options });
+    console.log('[ServiceWorker] Showing notification:', { 
+      title, 
+      options,
+      timestamp: new Date().toISOString()
+    });
     
     event.waitUntil(
       self.registration.showNotification(title, options)
         .then(() => {
-          console.log('Notification shown successfully');
+          console.log('[ServiceWorker] Notification shown successfully');
         })
         .catch(error => {
-          console.error('Failed to show notification:', error);
+          console.error('[ServiceWorker] Failed to show notification:', error);
         })
     );
   } catch (error) {
-    console.error('Error handling push event:', error);
+    console.error('[ServiceWorker] Error handling push event:', error);
   }
 });
 

@@ -326,27 +326,30 @@
                                         </select>
                                     </form>
                                     
-                                    <!-- Add notification bell for assignment -->
-                                    <button
-                                            class="text-gray-600 hover:text-blue-600 ml-2 inline-flex items-center assignment-reminder-btn"
-                                            title="Set reminder for this assignment"
-                                            data-assignment-id="{{ assignment.id }}"
-                                            onclick="document.getElementById('assignmentReminderModal').classList.remove('hidden'); document.getElementById('reminderAssignmentId').value = '{{ assignment.id }}';">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                        </svg>
-                                    </button>
-                                    {% endif %}
-                                    {% if is_admin %}
-                                    <button onclick="openEditAssignmentModal('{{ assignment.id }}')"
-                                            class="text-blue-600 hover:text-blue-900 ml-2">
-                                        Edit
-                                    </button>
-                                    <button onclick="deleteAssignment('{{ assignment.id }}')"
-                                            class="text-red-600 hover:text-red-900 ml-2">
-                                        Delete
-                                    </button>
-                                    {% endif %}
+                                    <!-- Action buttons container with better mobile layout -->
+                                    <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                                        <!-- Add notification bell for assignment -->
+                                        <button
+                                                class="text-gray-600 hover:text-blue-600 inline-flex items-center assignment-reminder-btn p-1"
+                                                title="Set reminder for this assignment"
+                                                data-assignment-id="{{ assignment.id }}"
+                                                onclick="document.getElementById('assignmentReminderModal').classList.remove('hidden'); document.getElementById('reminderAssignmentId').value = '{{ assignment.id }}';">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                            </svg>
+                                        </button>
+                                        {% endif %}
+                                        {% if is_admin %}
+                                        <button onclick="openEditAssignmentModal('{{ assignment.id }}')"
+                                                class="text-blue-600 hover:text-blue-900 p-1">
+                                            Edit
+                                        </button>
+                                        <button onclick="deleteAssignment('{{ assignment.id }}')"
+                                                class="text-red-600 hover:text-red-900 p-1">
+                                            Delete
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}

@@ -35,10 +35,6 @@ class NotificationManager(DatabaseManager):
             self.db.create_collection("assignment_subscriptions")
             logger.info("Created assignment_subscriptions collection")
             
-        if "notification_preferences" not in self.db.list_collection_names():
-            self.db.create_collection("notification_preferences")
-            logger.info("Created notification_preferences collection")
-    
     def start_notification_service(self):
         """Start the background thread that processes notifications"""
         if self._notification_thread is None or not self._notification_thread.is_alive():
@@ -188,11 +184,6 @@ class NotificationManager(DatabaseManager):
             if user_id not in assignment.get("assigned_to", []):
                 continue
 
-            # Get user's notification preferences
-            pref = self.db.notification_preferences.find_one({"user_id": user_id})
-            if pref and not pref.get("enable_all_notifications", False):
-                continue
-
             # Calculate scheduled time based on reminder_time
             reminder_time = sub.get("reminder_time", 1440)  # Default: 1 day in minutes
             scheduled_time = due_date - timedelta(minutes=reminder_time)
@@ -251,6 +242,19 @@ class NotificationManager(DatabaseManager):
                     "url": subscription.url,
                     **subscription.data  # Include any additional data
                 },
+                "icon": "/static/images/logo.png",
+                "badge": "/static/images/logo.png",
+                "image": "/static/images/logo.png",
+                "actions": [
+                    {
+                        "action": "view",
+                        "title": "View"
+                    },
+                    {
+                        "action": "dismiss",
+                        "title": "Dismiss"
+                    }
+                ],
                 "timestamp": datetime.now().timestamp() * 1000  # JavaScript timestamp
             }
             
@@ -412,41 +416,6 @@ class NotificationManager(DatabaseManager):
                 
         except Exception as e:
             logger.error(f"Error deleting subscription: {str(e)}")
-            return False, "An internal error has occurred."
-    
-    @with_mongodb_retry()
-    async def update_notification_preferences(self, user_id: str, enable_all: bool, 
-                                            default_reminder_time: int = 1440) -> Tuple[bool, str]:
-        """Update a user's notification preferences
-        
-        Args:
-            user_id: The user ID
-            enable_all: Whether to enable all notifications
-            default_reminder_time: Default minutes before due date for reminders
-            
-        Returns:
-            Tuple[bool, str]: Success status and message
-        """
-        self.ensure_connected()
-        
-        try:
-            update_data = {
-                "user_id": user_id,
-                "enable_all_notifications": enable_all,
-                "default_reminder_time": default_reminder_time,
-                "updated_at": datetime.now()
-            }
-            
-            result = self.db.notification_preferences.update_one(
-                {"user_id": user_id},
-                {"$set": update_data},
-                upsert=True
-            )
-            
-            return True, "Preferences updated successfully"
-                
-        except Exception as e:
-            logger.error(f"Error updating notification preferences: {str(e)}")
             return False, "An internal error has occurred."
     
     # @with_mongodb_retry()
