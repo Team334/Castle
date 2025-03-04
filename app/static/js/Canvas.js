@@ -78,7 +78,7 @@ class Canvas {
       this.currentStroke = [];
       
       // Current tool state
-      this.currentTool = 'pen';  // pen, rectangle, circle, line, hexagon, star, select
+      this.currentTool = 'pen';  // pen, rectangle, circle, line, hexagon, star, arrow, select
       this.startX = null;
       this.startY = null;
       
@@ -2087,6 +2087,32 @@ class Canvas {
         case 'line':
           this.ctx.moveTo(shape.x, shape.y);
           this.ctx.lineTo(shape.x + shape.width, shape.y + shape.height);
+          break;
+        case 'arrow':
+          // Draw the main line
+          this.ctx.moveTo(shape.x, shape.y);
+          this.ctx.lineTo(shape.x + shape.width, shape.y + shape.height);
+          
+          // Draw the arrowhead
+          const angle = Math.atan2(shape.height, shape.width);
+          const arrowLength = Math.min(20, Math.sqrt(width * width + height * height) / 3);
+          const arrowAngle = Math.PI / 6; // 30 degrees
+          
+          // Calculate arrowhead points
+          const x2 = shape.x + shape.width;
+          const y2 = shape.y + shape.height;
+          
+          // Draw the two lines of the arrowhead
+          this.ctx.moveTo(x2, y2);
+          this.ctx.lineTo(
+            x2 - arrowLength * Math.cos(angle - arrowAngle),
+            y2 - arrowLength * Math.sin(angle - arrowAngle)
+          );
+          this.ctx.moveTo(x2, y2);
+          this.ctx.lineTo(
+            x2 - arrowLength * Math.cos(angle + arrowAngle),
+            y2 - arrowLength * Math.sin(angle + arrowAngle)
+          );
           break;
         case 'hexagon':
           this.drawPolygon(this.ctx, centerX, centerY, radius, 6, Math.PI / 6);

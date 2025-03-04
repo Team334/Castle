@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         rectangle: document.getElementById('rectangleTool'),
         circle: document.getElementById('circleTool'),
         line: document.getElementById('lineTool'),
+        arrow: document.getElementById('arrowTool'),
         hexagon: document.getElementById('hexagonTool'),
         star: document.getElementById('starTool')
     };
@@ -347,6 +348,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     CanvasField.setTool('hexagon');
                     updateActiveToolButton('hexagon');
                     break;
+                case 'w':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    CanvasField.setTool('arrow');
+                    updateActiveToolButton('arrow');
+                    break;
                 case 's':
                     if (!e.shiftKey) {
                         e.preventDefault();
@@ -390,9 +397,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update path data before submission
             updatePathData();
             
-            const teamNumber = form.querySelector('input[name="team_number"]').value;
-            const eventCode = form.querySelector('input[name="event_code"]').value;
-            const matchNumber = form.querySelector('input[name="match_number"]').value;
+            const teamNumber = teamSelect.value;
+            const eventCode = eventSelect.value;
+            const matchNumber = matchSelect.value;
+            const alliance = allianceInput.value;
+
+            if (!teamNumber || !eventCode || !matchNumber || !alliance) {
+                alert('Please fill in all required fields');
+                return;
+            }
 
             try {
                 const response = await fetch(`/scouting/check_team?team=${teamNumber}&event=${eventCode}&match=${matchNumber}`);
@@ -410,6 +423,115 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // TBA Integration
+    const eventSelect = document.getElementById('event_select');
+    const matchSelect = document.getElementById('match_select');
+    const teamSelect = document.getElementById('team_select');
+    const allianceInput = document.getElementById('alliance_color');
+
+    let currentMatches = null;
+    const eventMatches = JSON.parse(document.getElementById('event_matches').textContent);
+
+    // Load events from server-side data
+    const events = JSON.parse(document.getElementById('events').textContent);
+    const sortedEvents = Object.entries(events)
+        .sort((a, b) => a[1].start_date.localeCompare(b[1].start_date));
+    
+    sortedEvents.forEach(([name, data]) => {
+        const option = document.createElement('option');
+        option.value = name;  // Use event name as value for the server
+        option.dataset.key = data.key;  // Store TBA key in dataset for API calls
+        option.textContent = `${name} (${data.start_date})`;
+        eventSelect.appendChild(option);
+    });
+
+    // Load matches when event is selected
+    eventSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const selectedEventKey = selectedOption?.dataset.key;
+        matchSelect.innerHTML = '<option value="">Select Match</option>';
+        teamSelect.innerHTML = '<option value="">Select Team</option>';
+        allianceInput.value = '';
+
+        if (!selectedEventKey) {
+          return;
+        }
+
+        // Use pre-loaded matches data
+        const matches = eventMatches[selectedEventKey];
+        if (!matches) {
+          return;
+        }
+        
+        currentMatches = matches;
+        const sortedMatches = Object.keys(matches)
+            .sort((a, b) => parseInt(a) - parseInt(b));
+        
+        sortedMatches.forEach(matchNum => {
+            const option = document.createElement('option');
+            option.value = matchNum;
+            option.textContent = `Match ${matchNum}`;
+            matchSelect.appendChild(option);
+        });
+    });
+
+    // Load teams when match is selected
+    matchSelect.addEventListener('change', function() {
+        const selectedMatch = this.value;
+        teamSelect.innerHTML = '<option value="">Select Team</option>';
+        allianceInput.value = '';
+
+        if (!selectedMatch || !currentMatches) {
+          return;
+        }
+
+        const match = currentMatches[selectedMatch];
+        if (!match) {
+          return;
+        }
+
+        // Add red alliance teams
+        const redGroup = document.createElement('optgroup');
+        redGroup.label = 'Red Alliance';
+        match.red.forEach(team => {
+            const option = document.createElement('option');
+            const teamNumber = team.replace('frc', '');
+            option.value = teamNumber;
+            option.textContent = `Team ${teamNumber}`;
+            option.dataset.alliance = 'red';
+            redGroup.appendChild(option);
+        });
+        teamSelect.appendChild(redGroup);
+
+        // Add blue alliance teams
+        const blueGroup = document.createElement('optgroup');
+        blueGroup.label = 'Blue Alliance';
+        match.blue.forEach(team => {
+            const option = document.createElement('option');
+            const teamNumber = team.replace('frc', '');
+            option.value = teamNumber;
+            option.textContent = `Team ${teamNumber}`;
+            option.dataset.alliance = 'blue';
+            blueGroup.appendChild(option);
+        });
+        teamSelect.appendChild(blueGroup);
+    });
+
+    // Set alliance color when team is selected
+    teamSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.dataset.alliance) {
+            allianceInput.value = selectedOption.dataset.alliance;
+            
+            // Optional: Add visual feedback of selected alliance
+            this.classList.remove('border-red-500', 'border-blue-500');
+            this.classList.add(`border-${selectedOption.dataset.alliance}-500`);
+        } else {
+            allianceInput.value = '';
+            this.classList.remove('border-red-500', 'border-blue-500');
+        }
+    });
 });
 
 // Update the updateUIControls method to be more specific

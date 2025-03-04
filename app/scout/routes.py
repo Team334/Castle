@@ -9,7 +9,7 @@ from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_login import current_user, login_required
 
-from app.models import PitScouting
+import logging
 from app.scout.scouting_utils import ScoutingManager
 from app.utils import async_route, handle_route_errors, limiter
 
@@ -17,6 +17,9 @@ from .TBA import TBAInterface
 
 scouting_bp = Blueprint("scouting", __name__)
 scouting_manager = None
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @scouting_bp.record
@@ -32,7 +35,22 @@ def on_blueprint_init(state):
 @handle_route_errors
 def add():
     if request.method != "POST":
-        return render_template("scouting/add.html")
+        # Get current events and their matches
+        tba = TBAInterface()
+        year = datetime.now().year
+        events = tba.get_current_events(year) or {}
+        
+        # Pre-fetch matches for all current events to avoid client-side API calls
+        event_matches = {}
+        for event_name, event_data in events.items():
+            matches = tba.get_event_matches(event_data['key'])
+            if matches:
+                event_matches[event_data['key']] = matches
+
+        return render_template("scouting/add.html", 
+                            events=events,
+                            event_matches=event_matches)
+
     data = request.get_json() if request.is_json else request.form.to_dict()
 
     if "auto_path" in data:
@@ -956,3 +974,28 @@ def pit_scouting_delete(team_number):
     else:
         flash("Error deleting pit scouting data", "error")
     return redirect(url_for("scouting.pit_scouting"))
+
+@scouting_bp.route("/api/tba/events")
+@login_required
+@limiter.limit("30 per minute")
+def get_tba_events():
+    try:
+        year = datetime.now().year
+        tba = TBAInterface()
+        events = tba.get_current_events(year)
+        return jsonify(events)
+    except Exception as e:
+        logger.error(f"Error getting TBA events: {e}")
+        return jsonify({"error": "Failed to fetch events"}), 500
+
+@scouting_bp.route("/api/tba/matches/<event_key>")
+@login_required
+@limiter.limit("30 per minute")
+def get_tba_matches(event_key):
+    try:
+        tba = TBAInterface()
+        matches = tba.get_event_matches(event_key)
+        return jsonify(matches)
+    except Exception as e:
+        logger.error(f"Error getting TBA matches: {e}")
+        return jsonify({"error": "Failed to fetch matches"}), 500

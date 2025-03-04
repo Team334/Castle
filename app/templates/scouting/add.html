@@ -98,61 +98,40 @@
 
     <!-- Form Section -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Pre-loaded TBA data -->
+        <script id="events" type="application/json">
+            {{ events | tojson | safe }}
+        </script>
+        <script id="event_matches" type="application/json">
+            {{ event_matches | tojson | safe }}
+        </script>
+
         <form method="POST" class="divide-y divide-gray-200" id="scoutingForm" autocomplete="off">
             <!-- Team & Event Info Section -->
             <div class="p-8 bg-gray-50">
                 <h3 class="text-lg font-semibold text-gray-900 mb-6">Basic Information</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Team Number</label>
-                        <input type="number" 
-                               name="team_number" 
-                               required 
-                               min="1"
-                               placeholder="e.g., 334"
-                               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Code</label>
-                        <input type="text" 
-                               name="event_code" 
-                               required 
-                               placeholder="e.g., NYLI"
-                               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase transition duration-150">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Event</label>
+                        <select id="event_select" name="event_code" required
+                                class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Event</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Match Number</label>
-                        <input type="number" 
-                               name="match_number" 
-                               required 
-                               min="1"
-                               placeholder="e.g., 1"
-                               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                        <select id="match_select" name="match_number" required
+                                class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Match</option>
+                        </select>
                     </div>
-                </div>
-                <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Alliance</label>
-                    <div class="flex space-x-4">
-                        <label class="relative flex items-center group">
-                            <input type="radio" name="alliance" value="red" checked
-                                   class="peer sr-only">
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-sm font-medium text-red-600
-                                        cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 peer-checked:border-red-500 peer-checked:text-red-600
-                                        peer-focus:ring-2 peer-focus:ring-red-500 peer-focus:ring-offset-2">
-                                Red Alliance
-                            </div>
-                        </label>
-                        <label class="relative flex items-center group">
-                            <input type="radio" name="alliance" value="blue"
-                                   class="peer sr-only">
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-sm font-medium text-blue-600
-                                        cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:text-blue-600
-                                        peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:ring-offset-2">
-                                Blue Alliance
-                            </div>
-                        </label>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Team Number</label>
+                        <select id="team_select" name="team_number" required
+                                class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Team</option>
+                        </select>
+                        <input type="hidden" id="alliance_color" name="alliance" value="">
                     </div>
                 </div>
             </div>
@@ -394,6 +373,11 @@
                                 <button id="lineTool" type="button" class="tool-btn rounded-xl" title="Line (Ctrl+L)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                                    </svg>
+                                </button>
+                                <button id="arrowTool" type="button" class="tool-btn rounded-xl" title="Arrow (Ctrl+W)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                     </svg>
                                 </button>
                                 <button id="hexagonTool" type="button" class="tool-btn rounded-xl" title="Hexagon (Ctrl+H)">

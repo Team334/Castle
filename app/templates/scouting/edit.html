@@ -126,7 +126,7 @@
                     <div class="flex space-x-4">
                         <label class="relative flex items-center group">
                             <input type="radio" name="alliance" value="red" {{ 'checked' if team_data.alliance == 'red' }}
-                                   class="peer sr-only">
+                                   class="peer sr-only" disabled>
                             <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-sm font-medium text-red-600
                                         cursor-pointer transition-all duration-200
                                         group-hover:bg-gray-50 peer-checked:border-red-500 peer-checked:text-red-600
@@ -387,6 +387,11 @@
                                 <button id="lineTool" type="button" class="tool-btn rounded-xl" title="Line (Ctrl+L)">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                                    </svg>
+                                </button>
+                                <button id="arrowTool" type="button" class="tool-btn rounded-xl" title="Arrow (Ctrl+W)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                     </svg>
                                 </button>
                                 <button id="hexagonTool" type="button" class="tool-btn rounded-xl" title="Hexagon (Ctrl+H)">

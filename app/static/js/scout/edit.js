@@ -194,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         rectangle: document.getElementById('rectangleTool'),
         circle: document.getElementById('circleTool'),
         line: document.getElementById('lineTool'),
+        arrow: document.getElementById('arrowTool'),
         hexagon: document.getElementById('hexagonTool'),
         star: document.getElementById('starTool')
     };
@@ -389,6 +390,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.stopPropagation();
                     CanvasField.setTool('hexagon');
                     updateActiveToolButton('hexagon');
+                    break;
+                case 'w':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    CanvasField.setTool('arrow');
+                    updateActiveToolButton('arrow');
                     break;
                 case 's':
                     if (!e.shiftKey) {
