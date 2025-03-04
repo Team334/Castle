@@ -19,8 +19,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
+  const {request} = event;
 
   // Handle static assets (cache-first strategy)
   if (STATIC_ASSETS.some(asset => request.url.includes(asset))) {
@@ -85,7 +84,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Handle push events (notifications)
+// Cache for tracking dismissed notifications
+const dismissedNotifications = new Set();
+
 self.addEventListener('push', (event) => {
   console.log('Push event received');
   
@@ -106,6 +107,13 @@ self.addEventListener('push', (event) => {
       console.log('Push data as text:', text);
       data = { title: 'New Notification', body: text };
     }
+
+    // Check if this notification has been dismissed
+    const notificationId = data.data?.assignment_id || 'general';
+    if (dismissedNotifications.has(notificationId)) {
+      console.log('Notification was previously dismissed:', notificationId);
+      return;
+    }
     
     // Show the notification
     const title = data.title || 'New Notification';
@@ -113,15 +121,27 @@ self.addEventListener('push', (event) => {
       body: data.body || 'You have a new notification',
       icon: '/static/images/logo.png',
       badge: '/static/images/default_profile.png',
-      data: data.data || {},
-      actions: [
+      data: {
+        ...data.data || {},
+        notificationId: notificationId
+      },
+      actions: data.data?.type === 'new_assignment' ? [
+        {
+          action: 'view',
+          title: 'View Assignment'
+        },
+        {
+          action: 'dismiss',
+          title: 'Dismiss'
+        }
+      ] : [
         {
           action: 'view',
           title: 'View'
         },
         {
           action: 'complete',
-          title: 'Complete'
+          title: 'Marked as Complete'
         },
         {
           action: 'dismiss',
@@ -129,9 +149,9 @@ self.addEventListener('push', (event) => {
         }
       ],
       vibrate: [100, 50, 100],
-      tag: data.data?.assignment_id || 'general',  // Group by assignment ID
-      renotify: true,  // Notify even if replacing an existing notification
-      requireInteraction: true,  // Notification stays until user interacts with it
+      tag: notificationId,  // Use consistent tag for grouping
+      renotify: false,  // Don't notify again for the same tag
+      requireInteraction: false,  // Notification stays until user interacts with it
       timestamp: data.timestamp || Date.now()
     };
     
@@ -155,8 +175,13 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification click received', event);
   
+  const {notificationId} = event.notification.data;
+  
   // Close the notification
   event.notification.close();
+  
+  // Add to dismissed set for ALL actions
+  dismissedNotifications.add(notificationId);
   
   // Handle action buttons
   const url = event.notification.data.url || '/team/manage';

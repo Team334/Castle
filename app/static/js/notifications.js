@@ -130,15 +130,23 @@ class NotificationManager {
                 throw new Error('Notification permission denied');
             }
 
-            // Get subscription
-            if (!this.subscriptionInfo) {
-                const applicationServerKey = this.urlB64ToUint8Array(this.vapidPublicKey);
-                this.subscriptionInfo = await this.swRegistration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: applicationServerKey
-                });
-                this.isSubscribed = true;
+            // Always try to get a fresh subscription
+            if (this.subscriptionInfo) {
+                try {
+                    await this.subscriptionInfo.unsubscribe();
+                } catch (error) {
+                    console.warn('Error unsubscribing from old subscription:', error);
+                }
+                this.subscriptionInfo = null;
             }
+
+            // Get new subscription
+            const applicationServerKey = this.urlB64ToUint8Array(this.vapidPublicKey);
+            this.subscriptionInfo = await this.swRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey
+            });
+            this.isSubscribed = true;
 
             // Send subscription to server
             const response = await fetch('/notifications/subscribe', {
@@ -153,7 +161,12 @@ class NotificationManager {
                 })
             });
 
-            return await response.json();
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to subscribe on server');
+            }
+
+            return result;
         } catch (error) {
             console.error('Error subscribing to push notifications:', error);
             throw error;

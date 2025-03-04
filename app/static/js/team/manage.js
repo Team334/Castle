@@ -74,19 +74,30 @@ async function handleAssignmentSubmit(e) {
     const {teamNumber} = document.getElementById('teamData').dataset;
     e.preventDefault();
     
-    // Get the selected users' names
-    const assignedToSelect = document.getElementById('assigned_to');
-    const assignedToNames = Array.from(assignedToSelect.selectedOptions).map(option => option.text);
-    
-    const formData = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        assigned_to: Array.from(document.getElementById('assigned_to').selectedOptions).map(option => option.value),
-        assigned_to_names: assignedToNames,
-        due_date: document.getElementById('due_date').value,
-    };
-
     try {
+        // Ensure we have an active notification subscription
+        try {
+            await notificationManager.subscribeToPushNotifications();
+        } catch (error) {
+            console.warn('Could not subscribe to notifications:', error);
+            // Continue with assignment creation even if notification subscription fails
+        }
+        
+        // Get the selected users' names
+        const assignedToSelect = document.getElementById('assigned_to');
+        const assignedToNames = Array.from(assignedToSelect.selectedOptions).map(option => option.text);
+        
+        const formData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            assigned_to: Array.from(document.getElementById('assigned_to').selectedOptions).map(option => option.value),
+            assigned_to_names: assignedToNames,
+            due_date: document.getElementById('due_date').value,
+        };
+
+        // Close modal first
+        document.getElementById('createAssignmentModal').classList.add('hidden');
+        
         const response = await fetch(`/team/${teamNumber}/assignments`, {
             method: 'POST',
             headers: {
@@ -98,13 +109,17 @@ async function handleAssignmentSubmit(e) {
 
         const data = await response.json();
         if (data.success) {
-            window.location.reload();
+            // Clear form
+            document.getElementById('createAssignmentForm').reset();
+            window.location.reload()
         } else {
             throw new Error(data.message || 'Failed to create assignment');
         }
     } catch (error) {
         console.error('Error:', error);
         alert(error.message || 'An error occurred while creating the assignment');
+        // Reopen modal on error
+        document.getElementById('createAssignmentModal').classList.remove('hidden');
     }
 }
 

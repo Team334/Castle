@@ -1,9 +1,7 @@
 import logging
 import threading
-import time
 from datetime import datetime, timedelta
 import json
-import requests
 from bson import ObjectId
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -215,15 +213,15 @@ class NotificationManager(DatabaseManager):
                 "status": "pending",
                 "title": f"Assignment Reminder: {assignment.get('title')}",
                 "body": f"Your assignment '{assignment.get('title')}' is due soon",
-                "url": f"/team/manage",
+                "url": "/team/manage",
                 "data": {
                     "assignment_id": assignment_id,
                     "title": assignment.get("title"),
                     "due_date": due_date.isoformat(),
-                    "type": "assignment_reminder"
+                    "type": "assignment_reminder",
                 },
                 "created_at": datetime.now(),
-                "updated_at": datetime.now()
+                "updated_at": datetime.now(),
             }
 
             # Insert the new notification
@@ -355,7 +353,7 @@ class NotificationManager(DatabaseManager):
                 # Set notification content
                 update_data["title"] = f"Assignment Reminder: {assignment.get('title')}"
                 update_data["body"] = f"Your assignment '{assignment.get('title')}' is due soon"
-                update_data["url"] = f"/team/manage"
+                update_data["url"] = "/team/manage"
                 update_data["data"] = {
                     "assignment_id": assignment_id,
                     "title": assignment.get("title"),
@@ -494,3 +492,88 @@ class NotificationManager(DatabaseManager):
     #     except Exception as e:
     #         logger.error(f"Error sending test notification: {str(e)}")
     #         return False, "An internal error has occurred." 
+
+    async def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
+        """Send instant notifications to users when they are assigned to a new assignment
+        
+        Args:
+            assignment_data: The assignment data including title, description, etc.
+            team_number: The team number
+        """
+        self.ensure_connected()
+        
+        try:
+            # Get all subscriptions for assigned users
+            assigned_users = assignment_data.get("assigned_to", [])
+            if not assigned_users:
+                return
+                
+            # Find all valid subscriptions for these users
+            subscriptions = self.db.assignment_subscriptions.find({
+                "user_id": {"$in": assigned_users},
+                "team_number": team_number,
+                "subscription_json": {"$exists": True, "$ne": {}},
+                "updated_at": {"$gte": datetime.now() - timedelta(days=1)}  # Only get recent subscriptions
+            })
+            
+            # Group subscriptions by user_id and keep only the most recent one
+            user_subscriptions = {}
+            for sub_data in subscriptions:
+                user_id = sub_data.get("user_id")
+                updated_at = sub_data.get("updated_at", datetime.min)
+                
+                # Keep only the most recently updated subscription for each user
+                if user_id not in user_subscriptions or updated_at > user_subscriptions[user_id].get("updated_at", datetime.min):
+                    user_subscriptions[user_id] = sub_data
+            
+            expired_subscriptions = []
+            notification_sent = False
+            
+            # Send notification using only the most recent subscription for each user
+            for sub_data in user_subscriptions.values():
+                try:
+                    # Create subscription object
+                    subscription = AssignmentSubscription({
+                        **sub_data,
+                        "title": f"New Assignment: {assignment_data.get('title')}",
+                        "body": f"Assignment: {assignment_data.get('title')}",
+                        "url": "/team/manage",
+                        "data": {
+                            "assignment_id": str(assignment_data.get("_id")),
+                            "title": assignment_data.get("title"),
+                            "type": "new_assignment"
+                        },
+                        "sent": False,
+                        "status": "pending"
+                    })
+                    
+                    # Try to send the notification
+                    try:
+                        if self._send_push_notification(subscription):
+                            notification_sent = True
+                            logger.info(f"Successfully sent notification for assignment {assignment_data.get('title')} to user {subscription.user_id}")
+                        else:
+                            logger.warning(f"Failed to send notification for assignment {assignment_data.get('title')} to user {subscription.user_id}")
+                    except WebPushException as e:
+                        if e.response and e.response.status_code in (404, 410):
+                            expired_subscriptions.append(sub_data["_id"])
+                            logger.info(f"Subscription {subscription.id} has expired")
+                        else:
+                            logger.error(f"WebPush error for {subscription.id}: {str(e)}")
+                    
+                except Exception as e:
+                    logger.error(f"Error processing subscription: {str(e)}")
+                    continue
+            
+            # Clean up expired subscriptions in bulk if any found
+            if expired_subscriptions:
+                self.db.assignment_subscriptions.delete_many({
+                    "_id": {"$in": expired_subscriptions}
+                })
+                logger.info(f"Cleaned up {len(expired_subscriptions)} expired subscriptions")
+            
+            if not notification_sent:
+                logger.warning(f"No notifications were sent for assignment {assignment_data.get('title')}")
+                
+        except Exception as e:
+            logger.error(f"Error sending instant assignment notification: {str(e)}") 

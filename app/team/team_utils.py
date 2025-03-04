@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from app.models import Assignment, Team, User
 from app.utils import DatabaseManager, with_mongodb_retry
+from flask import current_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -356,12 +357,30 @@ class TeamManager(DatabaseManager):
             }
 
             result = self.db.assignments.insert_one(assignment)
+            assignment["_id"] = result.inserted_id
 
             # Add assignment to team
             self.db.teams.update_one(
                 {"team_number": team_number},
                 {"$addToSet": {"assignments": str(result.inserted_id)}},
             )
+
+            from app.notifications.notification_manager import NotificationManager
+            import asyncio
+            
+            async def send_notifications():
+                try:
+                    notification_manager = NotificationManager(
+                        self.mongo_uri,
+                        vapid_private_key=current_app.config.get("VAPID_PRIVATE_KEY"),
+                        vapid_claims={"sub": f"mailto:{current_app.config.get('VAPID_CLAIM_EMAIL')}"}
+                    )
+                    await notification_manager.send_instant_assignment_notification(assignment, team_number)
+                except Exception as e:
+                    logger.error(f"Background notification error: {str(e)}")
+
+            # Start notification task in background
+            asyncio.create_task(send_notifications())
 
             return True, "Assignment created successfully"
         except Exception as e:
