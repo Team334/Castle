@@ -101,7 +101,7 @@ class TBAInterface:
             
             # Add today's events first
             for event in today_events:
-                display_name = f"{event['name']} (Today)"
+                display_name = f"{event['name']}"
                 current_events[display_name] = {
                     'key': event['key'],
                     'start_date': event['start_date']
@@ -109,14 +109,13 @@ class TBAInterface:
 
             # Add yesterday's events second
             for event in yesterday_events:
-                display_name = f"{event['name']} (Yesterday)"
+                display_name = f"{event['name']}"
                 current_events[display_name] = {
                     'key': event['key'],
                     'start_date': event['start_date']
                 }
 
-            # Add other events last, sorted by days ago
-            for days_diff, event in other_events:
+            for _, event in other_events:
                 display_name = f"{event['name']}"
                 current_events[display_name] = {
                     'key': event['key'],
