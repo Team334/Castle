@@ -662,6 +662,35 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.remove('border-red-500', 'border-blue-500');
         }
     });
+
+    // Tab switching functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tab = button.dataset.tab;
+            
+            // Update button states
+            tabButtons.forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            button.classList.remove('border-transparent', 'text-gray-500');
+            button.classList.add('border-blue-500', 'text-blue-600');
+            
+            // Update content visibility
+            tabContents.forEach(content => {
+                if (content.dataset.tab === tab) {
+                    content.classList.remove('hidden');
+                    content.classList.add('active');
+                } else {
+                    content.classList.add('hidden');
+                    content.classList.remove('active');
+                }
+            });
+        });
+    });
 });
 
 // Update the updateUIControls method to be more specific

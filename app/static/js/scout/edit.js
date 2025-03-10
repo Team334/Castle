@@ -460,6 +460,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Tab switching functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons and contents
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            tabContents.forEach(content => content.classList.add('hidden'));
+
+            // Add active class to clicked button and show corresponding content
+            button.classList.add('active', 'border-blue-500', 'text-blue-600');
+            button.classList.remove('border-transparent', 'text-gray-500');
+            const tabName = button.getAttribute('data-tab');
+            const activeContent = document.querySelector(`.tab-content[data-tab="${tabName}"]`);
+            activeContent.classList.remove('hidden');
+        });
+    });
 });
 
 // Add the updateUIControls function at the end of the file
