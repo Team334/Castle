@@ -275,6 +275,12 @@
                                             <span class="hidden sm:inline">Delete</span>
                                             <span class="sm:hidden">🗑️</span>
                                         </a>
+                                    {% elif data.scouter_team and current_user.teamNumber and data.scouter_team|string == current_user.teamNumber|string %}
+                                        <a href="{{ url_for('scouting.edit', id=data._id) }}" 
+                                           class="text-indigo-600 hover:text-indigo-900">
+                                            <span class="hidden sm:inline">Edit Match</span>
+                                            <span class="sm:hidden">📝</span>
+                                        </a>
                                     {% else %}
                                         <span class="text-gray-400 text-sm">No Access</span>
                                     {% endif %}

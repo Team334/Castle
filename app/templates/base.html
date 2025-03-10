@@ -199,9 +199,12 @@
             {% endwith %}
         </div>
         {% block content %}{% endblock %}
-        <!-- Floating decoration elements -->
-    <div class="absolute top-20 right-10 w-20 h-20 bg-blue-500 rounded-full opacity-20 animate-float z-10"></div>
-    <div class="absolute bottom-10 left-10 w-16 h-16 bg-blue-600 rounded-full opacity-25 animate-float delay-200 z-10"></div>
+        
+        {% if request.endpoint == 'index' %}
+        <!-- Floating decoration elements - Only shown on homepage -->
+        <div class="absolute top-20 right-10 w-20 h-20 bg-blue-500 rounded-full opacity-20 animate-float z-10"></div>
+        <div class="absolute bottom-10 left-10 w-16 h-16 bg-blue-600 rounded-full opacity-25 animate-float delay-200 z-10"></div>
+        {% endif %}
     </div>
     <script>
         const menuButton = document.querySelector('.mobile-menu-button');
