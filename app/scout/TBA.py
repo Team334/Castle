@@ -117,7 +117,7 @@ class TBAInterface:
 
             # Add other events last, sorted by days ago
             for days_diff, event in other_events:
-                display_name = f"{event['name']} ({days_diff} days ago)"
+                display_name = f"{event['name']}"
                 current_events[display_name] = {
                     'key': event['key'],
                     'start_date': event['start_date']
