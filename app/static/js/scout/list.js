@@ -102,6 +102,77 @@ function closeAutoPathModal() {
     }
 }
 
+function exportToCSV() {
+    const headers = [
+        'Event Code',
+        'Match',
+        'Team Number',
+        'Alliance',
+        'Auto Coral (L1/L2/L3/L4)',
+        'Auto Algae (Net/Proc)',
+        'Teleop Coral (L1/L2/L3/L4)',
+        'Teleop Algae (Net/Proc)',
+        'Climb',
+        'Defense Rating',
+        'Mobility Rating',
+        'Durability Rating',
+        'Notes',
+        'Scouter',
+    ];
+
+    let csvContent = headers.join(',') + '\n';
+
+    // Get all visible rows from all event sections
+    const rows = Array.from(document.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
+
+    rows.forEach(row => {
+        const teamNumber = row.dataset.teamNumber;
+        const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
+        const match = row.querySelector('td:nth-child(3)').textContent.trim();
+        const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
+        const autoAlgae = row.querySelector('td:nth-child(5)').textContent.trim();
+        const teleopCoral = row.querySelector('td:nth-child(6)').textContent.trim();
+        const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
+        const climb = row.querySelector('td:nth-child(8)').textContent.trim();
+        const defense = row.querySelector('td:nth-child(10)').textContent.trim();
+        const mobility = row.querySelector('td:nth-child(11) span').textContent.trim();
+        const durability = row.querySelector('td:nth-child(12) span').textContent.trim();
+        const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
+        const scouter = row.dataset.scouter;
+        const eventCode = row.closest('.event-section').dataset.eventCode;
+
+        const rowData = [
+            eventCode,
+            match,
+            teamNumber,
+            alliance,
+            autoCoral,
+            autoAlgae,
+            teleopCoral,
+            teleopAlgae,
+            climb,
+            defense,
+            mobility,
+            durability,
+            `"${notes}"`,
+            scouter,
+        ];
+
+        csvContent += rowData.join(',') + '\n';
+    });
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'scouting_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     filterType = document.getElementById('filterType');
     searchInput = document.getElementById('searchInput');
@@ -110,6 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput && filterType) {
         searchInput.addEventListener('input', filterRows);
         filterType.addEventListener('change', filterRows);
+    }
+
+    // Add CSV export button listener
+    const exportButton = document.getElementById('exportCSV');
+    if (exportButton) {
+        exportButton.addEventListener('click', exportToCSV);
     }
 
     const modal = document.getElementById('autoPathModal');
@@ -124,8 +201,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add tooltips or popovers for mobility and durability ratings
     const mobilityRatings = document.querySelectorAll('.md\\:table-cell span[title]');
     mobilityRatings.forEach(span => {
-        // Use title attribute as tooltip (browser default)
-        // You could enhance this with a custom tooltip library if needed
         if (span.title && span.title.trim() !== '') {
             span.classList.add('cursor-help');
         }
