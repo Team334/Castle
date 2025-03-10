@@ -94,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const testImage = new Image();
     testImage.onload = () => {
         console.log('Background image loaded successfully');
-        CanvasField.showStatus('Field image loaded');
     };
     testImage.onerror = () => {
         console.error('Failed to load background image');
