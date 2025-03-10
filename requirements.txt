@@ -11,3 +11,4 @@ Pillow
 Flask-Limiter[mongodb]
 pywebpush
 py-vapid
+cachetools

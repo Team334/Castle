@@ -35,21 +35,14 @@ def on_blueprint_init(state):
 @handle_route_errors
 def add():
     if request.method != "POST":
-        # Get current events and their matches
+        # Get current events only - matches will be loaded via AJAX
         tba = TBAInterface()
         year = datetime.now().year
         events = tba.get_current_events(year) or {}
         
-        # Pre-fetch matches for all current events to avoid client-side API calls
-        event_matches = {}
-        for event_name, event_data in events.items():
-            matches = tba.get_event_matches(event_data['key'])
-            if matches:
-                event_matches[event_data['key']] = matches
-
         return render_template("scouting/add.html", 
                             events=events,
-                            event_matches=event_matches)
+                            event_matches={})  # Empty dict, matches loaded via AJAX
 
     data = request.get_json() if request.is_json else request.form.to_dict()
 

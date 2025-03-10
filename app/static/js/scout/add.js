@@ -429,50 +429,181 @@ document.addEventListener('DOMContentLoaded', function() {
     const teamSelect = document.getElementById('team_select');
     const allianceInput = document.getElementById('alliance_color');
 
+    // Create searchable dropdown functionality
+    function createSearchableDropdown(selectElement, placeholder) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'relative';
+        
+        // Create search input
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = `Search ${placeholder}...`;
+        searchInput.className = 'w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+        
+        // Create dropdown container
+        const dropdownContainer = document.createElement('div');
+        dropdownContainer.className = 'absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto hidden';
+        
+        // Insert new elements
+        selectElement.parentNode.insertBefore(wrapper, selectElement);
+        wrapper.appendChild(searchInput);
+        wrapper.appendChild(dropdownContainer);
+        wrapper.appendChild(selectElement);
+        selectElement.style.display = 'none';
+        
+        // Track options
+        let options = [];
+        let filteredOptions = [];
+        
+        // Update options list
+        function updateOptions() {
+            options = Array.from(selectElement.options).map(opt => ({
+                value: opt.value,
+                text: opt.text,
+                dataset: opt.dataset,
+                element: opt
+            }));
+            filteredOptions = [...options];
+        }
+        
+        // Render dropdown options
+        function renderDropdown() {
+            dropdownContainer.innerHTML = '';
+            filteredOptions.forEach((opt, index) => {
+                if (opt.value === '') return; // Skip placeholder option
+                
+                const option = document.createElement('div');
+                option.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100';
+                option.textContent = opt.text;
+                
+                option.addEventListener('click', () => {
+                    selectElement.value = opt.value;
+                    searchInput.value = opt.text;
+                    dropdownContainer.classList.add('hidden');
+                    // Trigger change event
+                    selectElement.dispatchEvent(new Event('change'));
+                });
+                
+                dropdownContainer.appendChild(option);
+            });
+        }
+        
+        // Filter options based on search input
+        function filterOptions(searchTerm) {
+            searchTerm = searchTerm.toLowerCase();
+            filteredOptions = options.filter(opt => 
+                opt.text.toLowerCase().includes(searchTerm)
+            );
+            renderDropdown();
+        }
+        
+        // Event listeners
+        searchInput.addEventListener('focus', () => {
+            updateOptions();
+            renderDropdown();
+            dropdownContainer.classList.remove('hidden');
+        });
+        
+        searchInput.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+            dropdownContainer.classList.remove('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                dropdownContainer.classList.add('hidden');
+            }
+        });
+        
+        // Update input when select changes
+        selectElement.addEventListener('change', () => {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            searchInput.value = selectedOption ? selectedOption.text : '';
+        });
+        
+        return {
+            updateOptions,
+            clear: () => {
+                searchInput.value = '';
+                selectElement.value = '';
+                dropdownContainer.classList.add('hidden');
+            }
+        };
+    }
+
     let currentMatches = null;
     const eventMatches = JSON.parse(document.getElementById('event_matches').textContent);
 
+    // Create searchable dropdowns
+    const eventSearchable = createSearchableDropdown(eventSelect, 'Events');
+    const matchSearchable = createSearchableDropdown(matchSelect, 'Matches');
+
     // Load events from server-side data
     const events = JSON.parse(document.getElementById('events').textContent);
-    const sortedEvents = Object.entries(events)
-        .sort((a, b) => a[1].start_date.localeCompare(b[1].start_date));
     
-    sortedEvents.forEach(([name, data]) => {
+    // Use Object.entries to maintain server-side ordering
+    Object.entries(events).forEach(([name, data]) => {
         const option = document.createElement('option');
         option.value = name;  // Use event name as value for the server
         option.dataset.key = data.key;  // Store TBA key in dataset for API calls
-        option.textContent = `${name} (${data.start_date})`;
+        option.textContent = name;  // Name already includes the time indicator
         eventSelect.appendChild(option);
     });
+    
+    // Update event searchable options after populating
+    eventSearchable.updateOptions();
 
     // Load matches when event is selected
-    eventSelect.addEventListener('change', function() {
+    eventSelect.addEventListener('change', async function() {
         const selectedOption = this.options[this.selectedIndex];
         const selectedEventKey = selectedOption?.dataset.key;
         matchSelect.innerHTML = '<option value="">Select Match</option>';
+        matchSearchable.clear();
         teamSelect.innerHTML = '<option value="">Select Team</option>';
         allianceInput.value = '';
 
         if (!selectedEventKey) {
-          return;
+            return;
         }
 
-        // Use pre-loaded matches data
-        const matches = eventMatches[selectedEventKey];
-        if (!matches) {
-          return;
+        try {
+            // Show loading state
+            matchSelect.disabled = true;
+            matchSearchable.clear();
+
+            // Fetch matches for selected event
+            const response = await fetch(`/api/tba/matches/${selectedEventKey}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch matches');
+            }
+
+            const matches = await response.json();
+            if (!matches) {
+                return;
+            }
+
+            currentMatches = matches;
+            matchSelect.innerHTML = '<option value="">Select Match</option>';
+            
+            const sortedMatches = Object.keys(matches)
+                .sort((a, b) => parseInt(a) - parseInt(b));
+            
+            sortedMatches.forEach(matchNum => {
+                const option = document.createElement('option');
+                option.value = matchNum;
+                option.textContent = `Match ${matchNum}`;
+                matchSelect.appendChild(option);
+            });
+            
+            // Update match searchable options after populating
+            matchSearchable.updateOptions();
+            matchSelect.disabled = false;
+        } catch (error) {
+            console.error('Error fetching matches:', error);
+            matchSelect.innerHTML = '<option value="">Error loading matches</option>';
+            matchSearchable.clear();
         }
-        
-        currentMatches = matches;
-        const sortedMatches = Object.keys(matches)
-            .sort((a, b) => parseInt(a) - parseInt(b));
-        
-        sortedMatches.forEach(matchNum => {
-            const option = document.createElement('option');
-            option.value = matchNum;
-            option.textContent = `Match ${matchNum}`;
-            matchSelect.appendChild(option);
-        });
     });
 
     // Load teams when match is selected
