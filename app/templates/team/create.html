@@ -22,13 +22,16 @@
                         class="w-full px-4 py-3 rounded-lg border " + (" border-red-500 ring-1 ring-red-500" if form.team_number.errors else "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"),
                         placeholder="Enter your team number",
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')",
-                        pattern="[0-9]*"
+                        pattern="[0-9]*",
+                        min="1",
+                        max="19999"
                     ) }}
                     {% if form.team_number.errors %}
                         {% for error in form.team_number.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
+                    <p class="mt-1 text-sm text-gray-500">Team number must be less than 20000</p>
                 </div>
 
                 <!-- Team Name -->
@@ -99,6 +102,13 @@ document.querySelector('textarea[name="description"]').addEventListener('input',
     
     if (charCount > 100) {
         this.value = this.value.substring(0, 100);
+    }
+});
+
+document.querySelector('input[name="team_number"]').addEventListener('input', function() {
+    const value = parseInt(this.value, 10);
+    if (value >= 20000) {
+        this.value = '19999';
     }
 });
 </script>
