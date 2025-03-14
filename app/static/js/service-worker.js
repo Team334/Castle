@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   '/static/images/field-2025.png',
   '/static/images/default_profile.png',
   '/static/js/notifications.js',
+  '/static/logo.png',
 ];
 
 self.addEventListener('install', (event) => {

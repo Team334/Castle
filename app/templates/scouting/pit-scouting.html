@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Flash Messages -->
-
     <!-- Header Section -->
     <div class="mb-8">
         <div class="sm:flex sm:items-center sm:justify-between">
@@ -56,6 +54,7 @@
                 Game Scouting
             </a>
         </div>
+    </div>
 
     <!-- Table Section -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -196,4 +195,4 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/pit-scouting/list.js') }}"></script>
-{% endblock %} 
+{% endblock %}
