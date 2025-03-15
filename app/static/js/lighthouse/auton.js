@@ -227,13 +227,25 @@ function updateTeamInfo(data) {
 // Update available paths in the UI
 function updateAvailablePaths() {
     const availablePathsContainer = document.getElementById('available-paths');
+    const pathCountAvailable = document.getElementById('path-count-available');
+    const noPathsMessage = document.getElementById('no-paths-message');
     
-    // Clear existing content
-    availablePathsContainer.innerHTML = '';
+    // Clear existing cards (not the no-paths-message)
+    Array.from(availablePathsContainer.children).forEach(child => {
+        if (child.id !== 'no-paths-message') {
+            child.remove();
+        }
+    });
     
+    // Update path count
+    pathCountAvailable.textContent = `(${availablePaths.length})`;
+    
+    // Show/hide no paths message
     if (availablePaths.length === 0) {
-        availablePathsContainer.innerHTML = '<p class="text-gray-500 italic">No autonomous paths available for this team</p>';
+        noPathsMessage.classList.remove('hidden');
         return;
+    } else {
+        noPathsMessage.classList.add('hidden');
     }
     
     // Add each path as a card
@@ -241,6 +253,13 @@ function updateAvailablePaths() {
         const card = document.createElement('div');
         card.className = 'path-card';
         card.dataset.index = index;
+        
+        // Alliance color indicator border
+        if (path.alliance === 'red' || path.alliance === 'blue') {
+            card.classList.add(`border-l-4`);
+            card.classList.add(`border-${path.alliance}-500`);
+        }
+        
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
@@ -264,6 +283,14 @@ function updateAvailablePaths() {
         
         availablePathsContainer.appendChild(card);
     });
+    
+    // If we have many paths, add a scroll hint
+    if (availablePaths.length > 2) {
+        const scrollHint = document.createElement('div');
+        scrollHint.className = 'text-xs text-gray-500 text-center mt-2';
+        scrollHint.textContent = 'Scroll to see more paths';
+        availablePathsContainer.appendChild(scrollHint);
+    }
 }
 
 // Add a path to the selected paths
@@ -297,7 +324,7 @@ function addPathToSelection(index) {
     const newPath = {
         id: path._id,
         teamNumber: path.team_number,
-        teamName: currentTeam?.info?.nickname || `Team ${path.team_number}`,
+        teamName: currentTeam?.info?.nickname || '',
         matchNumber: path.match_number,
         eventCode: path.event_code,
         alliance: alliance,
@@ -345,10 +372,15 @@ function updateSelectedPaths() {
             card.classList.add(`border-${path.alliance}-500`);
         }
         
+        // Format team name display - include name in parentheses if available
+        const teamDisplay = path.teamName 
+            ? `Team ${path.teamNumber} (${path.teamName})` 
+            : `Team ${path.teamNumber}`;
+        
         card.innerHTML = `
             <span class="color-indicator" style="background-color: ${path.color};"></span>
             <div class="flex-1">
-                <div class="font-medium">Team ${path.teamNumber} - Match ${path.matchNumber}</div>
+                <div class="font-medium">${teamDisplay} - Match ${path.matchNumber}</div>
                 <div class="text-sm text-gray-600">
                     ${path.eventCode}
                     ${path.alliance ? 
