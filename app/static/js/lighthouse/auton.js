@@ -40,7 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('keypress', e => {
         if (e.key === 'Enter') searchTeam();
     });
-    resetViewBtn.addEventListener('click', () => canvasField.resetView());
+    resetViewBtn.addEventListener('click', () => {
+        canvasField.resizeCanvas();
+        canvasField.resetView();
+        canvasField.redrawCanvas();
+        console.log('View reset to origin');
+    });
     clearAllBtn.addEventListener('click', clearAllPaths);
 });
 
@@ -241,7 +246,7 @@ function updateAvailablePaths() {
                     <div class="font-medium">Match ${path.match_number}</div>
                     <div class="text-sm text-gray-600">${path.event_name || path.event_code}</div>
                     <div class="text-xs text-gray-500 mt-1">
-                        ${path.alliance ? `<span class="px-2 py-0.5 rounded ${path.alliance === 'red' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">${path.alliance}</span>` : ''}
+                        ${path.alliance ? `<span class="px-2 py-0.5 rounded ${path.alliance === 'red' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'} capitalize">${path.alliance}</span>` : ''}
                         ${path.auto_notes ? `<span class="ml-2">${path.auto_notes}</span>` : ''}
                     </div>
                 </div>
@@ -366,7 +371,7 @@ function drawPaths() {
     }
     
     try {
-        // Clear the canvas
+        // Clear the canvas and prepare for drawing all paths
         canvasField.drawingHistory = [];
         canvasField.redrawCanvas();
         
@@ -375,7 +380,12 @@ function drawPaths() {
             return;
         }
         
-        // Draw each path with its assigned color
+        console.log(`Drawing ${selectedPaths.length} paths`);
+        
+        // Prepare a combined drawing history for all paths
+        let combinedDrawingHistory = [];
+        
+        // First collect and process all paths
         selectedPaths.forEach((path, pathIndex) => {
             try {
                 // Process the path data
@@ -417,41 +427,53 @@ function drawPaths() {
                     return;
                 }
                 
-                console.log(`Drawing path ${pathIndex} with color ${path.color}, ${pathToDraw.length} strokes`);
+                console.log(`Processing path ${pathIndex} with color ${path.color}, ${pathToDraw.length} strokes`);
                 
-                // Temporarily set canvas to not readonly to allow drawing
-                try {
-                    canvasField.setReadonly(false);
-                } catch (readonlyError) {
-                    console.error('Error disabling readonly mode:', readonlyError);
-                }
+                // Make a deep copy of the path data
+                const processedPath = JSON.parse(JSON.stringify(pathToDraw));
                 
-                // Set the color for this path
-                try {
-                    canvasField.setColor(path.color);
-                } catch (colorError) {
-                    console.error('Error setting color:', colorError);
-                }
+                // Apply the color to each point in the path
+                processedPath.forEach(stroke => {
+                    if (Array.isArray(stroke)) {
+                        // For freehand strokes
+                        stroke.forEach(point => {
+                            if (point) {
+                                point.color = path.color;
+                            }
+                        });
+                    } else if (stroke && typeof stroke === 'object') {
+                        // For shapes
+                        stroke.color = path.color;
+                    }
+                });
                 
-                // Add the path to the canvas
-                try {
-                    // Make a deep copy to avoid modifying the original
-                    canvasField.drawingHistory = JSON.parse(JSON.stringify(pathToDraw));
-                    canvasField.redrawCanvas();
-                } catch (drawError) {
-                    console.error('Error drawing path:', drawError);
-                }
+                // Add the processed path to our combined history
+                combinedDrawingHistory = combinedDrawingHistory.concat(processedPath);
                 
-                // Set back to readonly
-                try {
-                    canvasField.setReadonly(true);
-                } catch (readonlyError) {
-                    console.error('Error enabling readonly mode:', readonlyError);
-                }
             } catch (pathError) {
                 console.error(`General error processing path ${pathIndex}:`, pathError, path);
             }
         });
+        
+        // Now draw all paths at once
+        try {
+            // Temporarily set canvas to not readonly to allow drawing
+            canvasField.setReadonly(false);
+            
+            // Set the drawing history to our combined paths
+            canvasField.drawingHistory = combinedDrawingHistory;
+            
+            // Redraw everything
+            canvasField.redrawCanvas();
+            
+            // Set back to readonly
+            canvasField.setReadonly(true);
+            
+            console.log(`Successfully drew ${combinedDrawingHistory.length} strokes from ${selectedPaths.length} paths`);
+        } catch (drawError) {
+            console.error('Error drawing combined paths:', drawError);
+        }
+        
     } catch (error) {
         console.error('Critical error in drawPaths:', error);
     }
@@ -462,6 +484,11 @@ function clearAllPaths() {
     if (confirm('Are you sure you want to clear all selected paths?')) {
         selectedPaths = [];
         updateSelectedPaths();
-        canvasField.clear();
+        
+        // Clear the canvas directly
+        if (canvasField) {
+            canvasField.drawingHistory = [];
+            canvasField.redrawCanvas();
+        }
     }
 }
