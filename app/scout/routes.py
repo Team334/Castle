@@ -151,6 +151,12 @@ def delete(id):
 def lighthouse():
     return render_template("lighthouse.html")
 
+@scouting_bp.route("/lighthouse/auton")
+@limiter.limit("30 per minute")
+@login_required
+def auton():
+    return render_template("lighthouse/auton.html")
+
 def format_team_stats(stats):
     """Format team stats with calculated totals"""
     return {
@@ -1072,3 +1078,78 @@ def get_tba_matches(event_key):
     except Exception as e:
         logger.error(f"Error getting TBA matches: {e}")
         return jsonify({"error": "Failed to fetch matches"}), 500
+
+@scouting_bp.route("/api/team_paths")
+@login_required
+@limiter.limit("30 per minute")
+def get_team_paths():
+    team_number = request.args.get('team')
+    
+    if not team_number:
+        return jsonify({"error": "Team number is required"}), 400
+    
+    try:
+        team_number = int(team_number)
+        
+        # Build pipeline to get paths for the team
+        pipeline = [
+            {"$match": {"team_number": team_number}},
+            {"$lookup": {
+                "from": "users",
+                "localField": "scouter_id",
+                "foreignField": "_id",
+                "as": "scouter"
+            }},
+            {"$unwind": {"path": "$scouter", "preserveNullAndEmptyArrays": True}},
+            # Add team access filter
+            {"$match": {
+                "$or": [
+                    {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
+                    {"scouter._id": ObjectId(current_user.get_id())}
+                ]
+            }},
+            # Only get matches with auto path data
+            {"$match": {"auto_path": {"$exists": True, "$ne": []}}},
+            # Sort by most recent matches first
+            {"$sort": {"match_number": -1}},
+            # Project only the needed fields
+            {"$project": {
+                "_id": {"$toString": "$_id"},
+                "team_number": 1,
+                "match_number": 1,
+                "event_code": 1,
+                "event_name": 1,
+                "alliance": 1,
+                "auto_path": 1,
+                "auto_notes": 1,
+                "scouter_name": "$scouter.username",
+                "scouter_id": {"$toString": "$scouter._id"}
+            }}
+        ]
+        
+        # Get team info from TBA
+        tba = TBAInterface()
+        team_key = f"frc{team_number}"
+        team_info = tba.get_team(team_key) or {}
+        
+        # Get paths from database
+        paths = list(scouting_manager.db.team_data.aggregate(pipeline))
+        
+        # Format response
+        response = {
+            "team_number": team_number,
+            "team_info": {
+                "nickname": team_info.get("nickname", "Unknown"),
+                "city": team_info.get("city", ""),
+                "state_prov": team_info.get("state_prov", ""),
+                "country": team_info.get("country", "")
+            },
+            "paths": paths
+        }
+        
+        return json_util.dumps(response), 200, {'Content-Type': 'application/json'}
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching team paths: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to fetch team path data."}), 500
+

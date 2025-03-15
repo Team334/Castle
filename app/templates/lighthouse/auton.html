@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block head %}
+<title>Autonomous Path Comparison</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<!-- Add Sortable.js library -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+    .path-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .path-card:hover {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+    }
+    .path-card.selected {
+        border-color: #3b82f6;
+        background-color: #ebf5ff;
+    }
+    .draggable-container {
+        border: 2px dashed #d1d5db;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        min-height: 200px;
+    }
+    .drag-handle {
+        cursor: grab;
+    }
+    .selected-path-card {
+        position: relative;
+        padding-right: 2rem;
+    }
+    .remove-path {
+        position: absolute;
+        right: 0.5rem;
+        top: 0.5rem;
+        cursor: pointer;
+        color: #ef4444;
+    }
+    .color-indicator {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Autonomous Path Comparison</h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - Team Search and Path Selection -->
+        <div class="lg:col-span-1">
+            <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold mb-3">Search Teams</h2>
+                <div class="mb-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="team-search" class="w-full border rounded px-3 py-2" placeholder="Enter team number...">
+                        <button id="search-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+                    </div>
+                </div>
+                
+                <div id="search-results" class="mt-4 hidden">
+                    <h3 class="text-md font-semibold mb-2"><span id="team-name"></span></h3>
+                    <div id="team-info" class="text-sm text-gray-600 mb-3"></div>
+                    
+                    <h4 class="text-sm font-medium mb-2">Available Paths:</h4>
+                    <div id="available-paths" class="max-h-80 overflow-y-auto">
+                        <!-- Path cards will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column - Canvas and Selected Paths -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+                <h2 class="text-lg font-semibold mb-3">Path Comparison</h2>
+                
+                <!-- Canvas Container -->
+                <div id="canvas-container" class="mb-4 relative border rounded-lg overflow-hidden" style="height: 400px;">
+                    <canvas id="pathCanvas" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                
+                <!-- Controls -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button id="reset-view-btn" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm">Reset View</button>
+                    <button id="clear-all-btn" class="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded text-sm">Clear All</button>
+                </div>
+                
+                <!-- Selected Paths -->
+                <h3 class="text-md font-semibold mb-2">Selected Paths (<span id="path-count">0</span>/6)</h3>
+                <div id="selected-paths-container" class="draggable-container">
+                    <div id="selected-paths" class="min-h-[100px]">
+                        <!-- Selected path cards will be inserted here -->
+                        <div id="empty-prompt" class="text-gray-400 text-center py-8">
+                            Search for a team and select paths to compare
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Canvas library and the auton comparison script -->
+<script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lighthouse/auton.js') }}"></script>
+{% endblock %}

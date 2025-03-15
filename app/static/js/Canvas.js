@@ -16,7 +16,15 @@ class Canvas {
       }
       
       this.container = options.container || document.getElementById('container');
-      this.showStatus = options.showStatus || null;
+      
+      // Status display handling
+      if (typeof options.showStatus === 'function') {
+        // If a function is provided, use it
+        this.statusDisplayFn = options.showStatus;
+      } else {
+        // Otherwise, look for a DOM element
+        this.statusDisplay = options.statusDisplay || null;
+      }
       
       // Readonly mode
       this.readonly = options.readonly || false;
@@ -96,9 +104,9 @@ class Canvas {
       };
       
       // Initialize LocalForage
-      this.storage = localforage.createInstance({
-        name: 'CanvasField'
-      });
+      // this.storage = localforage.createInstance({
+      //   name: 'CanvasField'
+      // });
   
       // Perfect freehand settings
       this.pressure = 0.5;
@@ -537,11 +545,23 @@ class Canvas {
     
     // Status message
     showStatus(message) {
-      if (!this.showStatus) {
+      // If we have a status display function from options, use it
+      if (typeof this.statusDisplayFn === 'function') {
+        this.statusDisplayFn(message);
         return;
       }
       
-      this.showStatus(message);
+      // If statusDisplay element exists, update it
+      if (this.statusDisplay && typeof this.statusDisplay.textContent !== 'undefined') {
+        this.statusDisplay.textContent = message;
+        // Clear the message after 3 seconds
+        setTimeout(() => {
+          this.statusDisplay.textContent = '';
+        }, 3000);
+      } else {
+        // Just log to console if no status display is available
+        console.log(message);
+      }
     }
     
     // Action methods
@@ -854,7 +874,7 @@ class Canvas {
     clear() {
       this.drawingHistory = [];
       this.redrawCanvas();
-      this.showStatus('CanvasField cleared');
+      console.log('Canvas cleared');
     }
     
     // Save current drawing state to JSON
@@ -1707,15 +1727,15 @@ class Canvas {
       }
     }
   
-    // LocalForage methods
-    async autoSave() {
-      try {
-        await this.storage.setItem('lastSession', this.saveToJSON());
-        this.showStatus('Auto-saved');
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-      }
-    }
+    // // LocalForage methods
+    // async autoSave() {
+    //   try {
+    //     await this.storage.setItem('lastSession', this.saveToJSON());
+    //     this.showStatus('Auto-saved');
+    //   } catch (error) {
+    //     console.error('Auto-save failed:', error);
+    //   }
+    // }
   
     // Selection methods
     isPointInStroke(point, stroke) {
@@ -2295,9 +2315,9 @@ class Canvas {
         this.previewShape = null;
         this.canvas.style.cursor = 'default';
         this.redrawCanvas();
-        this.showStatus('Read-only mode enabled');
+        console.log('Read-only mode enabled');
       } else {
-        this.showStatus('Edit mode enabled');
+        console.log('Edit mode enabled');
       }
     }
   }
