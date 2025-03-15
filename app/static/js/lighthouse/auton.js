@@ -1,6 +1,7 @@
 // Constants
 const API_ENDPOINT = '/api/team_paths';
 const MAX_PATHS = 6;
+const MAX_PER_ALLIANCE = 3;
 const TEAM_COLORS = [
     '#2563eb', // blue
     '#dc2626', // red
@@ -281,6 +282,16 @@ function addPathToSelection(index) {
         return;
     }
     
+    // Get alliance and check limits
+    const alliance = path.alliance || 'unknown';
+    const allianceCount = selectedPaths.filter(p => p.alliance === alliance).length;
+    
+    // Check if we've reached the per-alliance limit
+    if (allianceCount >= MAX_PER_ALLIANCE) {
+        alert(`Cannot add more than ${MAX_PER_ALLIANCE} teams from the ${alliance} alliance`);
+        return;
+    }
+    
     // Add to selected paths
     const colorIndex = selectedPaths.length;
     const newPath = {
@@ -289,7 +300,7 @@ function addPathToSelection(index) {
         teamName: currentTeam?.info?.nickname || `Team ${path.team_number}`,
         matchNumber: path.match_number,
         eventCode: path.event_code,
-        alliance: path.alliance,
+        alliance: alliance,
         pathData: path.auto_path,
         notes: path.auto_notes,
         color: TEAM_COLORS[colorIndex % TEAM_COLORS.length]
@@ -327,11 +338,27 @@ function updateSelectedPaths() {
         const card = document.createElement('div');
         card.className = 'selected-path-card path-card flex items-center';
         card.dataset.id = path.id;
+        
+        // Add an alliance class for styling
+        if (path.alliance === 'red' || path.alliance === 'blue') {
+            card.classList.add(`border-l-4`);
+            card.classList.add(`border-${path.alliance}-500`);
+        }
+        
         card.innerHTML = `
             <span class="color-indicator" style="background-color: ${path.color};"></span>
             <div class="flex-1">
                 <div class="font-medium">Team ${path.teamNumber} - Match ${path.matchNumber}</div>
-                <div class="text-sm text-gray-600">${path.eventCode}</div>
+                <div class="text-sm text-gray-600">
+                    ${path.eventCode}
+                    ${path.alliance ? 
+                        `<span class="ml-2 px-2 py-0.5 text-xs rounded ${path.alliance === 'red' ? 
+                            'bg-red-100 text-red-800' : 
+                            path.alliance === 'blue' ? 
+                                'bg-blue-100 text-blue-800' : 
+                                'bg-gray-100 text-gray-800'} capitalize">${path.alliance}</span>` 
+                        : ''}
+                </div>
             </div>
             <span class="remove-path">&times;</span>
         `;
