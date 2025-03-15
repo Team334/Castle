@@ -39,7 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners
     searchBtn.addEventListener('click', searchTeam);
     searchInput.addEventListener('keypress', e => {
-        if (e.key === 'Enter') searchTeam();
+        if (e.key === 'Enter') {
+          searchTeam();
+        }
     });
     resetViewBtn.addEventListener('click', () => {
         canvasField.resizeCanvas();
@@ -301,7 +303,9 @@ function addPathToSelection(index) {
     }
     
     const path = availablePaths[index];
-    if (!path) return;
+    if (!path) {
+      return;
+    }
     
     // Check if this path is already selected
     if (selectedPaths.some(p => p.id === path._id)) {

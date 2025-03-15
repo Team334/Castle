@@ -470,7 +470,9 @@ document.addEventListener('DOMContentLoaded', function() {
         function renderDropdown() {
             dropdownContainer.innerHTML = '';
             filteredOptions.forEach((opt, index) => {
-                if (opt.value === '') return; // Skip placeholder option
+                if (opt.value === '') {
+                  return;
+                } // Skip placeholder option
                 
                 const option = document.createElement('div');
                 option.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100';
@@ -669,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
-            const tab = button.dataset.tab;
+            const {tab} = button.dataset;
             
             // Update button states
             tabButtons.forEach(btn => {
