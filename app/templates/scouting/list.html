@@ -296,6 +296,15 @@
                                             <span class="hidden sm:inline">Edit Match</span>
                                             <span class="sm:hidden">📝</span>
                                         </a>
+                                        
+                                        {% if team and team.is_admin(current_user.id|string) %}
+                                        <a href="{{ url_for('scouting.delete', id=data._id) }}" 
+                                           class="text-red-600 hover:text-red-900"
+                                           onclick="return confirm('Are you sure you want to delete this team data?');">
+                                            <span class="hidden sm:inline">Delete (Admin)</span>
+                                            <span class="sm:hidden">🗑️</span>
+                                        </a>
+                                        {% endif %}
                                     {% else %}
                                         <span class="text-gray-400 text-sm">No Access</span>
                                     {% endif %}

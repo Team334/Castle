@@ -77,7 +77,15 @@ def home():
             current_user.teamNumber, 
             current_user.get_id()
         )
-        return render_template("scouting/list.html", team_data=team_data)
+        
+        # Get the user's team if they have one
+        team = None
+        if current_user.teamNumber:
+            from app.team.team_utils import TeamManager
+            team_manager = TeamManager(current_app.config["MONGO_URI"])
+            team = team_manager.get_team_by_number_sync(current_user.teamNumber)
+        
+        return render_template("scouting/list.html", team_data=team_data, team=team)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
         flash("Unable to fetch scouting data. Please try again later.", "error")
@@ -136,11 +144,34 @@ def edit(id):
 @login_required
 def delete(id):
     try:
+        # Get information about the record before deleting for better error messages
+        team_data = scouting_manager.get_team_data(id, current_user.get_id())
+        if not team_data:
+            flash("Record not found", "error")
+            return redirect(url_for("scouting.home"))
+            
+        # Attempt to delete
         if scouting_manager.delete_team_data(id, current_user.get_id()):
             flash("Record deleted successfully", "success")
         else:
-            flash("Error deleting record or permission denied", "error")
+            # Provide more specific error message
+            if team_data.scouter_id == current_user.get_id():
+                flash("Error deleting your record. Please try again.", "error")
+            else:
+                # Check if on same team
+                if current_user.teamNumber and team_data.scouter_team == current_user.teamNumber:
+                    from app.team.team_utils import TeamManager
+                    team_manager = TeamManager(current_app.config["MONGO_URI"])
+                    team = team_manager.get_team_by_number_sync(current_user.teamNumber)
+                    
+                    if team and team.is_admin(current_user.get_id()):
+                        flash("Error deleting team member's record. Please try again.", "error")
+                    else:
+                        flash("Permission denied: You must be a team admin to delete other members' records", "error")
+                else:
+                    flash("Permission denied: You can only delete records from your own team", "error")
     except Exception as e:
+        current_app.logger.error(f"Delete error: {str(e)}", exc_info=True)
         flash("An internal error has occurred.", "error")
     return redirect(url_for("scouting.home"))
 
@@ -480,7 +511,7 @@ def leaderboard():
             # Filter by team access
             {"$match": {
                 "$or": [
-                    {"scouter.teamNumber": current_user.teamNumber} if hasattr(current_user, 'teamNumber') and current_user.teamNumber else {},
+                    {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
                     {"scouter._id": ObjectId(current_user.get_id())}
                 ]
             }},
@@ -510,7 +541,7 @@ def leaderboard():
             # Filter by team access
             {"$match": {
                 "$or": [
-                    {"scouter.teamNumber": current_user.teamNumber} if hasattr(current_user, 'teamNumber') and current_user.teamNumber else {},
+                    {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
                     {"scouter._id": ObjectId(current_user.get_id())}
                 ]
             }}

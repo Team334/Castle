@@ -448,16 +448,49 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_team_data(self, team_id, scouter_id):
-        """Delete team data if scouter has permission"""
+    def delete_team_data(self, team_id, user_id):
+        """Delete team data if scouter has permission (original scouter or team admin)"""
         self.ensure_connected()
         try:
-            result = self.db.team_data.delete_one(
-                {"_id": ObjectId(team_id), "scouter_id": ObjectId(scouter_id)}
-            )
-            return result.deleted_count > 0
+            # First get the team data to check permissions
+            team_data = self.db.team_data.find_one({"_id": ObjectId(team_id)})
+            if not team_data:
+                logger.warning(f"Team data with ID {team_id} not found")
+                return False
+
+            # Check if user is the original scouter
+            is_original_scouter = str(team_data.get("scouter_id")) == str(user_id)
+
+            # Check if user is a team admin
+            is_team_admin = False
+
+            # Get the scouter's team number
+            scouter = self.db.users.find_one({"_id": ObjectId(team_data["scouter_id"])})
+            scouter_team_number = scouter.get("teamNumber") if scouter else None
+
+            # Get the current user's team number
+            current_user = self.db.users.find_one({"_id": ObjectId(user_id)})
+            user_team_number = current_user.get("teamNumber") if current_user else None
+
+            # Check if both users are on the same team
+            if scouter_team_number and user_team_number and scouter_team_number == user_team_number:
+                if team := self.db.teams.find_one(
+                    {"team_number": user_team_number}
+                ):
+                    # Check if user is in the admins list or is the owner
+                    is_team_admin = str(user_id) in team.get("admins", []) or str(user_id) == str(team.get("owner_id"))
+                    logger.info(f"User {user_id} is admin of team {user_team_number}: {is_team_admin}")
+
+            # Allow deletion if user is original scouter or a team admin
+            if is_original_scouter or is_team_admin:
+                logger.info(f"Deleting team data {team_id} by user {user_id} (original: {is_original_scouter}, admin: {is_team_admin})")
+                result = self.db.team_data.delete_one({"_id": ObjectId(team_id)})
+                return result.deleted_count > 0
+
+            logger.warning(f"Permission denied: User {user_id} attempted to delete team data {team_id}")
+            return False
         except Exception as e:
-            logger.error(f"Error deleting team data: {str(e)}")
+            logger.error(f"Error deleting team data: {str(e)}", exc_info=True)
             return False
 
     @with_mongodb_retry(retries=3, delay=2)

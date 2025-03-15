@@ -55,12 +55,34 @@ class TeamManager(DatabaseManager):
             return None
 
     @with_mongodb_retry()
+    def get_team_by_number_sync(self, team_number: int) -> Optional[Team]:
+        """Synchronous version of get_team_by_number"""
+        self.ensure_connected()
+        team_data = self.db.teams.find_one({"team_number": team_number})
+        if team_data:
+            return Team.create_from_db(team_data)
+        return None
+
+    @with_mongodb_retry()
     async def get_team_by_number(self, team_number: int) -> Optional[Team]:
         """Get team by team number"""
         self.ensure_connected()
-        return await self._get_team({"team_number": team_number})
+        try:
+            if team_number is None:
+                logger.warning("get_team_by_number called with None team_number")
+                return None
 
-    @with_mongodb_retry()
+            team_data = self.db.teams.find_one({"team_number": team_number})
+            if team_data is None:
+                logger.warning(f"No team found with team_number: {team_number}")
+                return None
+
+            return Team.create_from_db(team_data)
+        except Exception as e:
+            logger.error(f"Error getting team: {str(e)}")
+        return None
+
+    @with_mongodb_retry(retries=3, delay=2)
     async def create_team(self, team_number: int, creator_id: str, 
                          team_name: Optional[str] = None, 
                          description: Optional[str] = None, 
@@ -180,25 +202,6 @@ class TeamManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error leaving team: {str(e)}")
             return False, "An internal error has occurred."
-
-    @with_mongodb_retry(retries=3, delay=2)
-    async def get_team_by_number(self, team_number: int):
-        """Get team by team number"""
-        self.ensure_connected()
-        try:
-            if team_number is None:
-                logger.warning("get_team_by_number called with None team_number")
-                return None
-
-            team_data = self.db.teams.find_one({"team_number": team_number})
-            if team_data is None:
-                logger.warning(f"No team found with team_number: {team_number}")
-                return None
-
-            return Team.create_from_db(team_data)
-        except Exception as e:
-            logger.error(f"Error getting team: {str(e)}")
-            return None
 
     @with_mongodb_retry(retries=3, delay=2)
     async def get_team_members(self, team_number: int):
