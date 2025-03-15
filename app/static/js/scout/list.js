@@ -126,7 +126,7 @@ function exportToCSV() {
     const rows = Array.from(document.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
 
     rows.forEach(row => {
-        const teamNumber = row.dataset.teamNumber;
+        const {teamNumber} = row.dataset;
         const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
         const match = row.querySelector('td:nth-child(3)').textContent.trim();
         const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
@@ -138,8 +138,8 @@ function exportToCSV() {
         const mobility = row.querySelector('td:nth-child(11) span').textContent.trim();
         const durability = row.querySelector('td:nth-child(12) span').textContent.trim();
         const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
-        const scouter = row.dataset.scouter;
-        const eventCode = row.closest('.event-section').dataset.eventCode;
+        const {scouter} = row.dataset;
+        const {eventCode} = row.closest('.event-section').dataset;
 
         const rowData = [
             eventCode,

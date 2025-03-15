@@ -93,7 +93,9 @@ function exportToCSV() {
 
             // Escape and format fields that might contain commas or quotes
             const escapeField = (field) => {
-                if (!field) return '';
+                if (!field) {
+                  return '';
+                }
                 const escaped = field.replace(/"/g, '""');
                 return field.includes(',') || field.includes('"') || field.includes('\n') 
                     ? `"${escaped}"` 
