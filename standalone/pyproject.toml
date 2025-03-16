@@ -20,14 +20,15 @@ test_sources = [
     "tests",
 ]
 
+# Use a basic set of core dependencies that won't pull in platform-specific UI backends
 requires = [
-    "toga~=0.4.0",
     "travertino==0.3.0",
 ]
 test_requires = [
     "pytest",
 ]
 
+# Then specify platform-specific UI backends
 [tool.briefcase.app.castle.macOS]
 universal_build = true
 requires = [
@@ -37,7 +38,9 @@ requires = [
 
 [tool.briefcase.app.castle.linux]
 requires = [
-    "toga-gtk~=0.4.0",
+    "toga-core==0.4.6",
+    "toga-gtk==0.4.6",
+    "pycairo>=1.17.0",
 ]
 
 [tool.briefcase.app.castle.linux.system.debian]
@@ -152,6 +155,7 @@ flatpak_sdk = "org.gnome.Sdk"
 
 [tool.briefcase.app.castle.windows]
 requires = [
+    "toga-core~=0.4.0",
     "toga-winforms~=0.4.0",
 ]
 
@@ -164,6 +168,7 @@ requires = [
 
 [tool.briefcase.app.castle.android]
 requires = [
+    "toga-core~=0.4.0",
     "toga-android~=0.4.0",
 ]
 
@@ -180,6 +185,7 @@ build_gradle_dependencies = [
 # Web deployments
 [tool.briefcase.app.castle.web]
 requires = [
+    "toga-core~=0.4.0",
     "toga-web~=0.4.0",
 ]
 style_framework = "Shoelace v2.3"
