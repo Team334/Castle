@@ -7,6 +7,21 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  discussions: write
+  id-token: write
+  issues: write
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -69,7 +84,6 @@ jobs:
         # For DEB format:
         python -m briefcase package linux system -p deb
 
-    # Upload artifacts
     - name: Upload Linux packages
       uses: actions/upload-artifact@v4
       with:
