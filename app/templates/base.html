@@ -207,6 +207,60 @@
         </div>
     </div>
 
+    <!-- PWA Install Button -->
+    <div id="pwaInstallContainer" class="hidden fixed bottom-6 right-6 z-50">
+        <button id="pwaInstallBtn" class="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span>Install App</span>
+        </button>
+    </div>
+
+    <!-- iOS Safari Install Modal -->
+    <div id="iosInstallModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div class="relative bg-white rounded-lg max-w-md w-full p-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-medium mb-4">Install Castle on iOS</h3>
+                    <p class="text-sm text-gray-600 mb-4">To install Castle on your iOS device:</p>
+                    <ol class="text-left text-sm text-gray-600 space-y-2 mb-4">
+                        <li>1. Open Castle in Safari</li>
+                        <li>2. Tap the Share button <span class="inline-block w-5 h-5 align-middle">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                        </span></li>
+                        <li>3. Scroll down and tap "Add to Home Screen"</li>
+                        <li>4. Tap "Add" in the top right</li>
+                    </ol>
+                    <button id="closeIosModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Got it
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- macOS Safari Install Modal -->
+    <div id="macSafariInstallModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div class="relative bg-white rounded-lg max-w-md w-full p-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-medium mb-4">Install Castle on macOS</h3>
+                    <p class="text-sm text-gray-600 mb-4">To install Castle on your Mac:</p>
+                    <p class="text-sm text-gray-600 mb-4">You must be using Safari on macOS Sonoma or later.</p>
+                    <p class="text-sm text-gray-600 mb-4">Please visit <a href="https://support.apple.com/en-us/104996" class="text-blue-600 hover:underline" target="_blank">Apple's support page</a> for detailed instructions on installing web apps on macOS.</p>
+                    <button id="closeMacModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Got it
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-blue-100 text-gray-800 py-4 mt-8 border-t border-blue-200">
         <div class="container mx-auto px-4">
@@ -331,6 +385,78 @@
                     dropdownArrow.style.transform = '';
                 }
             });
+        }
+    </script>
+    <script>
+        // Mobile menu functionality
+        // ... existing code ...
+
+        // PWA Installation
+        let deferredPrompt;
+        const pwaInstallContainer = document.getElementById('pwaInstallContainer');
+        const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+        const iosInstallModal = document.getElementById('iosInstallModal');
+        const macSafariInstallModal = document.getElementById('macSafariInstallModal');
+        const closeIosModal = document.getElementById('closeIosModal');
+        const closeMacModal = document.getElementById('closeMacModal');
+
+        // Check if the user is on iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        // Check if the user is on macOS Safari
+        const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+        // Show the install button immediately for iOS
+        if (isIOS) {
+            pwaInstallContainer.classList.remove('hidden');
+            pwaInstallBtn.addEventListener('click', () => {
+                iosInstallModal.classList.remove('hidden');
+            });
+            
+            closeIosModal.addEventListener('click', () => {
+                iosInstallModal.classList.add('hidden');
+            });
+        }
+        // Show install button for macOS Safari
+        else if (isMacSafari) {
+            pwaInstallContainer.classList.remove('hidden');
+            pwaInstallBtn.addEventListener('click', () => {
+                macSafariInstallModal.classList.remove('hidden');
+            });
+            
+            closeMacModal.addEventListener('click', () => {
+                macSafariInstallModal.classList.add('hidden');
+            });
+        }
+        // Handle other browsers
+        else {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                pwaInstallContainer.classList.remove('hidden');
+            });
+
+            pwaInstallBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        pwaInstallContainer.classList.add('hidden');
+                    }
+                    deferredPrompt = null;
+                }
+            });
+        }
+
+        // Hide install button when the PWA is already installed
+        window.addEventListener('appinstalled', () => {
+            pwaInstallContainer.classList.add('hidden');
+            deferredPrompt = null;
+        });
+
+        // Check if running as installed PWA
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            pwaInstallContainer.classList.add('hidden');
         }
     </script>
 </body>
