@@ -30,11 +30,28 @@ VAPID_CLAIM_EMAIL=mailto:your-email@example.com
 ```
 > To generate VAPID keys, read here: https://github.com/web-push-libs/vapid/blob/main/python/README.md
 
-4. Make a virtual environment: `python -m venv venv`
-  - To activate (type into command line):
-    - Windows:
-      - Cmd: `venv\Scripts\activate`
-      - Powershell: `venv\Scripts\Activate.ps1`
-    - MacOS & Linux: `source ./venv/bin/activate`
-6. Install the dependencies: `pip install -r requirements.txt`
-7. Run the app through (in parent directory outside of app): `python -m app`
+4. Set up the environment and install dependencies:
+
+   ### Using installation scripts (new)
+   
+   #### Windows:
+   ```
+   install.bat
+   ```
+   
+   #### Linux/macOS:
+   ```
+   chmod +x install.sh
+   ./install.sh
+   ```
+   
+   ### Manual setup
+   - Make a virtual environment: `python -m venv venv`
+   - To activate (type into command line):
+     - Windows:
+       - Cmd: `venv\Scripts\activate`
+       - Powershell: `venv\Scripts\Activate.ps1`
+     - MacOS & Linux: `source ./venv/bin/activate`
+   - Install the dependencies: `pip install -r requirements.txt`
+
+5. Run the app through (in parent directory outside of app): `python -m app`

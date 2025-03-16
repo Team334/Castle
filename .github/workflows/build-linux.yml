@@ -1,0 +1,93 @@
+name: Build Linux App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  discussions: write
+  id-token: write
+  issues: write
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    env:
+      PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config python3-dev
+        # Install WebKit dependencies for Ubuntu 20.04
+        sudo apt-get install -y gir1.2-webkit2-4.0 libwebkit2gtk-4.0-dev
+        # Install system PyGobject
+        sudo apt-get install -y python3-gi python3-gi-cairo
+        # Install additional dependencies required for AppImage
+        sudo apt-get install -y fuse libfuse2 desktop-file-utils libglib2.0-dev
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install Briefcase with a specific version known to work well with AppImage packaging
+        python -m pip install briefcase==0.3.15
+        
+    - name: Prepare custom dependencies
+      working-directory: ./standalone
+      run: |
+        # Create a custom requirements file with pinned versions
+        cat > briefcase_deps.txt << EOF
+        # Pinned dependencies for Ubuntu 20.04
+        toga==0.4.6
+        toga-gtk==0.4.6
+        pycairo>=1.17.0
+        EOF
+        
+        # Display the custom requirements
+        cat briefcase_deps.txt
+
+    # Build the app for Linux
+    - name: Build Linux app
+      working-directory: ./standalone
+      run: |
+        python -m briefcase create 
+        python -m briefcase build
+        
+    # Create Linux distribution packages
+    - name: Package for Linux
+      working-directory: ./standalone
+      run: |
+        # For AppImage, use Docker for proper dependency handling
+        python -m briefcase package linux appimage --no-docker
+        
+        # For DEB format:
+        python -m briefcase package linux system -p deb
+
+    - name: Upload Linux packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-packages
+        path: |
+          ./standalone/dist/*.AppImage
+          ./standalone/dist/*.deb

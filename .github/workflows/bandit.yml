@@ -24,7 +24,7 @@ jobs:
 
       - name: Scan
         shell: bash
-        run: bandit -c bandit.yml -r -f sarif -o results.sarif .
+        run: bandit -c bandit.yml -r -f sarif -o results.sarif app
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3

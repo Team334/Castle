@@ -1,0 +1,72 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches: [ main, master, flatpak-testing ]
+  pull_request:
+    branches: [ main, master, flatpak-testing ]
+  workflow_dispatch:
+    
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  discussions: write
+  id-token: write
+  issues: write
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config python3.8 python3.8-dev
+        # Install WebKit dependencies for Ubuntu 20.04
+        sudo apt-get install -y gir1.2-webkit2-4.0 libwebkit2gtk-4.0-dev
+        # Install system PyGobject
+        sudo apt-get install -y python3-gi python3-gi-cairo
+        # Install GLib dev (needed for GTK applications)
+        sudo apt-get install -y libglib2.0-dev desktop-file-utils
+        # Install Flatpak tooling
+        sudo apt-get install -y flatpak flatpak-builder gnome-software-plugin-flatpak
+        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    
+    
+    - name: Set up Python virtual environment
+      run: |
+        # Create a virtual environment with access to system packages
+        python3 -m venv --system-site-packages venv
+        source venv/bin/activate
+        # Upgrade pip within the virtual environment
+        pip install --upgrade pip setuptools wheel
+        # Install briefcase in the virtual environment
+        pip install briefcase
+    
+    - name: Create Flatpak package
+      run: |
+        # Use the virtual environment
+        source venv/bin/activate
+        cd standalone
+        briefcase create linux flatpak --no-input
+        briefcase build linux flatpak --no-input
+        briefcase package linux flatpak --no-input
+    
+    - name: Upload Flatpak bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: castle-flatpak-bundle
+        path: standalone/dist/Castle-*.flatpak
+        if-no-files-found: warn 
