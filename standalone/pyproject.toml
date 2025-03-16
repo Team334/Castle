@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Castle"
 bundle = "com.techknights.castle"
-version = "0.0.1"
+version = "2025.1.1"
 url = "https://techknights.vercel.app"
 license.file = "LICENSE"
 author = "Cherriae"
@@ -21,6 +21,8 @@ test_sources = [
 ]
 
 requires = [
+    "toga~=0.4.0",
+    "travertino==0.3.0",
 ]
 test_requires = [
     "pytest",
@@ -29,13 +31,13 @@ test_requires = [
 [tool.briefcase.app.castle.macOS]
 universal_build = true
 requires = [
-    "toga-cocoa~=0.3.1",
+    "toga-cocoa~=0.4.0",
     "std-nslog~=1.0.3",
 ]
 
 [tool.briefcase.app.castle.linux]
 requires = [
-    "toga-gtk~=0.3.1",
+    "toga-gtk~=0.4.0",
 ]
 
 [tool.briefcase.app.castle.linux.system.debian]
@@ -150,19 +152,19 @@ flatpak_sdk = "org.gnome.Sdk"
 
 [tool.briefcase.app.castle.windows]
 requires = [
-    "toga-winforms~=0.3.1",
+    "toga-winforms~=0.4.0",
 ]
 
 # Mobile deployments
 [tool.briefcase.app.castle.iOS]
 requires = [
-    "toga-iOS~=0.3.1",
+    "toga-iOS~=0.4.0",
     "std-nslog~=1.0.3",
 ]
 
 [tool.briefcase.app.castle.android]
 requires = [
-    "toga-android~=0.3.1",
+    "toga-android~=0.4.0",
 ]
 
 base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
@@ -178,7 +180,7 @@ build_gradle_dependencies = [
 # Web deployments
 [tool.briefcase.app.castle.web]
 requires = [
-    "toga-web~=0.3.1",
+    "toga-web~=0.4.0",
 ]
 style_framework = "Shoelace v2.3"
 
