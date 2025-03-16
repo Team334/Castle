@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Castle"
 bundle = "com.techknights.castle"
-version = "2025.1.1"
+version = "25.1.1"
 url = "https://techknights.vercel.app"
 license.file = "LICENSE"
 author = "Cherriae"
