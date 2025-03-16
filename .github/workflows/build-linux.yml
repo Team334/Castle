@@ -76,5 +76,4 @@ jobs:
         name: linux-packages
         path: |
           ./standalone/dist/*.AppImage
-          ./standalone/dist/*.flatpak
           ./standalone/dist/*.deb
