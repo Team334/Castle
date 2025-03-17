@@ -721,6 +721,111 @@ def leaderboard():
         return render_template("scouting/leaderboard.html", teams=[], current_sort='coral', 
                               events=[], selected_event='all')
 
+@scouting_bp.route("/scouter-leaderboard")
+@limiter.limit("30 per minute")
+@login_required
+def scouter_leaderboard():
+    try:
+        sort_by = request.args.get('sort', 'match_count')
+        selected_event = request.args.get('event', 'all')
+        selected_team = request.args.get('team', 'all')
+        
+        # Get list of events for filtering
+        events_pipeline = [
+            {"$group": {"_id": "$event_code"}},
+            {"$sort": {"_id": 1}}
+        ]
+        events = [evt["_id"] for evt in scouting_manager.db.team_data.aggregate(events_pipeline)]
+        
+        # Build pipeline to count scouting entries by user
+        pipeline = [
+            # Join with users to get scouter information
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "scouter_id",
+                    "foreignField": "_id",
+                    "as": "scouter"
+                }
+            },
+            {"$unwind": "$scouter"},
+        ]
+        
+        # Apply event filter if specified
+        if selected_event != 'all':
+            pipeline.append({"$match": {"event_code": selected_event}})
+            
+        # Apply team filter if specified
+        if selected_team != 'all' and selected_team.isdigit():
+            pipeline.append({"$match": {"scouter.teamNumber": int(selected_team)}})
+            
+        # Group by scouter and count
+        pipeline.extend([
+            {
+                "$group": {
+                    "_id": "$scouter._id",
+                    "username": {"$first": "$scouter.username"},
+                    "teamNumber": {"$first": "$scouter.teamNumber"},
+                    "match_count": {"$sum": 1},
+                    "unique_teams": {"$addToSet": "$team_number"},
+                }
+            },
+            {
+                "$project": {
+                    "username": 1,
+                    "teamNumber": 1,
+                    "match_count": 1,
+                    "unique_teams_count": {"$size": "$unique_teams"},
+                }
+            }
+        ])
+        
+        # Sort by selected field
+        sort_field = {
+            'match_count': 'match_count',
+            'unique_teams': 'unique_teams_count',
+        }.get(sort_by, 'match_count')
+        
+        pipeline.append({"$sort": {sort_field: -1}})
+        
+        # Execute query
+        scouters = list(scouting_manager.db.team_data.aggregate(pipeline))
+        
+        # Get list of all teams for filtering
+        teams_pipeline = [
+            {"$lookup": {
+                "from": "users",
+                "localField": "scouter_id",
+                "foreignField": "_id",
+                "as": "scouter"
+            }},
+            {"$unwind": "$scouter"},
+            {"$match": {"scouter.teamNumber": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": "$scouter.teamNumber"}},
+            {"$sort": {"_id": 1}}
+        ]
+        teams = [team["_id"] for team in scouting_manager.db.team_data.aggregate(teams_pipeline)]
+        
+        return render_template(
+            "scouting/scouter-leaderboard.html", 
+            scouters=scouters, 
+            current_sort=sort_by,
+            events=events, 
+            selected_event=selected_event,
+            teams=teams,
+            selected_team=selected_team
+        )
+    except Exception as e:
+        # Log the error
+        return render_template(
+            "scouting/scouter-leaderboard.html", 
+            scouters=[], 
+            current_sort='match_count',
+            events=[], 
+            selected_event='all',
+            teams=[],
+            selected_team='all'
+        )
 
 @scouting_bp.route("/scouting/matches")
 @limiter.limit("30 per minute")

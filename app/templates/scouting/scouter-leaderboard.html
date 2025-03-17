@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Scouter Leaderboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header Section -->
+    <div class="mb-8">
+        <div class="sm:flex sm:items-center sm:justify-between">
+            <div class="sm:flex-auto">
+                <h1 class="text-3xl font-bold text-gray-900">Scouter Leaderboard</h1>
+                <p class="mt-2 text-base text-gray-600">Ranking of scouts by activity</p>
+            </div>
+            <div class="mt-4 sm:mt-0 sm:flex-none">
+                <a href="{{ url_for('scouting.home') }}"
+                   class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+        <form id="leaderboardForm" method="GET" action="{{ url_for('scouting.scouter_leaderboard') }}">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Sort By -->
+                <div>
+                    <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <div class="relative">
+                        <select id="sort" name="sort" class="appearance-none block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            <option value="match_count" {% if current_sort == 'match_count' %}selected{% endif %}>Total Matches Scouted</option>
+                            <option value="unique_teams" {% if current_sort == 'unique_teams' %}selected{% endif %}>Unique Teams Scouted</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Filter -->
+                <div>
+                    <label for="event" class="block text-sm font-medium text-gray-700 mb-1">Event</label>
+                    <div class="relative">
+                        <select id="event" name="event" class="appearance-none block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            <option value="all">All Events</option>
+                            {% for event in events %}
+                            <option value="{{ event }}" {% if selected_event == event %}selected{% endif %}>{{ event }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Filter -->
+                <div>
+                    <label for="team" class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                    <div class="relative">
+                        <select id="team" name="team" class="appearance-none block w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            <option value="all">All Teams</option>
+                            {% for team in teams %}
+                            <option value="{{ team }}" {% if selected_team|string == team|string %}selected{% endif %}>{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Achievement Badges Section -->
+    {% if scouters %}
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Scouting Achievements</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <!-- Most Dedicated Scout -->
+            {% if scouters|length > 0 %}
+            <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-indigo-500">
+                <div class="flex items-center">
+                    <div class="h-14 w-14 flex-shrink-0 mr-4">
+                        <img class="h-14 w-14 rounded-full" src="{{ url_for('auth.profile_picture', user_id=scouters[0]._id) }}" alt="">
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Most Dedicated Scout</h3>
+                        <p class="text-sm text-gray-600">{{ scouters[0].username }} - {{ scouters[0].match_count }} matches</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Team Spirit Award -->
+            {% set max_team_scouts = namespace(list=[]) %}
+            {% for scouter in scouters %}
+                {% if scouter.teamNumber and (max_team_scouts.list|length == 0 or scouter.teamNumber == max_team_scouts.list[0].teamNumber) %}
+                    {% set max_team_scouts.list = max_team_scouts.list + [scouter] %}
+                {% endif %}
+            {% endfor %}
+            {% if max_team_scouts.list|length > 0 %}
+            <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center">
+                    <div class="h-14 w-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Team Spirit Award</h3>
+                        <p class="text-sm text-gray-600">Team {{ max_team_scouts.list[0].teamNumber }} - {{ max_team_scouts.list|length }} active scouts</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Data Collector Award -->
+            {% if scouters|length > 0 %}
+            {% set max_teams_scout = namespace(scouter=None, count=0) %}
+            {% for scouter in scouters %}
+                {% if scouter.unique_teams_count > max_teams_scout.count %}
+                    {% set max_teams_scout.scouter = scouter %}
+                    {% set max_teams_scout.count = scouter.unique_teams_count %}
+                {% endif %}
+            {% endfor %}
+            <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center">
+                    <div class="h-14 w-14 bg-green-100 rounded-full flex items-center justify-center text-green-600 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Data Collector Award</h3>
+                        <p class="text-sm text-gray-600">{{ max_teams_scout.scouter.username }} - {{ max_teams_scout.count }} unique teams</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Leaderboard Table -->
+    <div class="bg-white shadow-md overflow-hidden rounded-lg">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Rank
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Scout
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Team
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Matches Scouted
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Unique Teams
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if scouters %}
+                        {% for scouter in scouters %}
+                        <tr class="{% if loop.index0 % 2 %}bg-gray-50{% endif %} hover:bg-gray-100">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                {% if loop.index == 1 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    🏆 {{ loop.index }}
+                                </span>
+                                {% elif loop.index == 2 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    🥈 {{ loop.index }}
+                                </span>
+                                {% elif loop.index == 3 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
+                                    🥉 {{ loop.index }}
+                                </span>
+                                {% else %}
+                                <span class="text-gray-500">{{ loop.index }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 flex-shrink-0">
+                                        <img class="h-10 w-10 rounded-full" src="{{ url_for('auth.profile_picture', user_id=scouter._id) }}" alt="">
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ scouter.username }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {% if scouter.teamNumber %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-100 text-blue-800">
+                                    {{ scouter.teamNumber }}
+                                </span>
+                                {% else %}
+                                <span class="text-gray-400">No team</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 font-semibold">{{ scouter.match_count }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ scouter.unique_teams_count }}</div>
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No scouting data available
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-submit form when filters change
+    document.querySelectorAll('#leaderboardForm select').forEach(select => {
+        select.addEventListener('change', () => {
+            document.getElementById('leaderboardForm').submit();
+        });
+    });
+</script>
+{% endblock %} 

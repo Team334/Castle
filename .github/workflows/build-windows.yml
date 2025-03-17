@@ -44,7 +44,7 @@ jobs:
       working-directory: ./standalone
       run: |
         briefcase create windows
-        briefcase build windows
+        briefcase build windows --update-resources
         briefcase package windows
     
     - name: Upload MSI installer

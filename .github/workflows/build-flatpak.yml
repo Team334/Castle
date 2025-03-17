@@ -61,7 +61,7 @@ jobs:
         source venv/bin/activate
         cd standalone
         briefcase create linux flatpak --no-input
-        briefcase build linux flatpak --no-input
+        briefcase build linux flatpak --no-input --update-resources
         briefcase package linux flatpak --no-input
     
     - name: Upload Flatpak bundle

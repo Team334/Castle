@@ -31,5 +31,11 @@
       "src": "/(.*)",
       "dest": "/app/main.py"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "standalone": false
+    }
+  },
+  "ignoreCommand": "if [ -d \"standalone\" ]; then echo \"Ignoring standalone directory\"; fi"
 }

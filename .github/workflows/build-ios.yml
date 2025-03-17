@@ -44,7 +44,7 @@ jobs:
       working-directory: ./standalone
       run: |
         briefcase create iOS
-        briefcase build iOS
+        briefcase build iOS --update-resources
         briefcase package iOS
       env:
         XCODE_DEVELOPMENT_TEAM: ${{ secrets.XCODE_DEVELOPMENT_TEAM }}

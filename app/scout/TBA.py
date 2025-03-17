@@ -62,7 +62,7 @@ class TBAInterface:
 
     @lru_cache(maxsize=100)
     def get_current_events(self, year):
-        """Get events for the current and previous week, sorted by proximity to today"""
+        """Get all events for the specified year"""
         try:
             response = requests.get(
                 f"{self.base_url}/events/{year}/simple",
@@ -73,49 +73,16 @@ class TBAInterface:
                 return None
 
             events = response.json()
-            current_date = datetime.now().date()
-            current_week_start = current_date - timedelta(days=current_date.weekday())
-            last_week_start = current_week_start - timedelta(days=7)
-
-            # Create separate lists for today, yesterday, and other days
-            today_events = []
-            yesterday_events = []
-            other_events = []
-
-            for event in events:
-                event_start = datetime.strptime(event['start_date'], '%Y-%m-%d').date()
-                if last_week_start <= event_start <= current_date:
-                    days_difference = abs((current_date - event_start).days)
-                    if days_difference == 0:
-                        today_events.append(event)
-                    elif days_difference == 1:
-                        yesterday_events.append(event)
-                    else:
-                        other_events.append((days_difference, event))
-
-            # Sort other events by days difference
-            other_events.sort(key=lambda x: x[0])
-
-            # Convert to dictionary with time indicators, maintaining priority order
+            
+            # No date filtering - include all events
+            # Convert to dictionary, maintaining alphabetical order
             current_events = {}
             
-            # Add today's events first
-            for event in today_events:
-                display_name = f"{event['name']}"
-                current_events[display_name] = {
-                    'key': event['key'],
-                    'start_date': event['start_date']
-                }
-
-            # Add yesterday's events second
-            for event in yesterday_events:
-                display_name = f"{event['name']}"
-                current_events[display_name] = {
-                    'key': event['key'],
-                    'start_date': event['start_date']
-                }
-
-            for _, event in other_events:
+            # Sort events alphabetically by name
+            events.sort(key=lambda x: x['name'])
+            
+            # Add all events
+            for event in events:
                 display_name = f"{event['name']}"
                 current_events[display_name] = {
                     'key': event['key'],

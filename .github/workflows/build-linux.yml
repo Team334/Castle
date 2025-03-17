@@ -72,7 +72,7 @@ jobs:
       working-directory: ./standalone
       run: |
         python -m briefcase create 
-        python -m briefcase build
+        python -m briefcase build --update-resources
         
     # Create Linux distribution packages
     - name: Package for Linux
