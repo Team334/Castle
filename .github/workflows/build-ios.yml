@@ -2,9 +2,9 @@ name: Build iOS App
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, Mobile-build ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, Mobile-build ]
   workflow_dispatch:
 
 permissions:
@@ -44,7 +44,7 @@ jobs:
       working-directory: ./standalone
       run: |
         briefcase create iOS
-        briefcase build iOS
+        briefcase build iOS --release
       env:
         XCODE_DEVELOPMENT_TEAM: ${{ secrets.XCODE_DEVELOPMENT_TEAM }}
     
@@ -52,4 +52,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: castle-ios
-        path: standalone/build/castle/ios/xcode/build/Debug-iphonesimulator/Castle.app 
+        path: standalone/dist/castle-25.1.2-ios.ipa

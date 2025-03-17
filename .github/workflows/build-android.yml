@@ -2,9 +2,9 @@ name: Build Android App
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, Mobile-build ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, Mobile-build ]
   workflow_dispatch:
 
 permissions:
@@ -58,7 +58,7 @@ jobs:
       run: |
         briefcase create android
         # Make sure we're not trying to install toga-gtk on Android
-        briefcase build android --no-update
+        briefcase build android --no-update --release
         # Use a custom build approach to avoid GTK dependencies
         cd build/castle/android
         python -m pip install toga-core~=0.4.0 toga-android~=0.4.0
@@ -67,5 +67,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: castle-android
-        path: standalone/build/castle/android/gradle/app/build/outputs/apk/debug/app-debug.apk
+        path: standalone/dist/castle-25.1.2-android.apk
         if-no-files-found: warn 
