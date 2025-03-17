@@ -44,7 +44,9 @@ jobs:
       working-directory: ./standalone
       run: |
         briefcase create iOS
-        briefcase build iOS --release
+        briefcase build iOS
+        # Package the app to create the final versioned IPA
+        briefcase package iOS
       env:
         XCODE_DEVELOPMENT_TEAM: ${{ secrets.XCODE_DEVELOPMENT_TEAM }}
     
