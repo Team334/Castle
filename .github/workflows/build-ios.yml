@@ -45,7 +45,6 @@ jobs:
       run: |
         briefcase create iOS
         briefcase build iOS
-        # Package the app to create the final versioned IPA
         briefcase package iOS
       env:
         XCODE_DEVELOPMENT_TEAM: ${{ secrets.XCODE_DEVELOPMENT_TEAM }}
@@ -54,4 +53,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: castle-ios
-        path: standalone/dist/castle-25.1.2-ios.ipa
+        path: standalone/build/castle/ios/xcode/build/Debug-iphonesimulator/Castle.app

@@ -58,13 +58,10 @@ jobs:
       run: |
         briefcase create android
         # Make sure we're not trying to install toga-gtk on Android
-        briefcase build android --no-update --release
+        briefcase build android --no-update
         # Package the app to create the final versioned APK
         briefcase package android --no-sign
-        # Use a custom build approach to avoid GTK dependencies
-        cd build/castle/android
-        python -m pip install toga-core~=0.4.0 toga-android~=0.4.0
-    
+        
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
