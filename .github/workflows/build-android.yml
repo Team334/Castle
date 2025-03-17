@@ -2,9 +2,9 @@ name: Build Android App
 
 on:
   push:
-    branches: [ main, master, Mobile-build ]
+    branches: [ main, master]
   pull_request:
-    branches: [ main, master, Mobile-build ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -67,5 +67,5 @@ jobs:
       with:
         name: castle-android
         path: |
-          standalone/dist/castle-*.apk
+          standalone/dist/Castle-*.apk
         if-no-files-found: warn 

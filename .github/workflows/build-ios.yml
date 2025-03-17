@@ -2,9 +2,9 @@ name: Build iOS App
 
 on:
   push:
-    branches: [ main, master, Mobile-build ]
+    branches: [ main, master]
   pull_request:
-    branches: [ main, master, Mobile-build ]
+    branches: [ main, master]
   workflow_dispatch:
 
 permissions:
