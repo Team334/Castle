@@ -60,11 +60,12 @@ jobs:
         # Make sure we're not trying to install toga-gtk on Android
         briefcase build android --no-update
         # Package the app to create the final versioned APK
-        briefcase package android --no-sign
+        briefcase package android -p apk
         
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: castle-android
-        path: standalone/dist/castle-25.1.2-android.apk
+        path: |
+          standalone/dist/castle-*.apk
         if-no-files-found: warn 
