@@ -58,7 +58,7 @@ jobs:
       run: |
         briefcase create android
         # Make sure we're not trying to install toga-gtk on Android
-        briefcase build android --no-update --update-resources
+        briefcase build android --update-resources
         # Package the app to create the final versioned APK
         briefcase package android -p apk
         
