@@ -1,9 +1,9 @@
 # This project was generated with 0.3.22 using template: https://github.com/beeware/briefcase-template@v0.3.22
 [tool.briefcase]
 project_name = "Castle"
-bundle = "com.techknights.castle"
+bundle = "com.team334.castle"
 version = "25.1.2"
-url = "https://techknights.vercel.app"
+url = "https://castlescouting.com"
 license.file = "LICENSE"
 author = "Cherriae"
 author_email = "techrobotics334@gmail.com"
