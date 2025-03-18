@@ -493,6 +493,43 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter options based on search input
         function filterOptions(searchTerm) {
             searchTerm = searchTerm.toLowerCase();
+            
+            // Special handling for finals searches
+            if (searchTerm.includes('final')) {
+                // Check if searching for a specific finals match like "finals 1"
+                const finalsMatchNumber = searchTerm.match(/finals?\s*(\d+)/i);
+                
+                if (finalsMatchNumber) {
+                    // If looking for a specific finals match
+                    const matchNumber = finalsMatchNumber[1];
+                    filteredOptions = options.filter(opt => 
+                        opt.text.toLowerCase().includes('finals') && 
+                        !opt.text.toLowerCase().includes('semi') && 
+                        opt.text.includes(matchNumber)
+                    );
+                    
+                    if (filteredOptions.length > 0) {
+                        renderDropdown();
+                        return;
+                    }
+                }
+                
+                // If search contains "final" but not "semi", prioritize finals over semi-finals
+                if (searchTerm.includes('final') && !searchTerm.includes('semi')) {
+                    const finalsOptions = options.filter(opt => 
+                        opt.text.toLowerCase().includes('finals') && 
+                        !opt.text.toLowerCase().includes('semi')
+                    );
+                    
+                    if (finalsOptions.length > 0) {
+                        filteredOptions = finalsOptions;
+                        renderDropdown();
+                        return;
+                    }
+                }
+            }
+            
+            // Normal search behavior for other terms
             filteredOptions = options.filter(opt => 
                 opt.text.toLowerCase().includes(searchTerm)
             );
@@ -588,14 +625,55 @@ document.addEventListener('DOMContentLoaded', function() {
             currentMatches = matches;
             matchSelect.innerHTML = '<option value="">Select Match</option>';
             
-            const sortedMatches = Object.keys(matches)
-                .sort((a, b) => parseInt(a) - parseInt(b));
-            
-            sortedMatches.forEach(matchNum => {
-                const option = document.createElement('option');
-                option.value = matchNum;
-                option.textContent = `Match ${matchNum}`;
-                matchSelect.appendChild(option);
+            // Group matches by competition level
+            const groupedMatches = {};
+            Object.entries(matches).forEach(([matchKey, match]) => {
+                const level = match.comp_level;
+                if (!groupedMatches[level]) {
+                    groupedMatches[level] = [];
+                }
+                groupedMatches[level].push({ key: matchKey, ...match });
+            });
+
+            // Add matches in order: Qualification, Semi-Finals, Finals
+            const levels = {
+                'qm': 'Qualification',
+                'sf': 'Semi-Finals',
+                'f': 'Finals'
+            };
+
+            Object.entries(levels).forEach(([level, label]) => {
+                if (groupedMatches[level]) {
+                    const group = document.createElement('optgroup');
+                    group.label = label;
+
+                    // Sort matches within each group
+                    groupedMatches[level]
+                        .sort((a, b) => {
+                            if (level === 'sf') {
+                                // Sort by set number first, then match number
+                                return (a.set_number - b.set_number) || (a.match_number - b.match_number);
+                            }
+                            return a.match_number - b.match_number;
+                        })
+                        .forEach(match => {
+                            const option = document.createElement('option');
+                            option.value = match.key;
+                            
+                            // Format display text based on match type
+                            if (level === 'qm') {
+                                option.textContent = `Qual ${match.match_number}`;
+                            } else if (level === 'sf') {
+                                option.textContent = `Semi-Finals ${match.set_number}`;
+                            } else if (level === 'f') {
+                                option.textContent = `Finals ${match.match_number}`;
+                            }
+                            
+                            group.appendChild(option);
+                        });
+
+                    matchSelect.appendChild(group);
+                }
             });
             
             // Update match searchable options after populating

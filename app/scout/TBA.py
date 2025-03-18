@@ -49,10 +49,24 @@ class TBAInterface:
             formatted_matches = {}
 
             for match in matches:
+                comp_level = match.get('comp_level', 'qm')
+                set_number = match.get('set_number', None)
                 if match_number := match.get('match_number'):
-                    formatted_matches[match_number] = {
+                    if comp_level == 'qm':
+                        match_key = f"qm{match_number}"
+                    elif comp_level == 'sf':
+                        match_key = f"sf{set_number}"
+                    elif comp_level == 'f':
+                        match_key = f"f{match_number}"
+                    else:
+                        match_key = f"{comp_level}{match_number}"
+
+                    formatted_matches[match_key] = {
                         'red': match['alliances']['red']['team_keys'],
-                        'blue': match['alliances']['blue']['team_keys']
+                        'blue': match['alliances']['blue']['team_keys'],
+                        'comp_level': comp_level,
+                        'match_number': match_number,
+                        'set_number': match.get('set_number', None)
                     }
 
             return formatted_matches

@@ -71,6 +71,23 @@
             width: 48px;
             height: 48px;
         }
+        
+        /* Tab navigation scrolling styles */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .tab-button {
+            @apply flex-none inline-block;
+            min-width: auto;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
     }
 </style>
 {% endblock %}
@@ -285,34 +302,37 @@
             <!-- Coral Scoring Section - Split -->
             <div class="p-8">
                 <div class="mb-4">
-                    <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex" aria-label="Tabs">
-                            <button type="button" 
-                                    class="tab-button flex-1 text-center border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600 whitespace-nowrap active" 
-                                    data-tab="auto">
-                                Auto Period
-                            </button>
-                            <button type="button" 
-                                    class="tab-button flex-1 text-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap" 
-                                    data-tab="teleop">
-                                Teleop Period
-                            </button>
-                            <button type="button" 
-                                    class="tab-button flex-1 text-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap" 
-                                    data-tab="endgame">
-                                Endgame
-                            </button>
-                            <button type="button" 
-                                    class="tab-button flex-1 text-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap" 
-                                    data-tab="defense">
-                                Defense
-                            </button>
-                            <button type="button" 
-                                    class="tab-button flex-1 text-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap" 
-                                    data-tab="other">
-                                Other Stats
-                            </button>
-                        </nav>
+                    <div class="border-b border-gray-200 overflow-hidden">
+                        <!-- Mobile scrollable tabs wrapper -->
+                        <div class="overflow-x-auto -mb-px hide-scrollbar" style="scrollbar-width: none;">
+                            <nav class="flex whitespace-nowrap min-w-full" aria-label="Tabs">
+                                <button type="button" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-blue-600 border-b-2 border-blue-500 whitespace-nowrap active" 
+                                        data-tab="auto">
+                                    Auto Period
+                                </button>
+                                <button type="button" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        data-tab="teleop">
+                                    Teleop Period
+                                </button>
+                                <button type="button" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        data-tab="endgame">
+                                    Endgame
+                                </button>
+                                <button type="button" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        data-tab="defense">
+                                    Defense
+                                </button>
+                                <button type="button" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        data-tab="other">
+                                    Other Stats
+                                </button>
+                            </nav>
+                        </div>
                     </div>
                 </div>
 
