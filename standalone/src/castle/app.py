@@ -15,13 +15,16 @@ class Castle(toga.App):
         We then create a main window (with a name matching the app), and
         show the main window.
         """
+        # Completely clear the command set to remove all menus
+        self._impl.create_menus = lambda *x, **y: None
+        
         # Create the main box with a COLUMN direction
         main_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
         
         # Create the WebView
         web_view = toga.WebView(
             style=Pack(flex=1),
-            url='https://techknights.vercel.app'
+            url='https://castlescouting.com'
         )
         
         # Add the WebView to the main box

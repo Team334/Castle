@@ -69,6 +69,18 @@
                         <img src="{{ url_for('static', filename='logo.png') }}" alt="Castle Logo" class="h-12">
                         <p class="py-4 px-2 text-center -ml-4">Castle</p>
                     </a>
+                    <!-- Offline Status Indicator -->
+                    <div id="nav-offline-indicator" class="hidden py-1 px-3 bg-amber-100 border border-amber-300 rounded-full flex items-center space-x-2 text-amber-700 font-medium relative group">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Offline Mode</span>
+                        <!-- Tooltip that appears on hover -->
+                        <div class="hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-3 py-2 bg-gray-800 text-white text-xs font-normal rounded-lg shadow-lg whitespace-nowrap z-50">
+                            Using Cached Content Only Accessed Before
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 h-2 w-2 rotate-45 bg-gray-800"></div>
+                        </div>
+                    </div>
                     {% if current_user.is_authenticated %}
                         {% if current_user.teamNumber %}
                             <a href="{{ url_for('scouting.home') }}" class="py-4 px-2 hover:text-blue-500 text-center">Scout</a>
@@ -134,6 +146,13 @@
         <div class="mobile-menu hidden bg-white border-t">
           <div class="py-2 px-4 space-y-1">
             <a href="{{ url_for('index') }}" class="block py-3 px-4 hover:bg-blue-50 rounded-lg transition-colors">Home</a>
+            <!-- Mobile Offline Status Indicator -->
+            <div id="mobile-offline-indicator" class="hidden py-3 px-4 bg-amber-100 border border-amber-300 rounded-lg flex items-center space-x-2 text-amber-700 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>Offline Mode - Cached Content Active</span>
+            </div>
             {% if current_user.is_authenticated %}
               {% if current_user.teamNumber %}
                   <a href="{{ url_for('scouting.home') }}" class="block py-3 px-4 hover:bg-blue-50 rounded-lg transition-colors">Scout</a>
@@ -214,7 +233,7 @@
                 <div class="text-center">
                     <p class="text-sm">© 2024-2025 <a href="https://bthsrobotics.com" class="text-blue-600 hover:text-blue-700 transition-colors">Team 334</a></p>
                 </div>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <div class="hidden sm:flex flex-col sm:flex-row items-center justify-center gap-2">
                     <a href="https://github.com/team334/Castle" target="_blank" rel="noopener noreferrer" 
                        class="text-gray-700 hover:text-blue-600 transition-colors">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -223,7 +242,7 @@
                     </a>
                     <p class="text-sm text-center">This project is open source. Help us improve it!</p>
                 </div>
-                <div class="text-center">
+                <div class="hidden sm:block text-center">
                     <a href="https://cherriae.github.io" target="_blank" rel="noopener noreferrer" 
                        class="text-gray-700 hover:text-blue-600 transition-colors text-sm">
                         Created by Jerry
@@ -331,6 +350,286 @@
                     dropdownArrow.style.transform = '';
                 }
             });
+        }
+    </script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        // Check offline status immediately when script runs (before any events)
+        (function checkOfflineStatus() {
+            if (!navigator.onLine || localStorage.getItem('offlineMode') === 'true') {
+                document.body.classList.add('offline');
+                // We'll call showOfflineIndicators as soon as DOM is ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', showOfflineIndicatorsImmediately);
+                } else {
+                    showOfflineIndicatorsImmediately();
+                }
+            }
+        })();
+        
+        function showOfflineIndicatorsImmediately() {
+            const navOfflineIndicator = document.getElementById('nav-offline-indicator');
+            if (navOfflineIndicator) {
+                navOfflineIndicator.classList.remove('hidden');
+            }
+            
+            const mobileOfflineIndicator = document.getElementById('mobile-offline-indicator');
+            if (mobileOfflineIndicator) {
+                mobileOfflineIndicator.classList.remove('hidden');
+            }
+            
+            // Store offline state in localStorage to persist across page changes
+            localStorage.setItem('offlineMode', 'true');
+        }
+
+        if ('serviceWorker' in navigator) {
+            // Track the current version of content
+            const APP_VERSION = '{{ request.args.get("v", "1.0") }}';
+            
+            // Store the current version in localStorage
+            if (!localStorage.getItem('appVersion') || 
+                localStorage.getItem('appVersion') !== APP_VERSION) {
+                // Version changed, clear caches
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        return Promise.all(
+                            cacheNames.map(cacheName => {
+                                return caches.delete(cacheName);
+                            })
+                        );
+                    });
+                }
+                localStorage.setItem('appVersion', APP_VERSION);
+            }
+            
+            window.addEventListener('load', () => {
+                const registerServiceWorker = async () => {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/static/js/service-worker.js', {
+                            scope: '/',
+                            updateViaCache: 'none' // Don't use cached service worker
+                        });
+                        
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        
+                        // Check if there's an updated service worker waiting
+                        if (registration.waiting) {
+                            console.log('New service worker is waiting to activate');
+                            notifyUserOfUpdate(registration.waiting);
+                        }
+                        
+                        // Listen for new service worker installation
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('Service Worker update found!');
+                            
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('New content is available; please refresh.');
+                                    notifyUserOfUpdate(newWorker);
+                                }
+                            });
+                        });
+                        
+                        // Force update check every 5 minutes if the tab remains open
+                        setInterval(() => {
+                            registration.update();
+                            console.log('Checking for service worker updates...');
+                        }, 5 * 60 * 1000);
+                        
+                        // Check for updates immediately
+                        setTimeout(() => {
+                            registration.update();
+                        }, 3000);
+                        
+                        // Listen for controller change (new service worker took over)
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            console.log('New service worker controller, reloading for fresh content');
+                            window.location.reload();
+                        });
+                        
+                        // Listen for messages from the service worker
+                        navigator.serviceWorker.addEventListener('message', event => {
+                            if (event.data && event.data.type === 'OFFLINE_STATUS') {
+                                if (event.data.isOffline) {
+                                    document.body.classList.add('offline');
+                                    showOfflineIndicators();
+                                } else {
+                                    document.body.classList.remove('offline');
+                                    hideOfflineIndicators();
+                                }
+                            }
+                        });
+                        
+                    } catch (error) {
+                        console.error('ServiceWorker registration failed: ', error);
+                    }
+                };
+                
+                registerServiceWorker();
+            });
+            
+            // Function to notify the user about an update
+            function notifyUserOfUpdate(worker) {
+                const updateBanner = document.createElement('div');
+                updateBanner.id = 'update-banner';
+                updateBanner.classList.add('fixed', 'bottom-0', 'left-0', 'right-0', 'bg-blue-500', 'text-white', 'p-4', 'flex', 'justify-between', 'items-center', 'z-50');
+                updateBanner.innerHTML = `
+                    <div>
+                        <strong>Update Available!</strong> Refresh to see the latest version.
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="update-now" class="bg-white text-blue-500 px-4 py-2 rounded hover:bg-blue-50 transition-colors">
+                            Update Now
+                        </button>
+                        <button id="update-later" class="text-white border border-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                            Later
+                        </button>
+                    </div>
+                `;
+                
+                document.body.appendChild(updateBanner);
+                
+                document.getElementById('update-now').addEventListener('click', () => {
+                    worker.postMessage({ action: 'skipWaiting' });
+                    updateBanner.remove();
+                });
+                
+                document.getElementById('update-later').addEventListener('click', () => {
+                    updateBanner.remove();
+                });
+            }
+            
+            // Function to show offline indicators
+            function showOfflineIndicators() {
+                // Show offline indicators in top navigation
+                const navOfflineIndicator = document.getElementById('nav-offline-indicator');
+                if (navOfflineIndicator) {
+                    navOfflineIndicator.classList.remove('hidden');
+                }
+                
+                // Show mobile offline indicator
+                const mobileOfflineIndicator = document.getElementById('mobile-offline-indicator');
+                if (mobileOfflineIndicator) {
+                    mobileOfflineIndicator.classList.remove('hidden');
+                }
+                
+                // Store offline state in localStorage to persist across page changes
+                localStorage.setItem('offlineMode', 'true');
+            }
+            
+            // Function to hide offline indicators
+            function hideOfflineIndicators() {
+                // Hide offline indicators in top navigation
+                const navOfflineIndicator = document.getElementById('nav-offline-indicator');
+                if (navOfflineIndicator) {
+                    navOfflineIndicator.classList.add('hidden');
+                }
+                
+                // Hide mobile offline indicator
+                const mobileOfflineIndicator = document.getElementById('mobile-offline-indicator');
+                if (mobileOfflineIndicator) {
+                    mobileOfflineIndicator.classList.add('hidden');
+                }
+                
+                // Remove offline state from localStorage
+                localStorage.removeItem('offlineMode');
+            }
+            
+            // Add offline/online detection
+            window.addEventListener('online', () => {
+                document.body.classList.remove('offline');
+                hideOfflineIndicators();
+                
+                // Sync any pending requests and check for updates
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.update();
+                });
+            });
+            
+            window.addEventListener('offline', () => {
+                document.body.classList.add('offline');
+                showOfflineIndicators();
+            });
+            
+            // The following check runs on every page load, including refreshes and navigation
+            // It's redundant with the IIFE at the top but provides a fallback
+            document.addEventListener('DOMContentLoaded', () => {
+                // Double-check offline status from localStorage and network state
+                if (localStorage.getItem('offlineMode') === 'true' || !navigator.onLine) {
+                    document.body.classList.add('offline');
+                    showOfflineIndicators();
+                }
+                
+                // Also double-check online status to handle case where connection was restored
+                // but localStorage wasn't properly cleared
+                if (navigator.onLine && localStorage.getItem('offlineMode') === 'true') {
+                    // Verify online status by making a tiny request
+                    fetch('/static/logo.png?checkOnline=' + Date.now(), { 
+                        method: 'HEAD',
+                        cache: 'no-store'
+                    })
+                    .then(() => {
+                        // If fetch succeeds, we're definitely online
+                        hideOfflineIndicators();
+                    })
+                    .catch(() => {
+                        // If fetch fails, we're probably still offline
+                        showOfflineIndicators();
+                    });
+                }
+            });
+            
+            // Add offline support to fetch requests
+            const originalFetch = window.fetch;
+            window.fetch = function(input, init) {
+                return originalFetch(input, init)
+                    .then(response => {
+                        // If a successful response, we must be online
+                        if (response.ok && localStorage.getItem('offlineMode') === 'true') {
+                            // Verify we're really online with another small fetch
+                            // This prevents false positives from cached responses
+                            fetch('/static/logo.png?checkOnline=' + Date.now(), { 
+                                method: 'HEAD',
+                                cache: 'no-store'
+                            })
+                            .then(() => {
+                                // If this succeeds, we're online
+                                document.body.classList.remove('offline');
+                                hideOfflineIndicators();
+                            })
+                            .catch(() => {
+                                // If it fails, we're still offline
+                            });
+                        }
+                        return response;
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        
+                        if (!navigator.onLine) {
+                            // Ensure the offline indicator is shown
+                            document.body.classList.add('offline');
+                            showOfflineIndicators();
+                            
+                            // For JSON requests, return a valid offline response
+                            if (init && init.headers && 
+                                (init.headers.get('Accept') === 'application/json' || 
+                                 init.headers.get('Content-Type') === 'application/json')) {
+                                return new Response(JSON.stringify({
+                                    error: 'offline',
+                                    message: 'You are offline. This action will be synced when you reconnect.'
+                                }), {
+                                    status: 200,
+                                    headers: { 'Content-Type': 'application/json' }
+                                });
+                            }
+                        }
+                        
+                        throw error;
+                    });
+            };
         }
     </script>
 </body>
