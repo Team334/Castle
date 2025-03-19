@@ -25,7 +25,8 @@ const STATIC_ASSETS = [
 // Files that should not be cached
 const NO_CACHE_URLS = [
   '/auth/login',
-  '/auth/register'
+  '/auth/register',
+  '/',  // Home page
 ];
 
 // Make sure offline page is cached first during installation
@@ -184,7 +185,16 @@ function handleFetchError(error, request) {
 }
 
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
+  const url = new URL(event.request.url);
+  
+  // Bypass service worker for auth endpoints and all POST requests
+  if (url.pathname.startsWith('/auth/') || event.request.method === 'POST') {
+    console.log('[ServiceWorker] Bypassing service worker for auth or POST request:', url.pathname);
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Skip non-GET requests - this now only handles non-POST requests like PUT, DELETE, etc.
   if (event.request.method !== 'GET') {
     // For non-GET requests, try network with graceful offline handling
     event.respondWith(
@@ -196,8 +206,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const url = new URL(event.request.url);
-  
   // Special handling for offline.html - always serve from cache if available
   if (url.pathname === '/offline.html') {
     event.respondWith(
@@ -243,37 +251,32 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // For HTML pages, use cache-first strategy but update cache in background
+    // For HTML pages, use network-first strategy for authenticated pages
     event.respondWith(
-      caches.match(event.request)
-        .then(cachedResponse => {
-          // Clone the request because it can only be used once
-          const fetchPromise = fetch(event.request.clone())
-            .then(networkResponse => {
-              if (networkResponse.ok) {
-                // Update the cache with the new version
-                const responseToCache = networkResponse.clone();
-                caches.open(PAGE_CACHE_NAME)
-                  .then(cache => {
-                    console.log('[ServiceWorker] Caching page:', event.request.url);
-                    cache.put(event.request, responseToCache);
-                  });
-              }
-              return networkResponse;
-            })
-            .catch(error => {
-              console.error('[ServiceWorker] Fetch failed:', error);
-              // If cache exists, it will be returned by the outer function
-              // Otherwise, this will be caught by the outer catch
-              throw error;
-            });
-
-          // Return cached response if available, otherwise wait for network
-          return cachedResponse || fetchPromise;
+      fetch(event.request)
+        .then(networkResponse => {
+          // Only cache if it's not an authenticated page
+          if (networkResponse.ok && !networkResponse.headers.get('Set-Cookie')) {
+            const responseToCache = networkResponse.clone();
+            caches.open(PAGE_CACHE_NAME)
+              .then(cache => {
+                console.log('[ServiceWorker] Caching page:', event.request.url);
+                cache.put(event.request, responseToCache);
+              });
+          }
+          return networkResponse;
         })
         .catch(error => {
-          // If both cache and network fail, handle gracefully
-          return handleFetchError(error, event.request);
+          console.error('[ServiceWorker] Fetch failed:', error);
+          // If network fails, try cache
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // If no cache, show offline page
+              return handleFetchError(error, event.request);
+            });
         })
     );
     return;

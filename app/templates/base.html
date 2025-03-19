@@ -15,7 +15,7 @@
     <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
     <link rel="shortcut icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png"/>
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}"/>
+    <link rel="manifest" href="/static/manifest.json"/>
 
     <meta property="twitter:image" content="{{ url_for('static', filename='logo.png') }}">
     <meta property="twitter:card" content="summary_large_image">
@@ -32,7 +32,6 @@
 
 
     <meta name="viewport" content="initial-scale=1, width=device-width"/>
-    <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#3b82f6">
     <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -370,7 +369,7 @@
             window.addEventListener('load', () => {
                 const registerServiceWorker = async () => {
                     try {
-                        const registration = await navigator.serviceWorker.register('/static/js/service-worker.js', {
+                        const registration = await navigator.serviceWorker.register('/service-worker.js', {
                             scope: '/',
                             updateViaCache: 'none' // Don't use cached service worker
                         });

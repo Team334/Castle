@@ -120,7 +120,13 @@ def create_app():
 
     @app.route('/static/manifest.json')
     def serve_manifest():
-        return send_from_directory(app.static_folder, 'manifest.json')
+        response = make_response(send_from_directory(app.static_folder, 'manifest.json'))
+        response.headers['Content-Type'] = 'application/manifest+json'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     @app.route('/service-worker.js')
     def serve_root_service_worker():
@@ -132,16 +138,6 @@ def create_app():
         response.headers['Expires'] = '0'
         return response
     
-    @app.route('/static/js/service-worker.js')
-    def serve_service_worker():
-        response = make_response(send_from_directory(app.static_folder, 'js/service-worker.js'))
-        response.headers['Content-Type'] = 'application/javascript'
-        response.headers['Service-Worker-Allowed'] = '/'
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        return response
-
     @app.route('/offline.html')
     def offline():
         return render_template('offline.html')
