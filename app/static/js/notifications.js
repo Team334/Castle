@@ -75,11 +75,12 @@ class NotificationManager {
      */
     async registerServiceWorker() {
         try {
-            this.swRegistration = await navigator.serviceWorker.register('/static/js/service-worker.js');
-            console.log('Service worker registered successfully');
+            // Instead of registering a new service worker, get the existing registration
+            this.swRegistration = await navigator.serviceWorker.ready;
+            console.log('Using existing service worker registration');
             return this.swRegistration;
         } catch (error) {
-            console.error('Error registering service worker:', error);
+            console.error('Error getting service worker registration:', error);
             throw error;
         }
     }

@@ -7,25 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     
-    <style>
-        /* Font Face Declarations */
-        @font-face {
-            font-family: 'MainFont';
-            src: url('/static/fonts/Richardson Brand Accelerator.otf') format('opentype');
-            font-display: swap;
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'SecondaryFont';
-            src: url('/static/fonts/oxanium-vrb.ttf') format('truetype');
-            font-display: swap;
-            font-weight: normal;
-            font-style: normal;
-        }
-    </style>
-    
     <link rel="preload" href="{{ url_for('static', filename='fonts/Richardson Brand Accelerator.otf') }}" as="font" type="font/otf" crossorigin>
     <link rel="preload" href="{{ url_for('static', filename='fonts/oxanium-vrb.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
@@ -251,23 +232,6 @@
             </div>
         </div>
     </footer>
-
-    <script>
-        // Cookie consent functionality
-        function checkCookieConsent() {
-            if (!localStorage.getItem('cookieConsent')) {
-                document.getElementById('cookieConsent').classList.remove('hidden');
-            }
-        }
-
-        function acceptCookies() {
-            localStorage.setItem('cookieConsent', 'true');
-            document.getElementById('cookieConsent').classList.add('hidden');
-        }
-
-        // Check cookie consent on page load
-        document.addEventListener('DOMContentLoaded', checkCookieConsent);
-    </script>
 
     <script>
         const menuButton = document.querySelector('.mobile-menu-button');

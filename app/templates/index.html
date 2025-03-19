@@ -43,6 +43,7 @@
                         </a>
                         {% endif %}
                     </div>
+                    <div id="installMessage" class="mt-4 text-green-600 font-medium hidden animate-fade-in"></div>
             </div>
         </div>
     </div>
@@ -119,4 +120,13 @@
     {% endif %}
 
 </div>
+
+<!-- Fixed Install Button -->
+<button id="installPWA" 
+        class="hidden fixed bottom-6 right-6 rounded-full bg-blue-600 p-4 text-white shadow-lg hover:bg-blue-500 transition-all z-50 install-btn-pulse">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+    </svg>
+</button>
+<script defer src="{{ url_for('static', filename='js/pwa-install.js') }}"></script>
 {% endblock %}
