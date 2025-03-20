@@ -241,28 +241,28 @@ def compare_teams():
                         "as": "scouter"
                     }},
                     {"$unwind": "$scouter"},
-                     {"$match": {
+                    {"$match": {
                         "$or": [
-                                {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
-                                {"scouter._id": ObjectId(current_user.get_id())}
-                            ]
-                        }
-                    },
+                            {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
+                            {"scouter._id": ObjectId(current_user.get_id())}
+                        ]
+                    }},
                     {"$group": {
                         "_id": "$team_number",
                         "matches_played": {"$sum": 1},
-                        "avg_auto_coral_level1": {"$avg": "$auto_coral_level1"},
-                        "avg_auto_coral_level2": {"$avg": "$auto_coral_level2"},
-                        "avg_auto_coral_level3": {"$avg": "$auto_coral_level3"},
-                        "avg_auto_coral_level4": {"$avg": "$auto_coral_level4"},
-                        "avg_auto_algae_net": {"$avg": "$auto_algae_net"},
-                        "avg_auto_algae_processor": {"$avg": "$auto_algae_processor"},
-                        "avg_teleop_coral_level1": {"$avg": "$teleop_coral_level1"},
-                        "avg_teleop_coral_level2": {"$avg": "$teleop_coral_level2"},
-                        "avg_teleop_coral_level3": {"$avg": "$teleop_coral_level3"},
-                        "avg_teleop_coral_level4": {"$avg": "$teleop_coral_level4"},
-                        "avg_teleop_algae_net": {"$avg": "$teleop_algae_net"},
-                        "avg_teleop_algae_processor": {"$avg": "$teleop_algae_processor"},
+                        "avg_auto_coral_level1": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level1", 0]}, "$auto_coral_level1", None]}},
+                        "avg_auto_coral_level2": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level2", 0]}, "$auto_coral_level2", None]}},
+                        "avg_auto_coral_level3": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level3", 0]}, "$auto_coral_level3", None]}},
+                        "avg_auto_coral_level4": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level4", 0]}, "$auto_coral_level4", None]}},
+                        "avg_auto_algae_net": {"$avg": {"$cond": [{"$gt": ["$auto_algae_net", 0]}, "$auto_algae_net", None]}},
+                        "avg_auto_algae_processor": {"$avg": {"$cond": [{"$gt": ["$auto_algae_processor", 0]}, "$auto_algae_processor", None]}},
+                        "avg_teleop_coral_level1": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level1", 0]}, "$teleop_coral_level1", None]}},
+                        "avg_teleop_coral_level2": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level2", 0]}, "$teleop_coral_level2", None]}},
+                        "avg_teleop_coral_level3": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level3", 0]}, "$teleop_coral_level3", None]}},
+                        "avg_teleop_coral_level4": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level4", 0]}, "$teleop_coral_level4", None]}},
+                        "avg_teleop_algae_net": {"$avg": {"$cond": [{"$gt": ["$teleop_algae_net", 0]}, "$teleop_algae_net", None]}},
+                        "avg_teleop_algae_processor": {"$avg": {"$cond": [{"$gt": ["$teleop_algae_processor", 0]}, "$teleop_algae_processor", None]}},
+                        # Only count successful climbs in the rate
                         "climb_success_rate": {"$avg": {"$cond": ["$climb_success", 1, 0]}},
                         "defense_notes": {"$push": "$defense_notes"},
                         "auto_paths": {"$push": {
@@ -270,118 +270,64 @@ def compare_teams():
                             "notes": "$auto_notes",
                             "match_number": "$match_number"
                         }},
-                        "defense_rating": {"$avg": "$defense_rating"},
-                        "mobility_rating": {"$avg": "$mobility_rating"},
+                        "defense_rating": {"$avg": {"$cond": [{"$gt": ["$defense_rating", 0]}, "$defense_rating", None]}},
+                        "mobility_rating": {"$avg": {"$cond": [{"$gt": ["$mobility_rating", 0]}, "$mobility_rating", None]}},
                         "mobility_notes": {"$push": "$mobility_notes"},
-                        "durability_rating": {"$avg": "$durability_rating"},
+                        "durability_rating": {"$avg": {"$cond": [{"$gt": ["$durability_rating", 0]}, "$durability_rating", None]}},
                         "durability_notes": {"$push": "$durability_notes"},
                         "preferred_climb_type": {"$last": "$climb_type"},
                         "matches": {"$push": "$$ROOT"}
-                    }}
+                    }},
+                    {"$match": {"matches_played": {"$gt": 0}}}
                 ]
 
                 stats = list(scouting_manager.db.team_data.aggregate(pipeline))
 
-                if stats and stats[0].get("matches_played", 0) > 0:
+                if stats:  # Only include teams that have data
                     matches_played = stats[0]["matches_played"]
                     normalized_stats = {
                         "auto_scoring": (
-                            stats[0]["avg_auto_coral_level1"] + 
-                            stats[0]["avg_auto_coral_level2"] * 2 +
-                            stats[0]["avg_auto_coral_level3"] * 3 +
-                            stats[0]["avg_auto_coral_level4"] * 4 +
-                            stats[0]["avg_auto_algae_net"] * 2 +
-                            stats[0]["avg_auto_algae_processor"] * 3
+                            (stats[0]["avg_auto_coral_level1"] or 0) + 
+                            (stats[0]["avg_auto_coral_level2"] or 0) * 2 +
+                            (stats[0]["avg_auto_coral_level3"] or 0) * 3 +
+                            (stats[0]["avg_auto_coral_level4"] or 0) * 4 +
+                            (stats[0]["avg_auto_algae_net"] or 0) * 2 +
+                            (stats[0]["avg_auto_algae_processor"] or 0) * 3
                         ) / 20,
                         "teleop_scoring": (
-                            stats[0]["avg_teleop_coral_level1"] + 
-                            stats[0]["avg_teleop_coral_level2"] * 2 +
-                            stats[0]["avg_teleop_coral_level3"] * 3 +
-                            stats[0]["avg_teleop_coral_level4"] * 4 +
-                            stats[0]["avg_teleop_algae_net"] * 2 +
-                            stats[0]["avg_teleop_algae_processor"] * 3
+                            (stats[0]["avg_teleop_coral_level1"] or 0) + 
+                            (stats[0]["avg_teleop_coral_level2"] or 0) * 2 +
+                            (stats[0]["avg_teleop_coral_level3"] or 0) * 3 +
+                            (stats[0]["avg_teleop_coral_level4"] or 0) * 4 +
+                            (stats[0]["avg_teleop_algae_net"] or 0) * 2 +
+                            (stats[0]["avg_teleop_algae_processor"] or 0) * 3
                         ) / 20,
                         "climb_rating": stats[0]["climb_success_rate"],
-                        "defense_rating": stats[0]["defense_rating"] / 5 if stats[0].get("defense_rating") else 0
-                    }
-                else:
-                    normalized_stats = {
-                        "auto_scoring": 0,
-                        "teleop_scoring": 0,
-                        "climb_rating": 0,
-                        "defense_rating": 0
+                        "defense_rating": (stats[0]["defense_rating"] or 0) / 5 if stats[0].get("defense_rating") is not None else 0
                     }
 
-                # Get team info from TBA
-                team_key = f"frc{team_num}"
-                team_info = TBAInterface().get_team(team_key)
+                    # Get team info from TBA
+                    team_key = f"frc{team_num}"
+                    team_info = TBAInterface().get_team(team_key)
 
-                # Get the 5 most recent matches
-                matches_pipeline = [
-                    {"$match": {"team_number": team_num}},
-                    {"$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }},
-
-                     {"$match": {
-                        "$or": [
-                            {"scouter.teamNumber": current_user.teamNumber} if current_user.teamNumber else {"scouter._id": ObjectId(current_user.get_id())},
-                            {"scouter._id": ObjectId(current_user.get_id())}
-                        ]
-                    }},
-                    {"$unwind": "$scouter"},
-                    {"$sort": {"match_number": -1}},
-                    {"$limit": 5},
-                    {"$project": {
-                        "match_number": 1,
-                        "alliance": 1,
-                        "auto_coral_level1": 1,
-                        "auto_coral_level2": 1,
-                        "auto_coral_level3": 1,
-                        "auto_coral_level4": 1,
-                        "auto_algae_net": 1,
-                        "auto_algae_processor": 1,
-                        "teleop_coral_level1": 1,
-                        "teleop_coral_level2": 1,
-                        "teleop_coral_level3": 1,
-                        "teleop_coral_level4": 1,
-                        "teleop_algae_net": 1,
-                        "teleop_algae_processor": 1,
-                        "climb_success": 1,
-                        "climb_type": 1,
-                        "auto_path": 1,
-                        "auto_notes": 1,
-                        "defense_rating": 1,
-                        "notes": 1,
-                        "scouter_name": "$scouter.username",
-                        "profile_picture": "$scouter.profile_picture"
-                    }}
-                ]
-
-                matches = list(scouting_manager.db.team_data.aggregate(matches_pipeline))
-
-                teams_data[str(team_num)] = {
-                    "team_number": team_num,
-                    "nickname": team_info.get("nickname", "Unknown"),
-                    "city": team_info.get("city"),
-                    "state_prov": team_info.get("state_prov"),
-                    "country": team_info.get("country"),
-                    "stats": stats[0] if stats else {},
-                    "normalized_stats": normalized_stats,
-                    "matches": matches
-                }
+                    teams_data[str(team_num)] = {
+                        "team_number": team_num,
+                        "nickname": team_info.get("nickname", "Unknown"),
+                        "city": team_info.get("city"),
+                        "state_prov": team_info.get("state_prov"),
+                        "country": team_info.get("country"),
+                        "stats": stats[0],
+                        "normalized_stats": normalized_stats,
+                        "matches": stats[0]["matches"]
+                    }
 
             except Exception as team_error:
                 current_app.logger.error(f"Error processing team {team_num}: {str(team_error)}", exc_info=True)
-                teams_data[str(team_num)] = {
-                    "team_number": team_num,
-                    "error": str(team_error)
-                }
 
-        return json.loads(json_util.dumps(teams_data))
+        if not teams_data:
+            return jsonify({"error": "No data available for the selected teams"}), 404
+
+        return json_util.dumps(teams_data)
 
     except Exception as e:
         current_app.logger.error(f"Error in compare_teams: {str(e)}", exc_info=True)
