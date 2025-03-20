@@ -104,7 +104,7 @@ class ScoutingManager(DatabaseManager):
                 {
                     "$match": {
                         "event_code": data["event_code"],
-                        "match_number": int(data["match_number"]),
+                        "match_number": data["match_number"],
                         "team_number": team_number
                     }
                 },
@@ -136,7 +136,7 @@ class ScoutingManager(DatabaseManager):
             # Get existing match data to validate alliance sizes and calculate scores
             match_data = list(self.db.team_data.find({
                 "event_code": data["event_code"],
-                "match_number": int(data["match_number"])
+                "match_number": data["match_number"]
             }))
 
             # Count teams per alliance
@@ -151,7 +151,7 @@ class ScoutingManager(DatabaseManager):
             team_data = {
                 "team_number": team_number,
                 "event_code": data["event_code"],
-                "match_number": int(data["match_number"]),
+                "match_number": data["match_number"],
                 "alliance": alliance,
 
                 # Auto Coral scoring
@@ -336,7 +336,7 @@ class ScoutingManager(DatabaseManager):
                 {
                     "$match": {
                         "event_code": data["event_code"],
-                        "match_number": int(data["match_number"]),
+                        "match_number": data["match_number"],
                         "team_number": int(data["team_number"]),
                         "_id": {"$ne": ObjectId(team_id)}  # Exclude current entry
                     }
@@ -366,7 +366,7 @@ class ScoutingManager(DatabaseManager):
             # Get match data to validate alliance sizes
             match_data = list(self.db.team_data.find({
                 "event_code": data["event_code"],
-                "match_number": int(data["match_number"]),
+                "match_number": data["match_number"],
                 "_id": {"$ne": ObjectId(team_id)}  # Exclude current entry
             }))
 
@@ -381,7 +381,7 @@ class ScoutingManager(DatabaseManager):
             updated_data = {
                 "team_number": int(data["team_number"]),
                 "event_code": data["event_code"],
-                "match_number": int(data["match_number"]),
+                "match_number": data["match_number"],
                 "alliance": alliance,
                 
                 # Coral scoring

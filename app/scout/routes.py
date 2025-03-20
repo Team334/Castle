@@ -971,7 +971,7 @@ def check_team():
                 "$match": {
                     "team_number": int(team_number),
                     "event_code": event_code,
-                    "match_number": int(match_number)
+                    "match_number": match_number  # Keep as string, don't convert to int
                 }
             },
             {

@@ -53,11 +53,11 @@ class TBAInterface:
                 set_number = match.get('set_number', None)
                 if match_number := match.get('match_number'):
                     if comp_level == 'qm':
-                        match_key = f"qm{match_number}"
+                        match_key = f"Qual {match_number}"
                     elif comp_level == 'sf':
-                        match_key = f"sf{set_number}"
+                        match_key = f"Semifinal {set_number}"
                     elif comp_level == 'f':
-                        match_key = f"f{match_number}"
+                        match_key = f"Final {set_number}"
                     else:
                         match_key = f"{comp_level}{match_number}"
 

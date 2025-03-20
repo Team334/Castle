@@ -493,11 +493,11 @@
                             <h2 class="text-lg font-semibold text-gray-700 mb-4">Defense Rating</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                                     <div class="flex items-center space-x-2">
                                         <input type="range" 
                                                name="defense_rating" 
-                                               min="1" 
+                                               min="0" 
                                                max="5" 
                                                value="{{ team_data.defense_rating }}" 
                                                class="w-full"
@@ -527,10 +527,10 @@
                                 <h2 class="text-lg font-semibold text-gray-700 mb-4">Mobility</h2>
                                 <div class="space-y-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                                         <input type="range" 
                                                name="mobility_rating" 
-                                               min="1" 
+                                               min="0" 
                                                max="5" 
                                                value="{{ team_data.mobility_rating }}"
                                                class="w-full" 
@@ -551,10 +551,10 @@
                                 <h2 class="text-lg font-semibold text-gray-700 mb-4">Durability</h2>
                                 <div class="space-y-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                                         <input type="range" 
                                                name="durability_rating" 
-                                               min="1" 
+                                               min="0" 
                                                max="5" 
                                                value="{{ team_data.durability_rating }}"
                                                class="w-full" 

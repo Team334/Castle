@@ -103,7 +103,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     {% for dim in ['Length', 'Width', 'Height'] %}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ dim }}</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ dim }} <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                         <input type="number" name="{{ dim.lower() }}" step="0.1" min="0" autocomplete="off"
                                value="{{ pit_data.dimensions[dim.lower()] }}"
                                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
@@ -224,7 +224,7 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Number of Auto Routes</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Number of Auto Routes <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                         <input type="number" name="auto_routes" min="0" value="{{ pit_data.autonomous_capabilities.num_routes }}"
                                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
                     </div>
@@ -248,7 +248,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 mb-6">Driver Experience</h3>
                 <div class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Years of Experience <span class="text-xs text-gray-500">(0 = N/A)</span></label>
                         <input type="number" name="driver_years" min="0" value="{{ pit_data.driver_experience.years }}"
                                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
                     </div>
