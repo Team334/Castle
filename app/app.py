@@ -3,11 +3,12 @@ import threading
 import time
 from datetime import datetime, timedelta
 import json
+import logging
 
 from dotenv import load_dotenv
 from flask import (Flask, jsonify, make_response, render_template,
-                   send_from_directory)
-from flask_login import LoginManager
+                   send_from_directory, g, current_app, redirect, url_for)
+from flask_login import LoginManager, current_user
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 from pywebpush import webpush, WebPushException
@@ -15,6 +16,8 @@ from pywebpush import webpush, WebPushException
 from app.auth.auth_utils import UserManager
 from app.models import AssignmentSubscription
 from app.utils import limiter
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 csrf = CSRFProtect()
 mongo = PyMongo()
@@ -24,6 +27,7 @@ login_manager = LoginManager()
 notification_thread = None
 stop_notification_thread = False
 
+logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -141,6 +145,78 @@ def create_app():
     @app.route('/offline.html')
     def offline():
         return render_template('offline.html')
+    
+    @app.teardown_appcontext
+    def close_db_connections(exception=None):
+        """Close all database connections when the app context ends"""
+        if hasattr(current_app, 'db_connections'):
+            for name, connection in list(current_app.db_connections.items()):
+                try:
+                    if connection:
+                        if hasattr(connection, 'close'):
+                            # If this is a DatabaseManager instance
+                            connection.close()
+                        elif 'client' in connection and connection['client']:
+                            # If this is a raw connection dictionary
+                            connection['client'].close()
+                            connection['client'] = None
+                            connection['db'] = None
+                    app.logger.info(f"Closed {name} database connection")
+                except Exception as e:
+                    app.logger.error(f"Error closing {name} connection: {str(e)}")
+        
+        # Clear the connections dictionary
+        if hasattr(current_app, 'db_connections'):
+            current_app.db_connections = {}
+
+    # Database connection timeout middleware
+    @app.after_request
+    def check_db_connections(response):
+        """Check and close idle database connections after a request is processed"""
+        try:
+            # Only run this check occasionally (e.g., 1% of requests) to avoid overhead
+            if hasattr(current_app, 'db_connections') and hash(str(time.time())) % 100 == 0:
+                logger.info("Checking for idle database connections")
+                idle_time = 300  # 5 minutes
+                current_time = time.time()
+                
+                # Store connections to close in a separate list to avoid modifying during iteration
+                connections_to_close = []
+                
+                # First identify idle connections
+                for name, connection in current_app.db_connections.items():
+                    # Only attempt to close DatabaseManager instances
+                    if (connection and 
+                        'client' in connection and 
+                        connection['client'] and 
+                        hasattr(connection, 'last_used') and 
+                        (current_time - connection.last_used) > idle_time):
+                        connections_to_close.append(name)
+                        
+                # Log the idle connections
+                if connections_to_close:
+                    logger.info(f"Closing {len(connections_to_close)} idle connections: {connections_to_close}")
+                    
+                    # Close the idle connections
+                    for name in connections_to_close:
+                        try:
+                            # Make sure the connection still exists (might have been closed elsewhere)
+                            if name in current_app.db_connections and current_app.db_connections[name]:
+                                # Only close the client, don't delete from the dict so we know it was closed
+                                if hasattr(current_app.db_connections[name], 'close'):
+                                    current_app.db_connections[name].close()
+                                else:
+                                    # Handle raw connection dictionaries
+                                    client = current_app.db_connections[name].get('client')
+                                    if client:
+                                        client.close()
+                                        current_app.db_connections[name]['client'] = None
+                        except Exception as e:
+                            logger.error(f"Error closing idle connection {name}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in check_db_connections: {str(e)}")
+        
+        return response
 
     return app
 

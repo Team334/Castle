@@ -52,24 +52,27 @@ class ScoutingManager(DatabaseManager):
         """Establish connection to MongoDB with basic error handling"""
         try:
             if self.client is None:
-                self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
-                # Test the connection
-                self.client.server_info()
-                self.db = self.client.get_default_database()
-                logger.info("Successfully connected to MongoDB")
-
-                # Ensure collections exist
-                collections = self.db.list_collection_names()
-                if "team_data" not in collections:
-                    self._create_team_data_collection()
-                if "pit_scouting" not in collections:
-                    self.db.create_collection("pit_scouting")
-                    self.db.pit_scouting.create_index([("team_number", 1)])
-                    self.db.pit_scouting.create_index([("scouter_id", 1)])
-                    logger.info("Created pit_scouting collection and indexes")
+                self._connect()
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
             raise
+
+    def _connect(self):
+        self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
+        # Test the connection
+        self.client.server_info()
+        self.db = self.client.get_default_database()
+        logger.info("Successfully connected to MongoDB")
+
+        # Ensure collections exist
+        collections = self.db.list_collection_names()
+        if "team_data" not in collections:
+            self._create_team_data_collection()
+        if "pit_scouting" not in collections:
+            self.db.create_collection("pit_scouting")
+            self.db.pit_scouting.create_index([("team_number", 1)])
+            self.db.pit_scouting.create_index([("scouter_id", 1)])
+            logger.info("Created pit_scouting collection and indexes")
 
     def _create_team_data_collection(self):
         self.db.create_collection("team_data")
@@ -448,7 +451,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_team_data(self, team_id, user_id):
+    def delete_team_data(self, team_id, user_id, admin_override=False):
         """Delete team data if scouter has permission (original scouter or team admin)"""
         self.ensure_connected()
         try:
@@ -460,6 +463,12 @@ class ScoutingManager(DatabaseManager):
 
             # Check if user is the original scouter
             is_original_scouter = str(team_data.get("scouter_id")) == str(user_id)
+
+            # If admin_override is True, skip additional permission checks
+            if admin_override:
+                logger.info(f"Admin override: Deleting team data {team_id} by user {user_id}")
+                result = self.db.team_data.delete_one({"_id": ObjectId(team_id)})
+                return result.deleted_count > 0
 
             # Check if user is a team admin
             is_team_admin = False

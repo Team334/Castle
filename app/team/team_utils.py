@@ -58,8 +58,7 @@ class TeamManager(DatabaseManager):
     def get_team_by_number_sync(self, team_number: int) -> Optional[Team]:
         """Synchronous version of get_team_by_number"""
         self.ensure_connected()
-        team_data = self.db.teams.find_one({"team_number": team_number})
-        if team_data:
+        if team_data := self.db.teams.find_one({"team_number": team_number}):
             return Team.create_from_db(team_data)
         return None
 
@@ -373,12 +372,22 @@ class TeamManager(DatabaseManager):
             
             async def send_notifications():
                 try:
+                    # Reuse the existing database connection
                     notification_manager = NotificationManager(
                         self.mongo_uri,
                         vapid_private_key=current_app.config.get("VAPID_PRIVATE_KEY"),
-                        vapid_claims={"sub": f"mailto:{current_app.config.get('VAPID_CLAIM_EMAIL')}"}
+                        vapid_claims={"sub": f"mailto:{current_app.config.get('VAPID_CLAIM_EMAIL')}"},
                     )
-                    await notification_manager.send_instant_assignment_notification(assignment, team_number)
+                    
+                    # Use with context manager pattern to ensure proper cleanup
+                    try:
+                        await notification_manager.send_instant_assignment_notification(assignment, team_number)
+                    finally:
+                        # Don't close the connection here since it's shared
+                        # Just remove the reference to the shared connection
+                        notification_manager.client = None
+                        notification_manager.db = None
+                    
                 except Exception as e:
                     logger.error(f"Background notification error: {str(e)}")
 

@@ -35,14 +35,14 @@ def on_blueprint_init(state):
 @handle_route_errors
 def add():
     if request.method != "POST":
-        # Get current events only - matches will be loaded via AJAX
+        # Get current events only
         tba = TBAInterface()
         year = datetime.now().year
         events = tba.get_current_events(year) or {}
         
         return render_template("scouting/add.html", 
                             events=events,
-                            event_matches={})  # Empty dict, matches loaded via AJAX
+                            event_matches={})  # Empty dict
 
     data = request.get_json() if request.is_json else request.form.to_dict()
 
@@ -77,14 +77,15 @@ def home():
             current_user.teamNumber, 
             current_user.get_id()
         )
-        
+
         # Get the user's team if they have one
         team = None
         if current_user.teamNumber:
-            from app.team.team_utils import TeamManager
-            team_manager = TeamManager(current_app.config["MONGO_URI"])
-            team = team_manager.get_team_by_number_sync(current_user.teamNumber)
-        
+            team_query = {"team_number": current_user.teamNumber}
+            if team_doc := scouting_manager.db.teams.find_one(team_query):
+                from app.models import Team
+                team = Team.create_from_db(team_doc)
+
         return render_template("scouting/list.html", team_data=team_data, team=team)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
@@ -149,27 +150,31 @@ def delete(id):
         if not team_data:
             flash("Record not found", "error")
             return redirect(url_for("scouting.home"))
-            
+
         # Attempt to delete
         if scouting_manager.delete_team_data(id, current_user.get_id()):
             flash("Record deleted successfully", "success")
-        else:
-            # Provide more specific error message
-            if team_data.scouter_id == current_user.get_id():
-                flash("Error deleting your record. Please try again.", "error")
-            else:
-                # Check if on same team
-                if current_user.teamNumber and team_data.scouter_team == current_user.teamNumber:
-                    from app.team.team_utils import TeamManager
-                    team_manager = TeamManager(current_app.config["MONGO_URI"])
-                    team = team_manager.get_team_by_number_sync(current_user.teamNumber)
-                    
-                    if team and team.is_admin(current_user.get_id()):
-                        flash("Error deleting team member's record. Please try again.", "error")
+        elif team_data.scouter_id == current_user.get_id():
+            flash("Error deleting your record. Please try again.", "error")
+        elif current_user.teamNumber and team_data.scouter_team == current_user.teamNumber:
+            # Check if user is team admin using existing database connection
+            team_query = {"team_number": current_user.teamNumber}
+            if team_doc := scouting_manager.db.teams.find_one(team_query):
+                from app.models import Team
+                team = Team.create_from_db(team_doc)
+                
+                if team.is_admin(current_user.get_id()):
+                    # Try to delete again with admin override
+                    if scouting_manager.delete_team_data(id, current_user.get_id(), admin_override=True):
+                        flash("Record deleted successfully (admin)", "success")
                     else:
-                        flash("Permission denied: You must be a team admin to delete other members' records", "error")
+                        flash("Error deleting team member's record. Please try again.", "error")
                 else:
-                    flash("Permission denied: You can only delete records from your own team", "error")
+                    flash("Permission denied: You must be a team admin to delete other members' records", "error")
+            else:
+                flash("Permission denied: Team not found", "error")
+        else:
+            flash("Permission denied: You can only delete records from your own team", "error")
     except Exception as e:
         current_app.logger.error(f"Delete error: {str(e)}", exc_info=True)
         flash("An internal error has occurred.", "error")
@@ -281,10 +286,9 @@ def compare_teams():
                     {"$match": {"matches_played": {"$gt": 0}}}
                 ]
 
-                stats = list(scouting_manager.db.team_data.aggregate(pipeline))
-
-                if stats:  # Only include teams that have data
-                    matches_played = stats[0]["matches_played"]
+                if stats := list(
+                    scouting_manager.db.team_data.aggregate(pipeline)
+                ):
                     normalized_stats = {
                         "auto_scoring": (
                             (stats[0]["avg_auto_coral_level1"] or 0) + 

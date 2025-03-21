@@ -49,11 +49,20 @@ def with_mongodb_retry(retries=3, delay=2):
 
 class DatabaseManager:
     """Base class for database operations"""
-    def __init__(self, mongo_uri: str):
+    def __init__(self, mongo_uri: str, existing_connection=None):
         self.mongo_uri = mongo_uri
         self.client = None
         self.db = None
-        self.connect()
+        self.last_used = time.time()
+        self.connection_timeout = 300  # 5 minutes by default
+        
+        # Use existing connection if provided
+        if existing_connection and existing_connection.get('client') and existing_connection.get('db'):
+            self.client = existing_connection['client']
+            self.db = existing_connection['db']
+            logger.info("Using existing MongoDB connection")
+        else:
+            self.connect()
 
     def connect(self):
         """Establish connection to MongoDB"""
@@ -62,26 +71,66 @@ class DatabaseManager:
                 self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
                 self.client.server_info()
                 self.db = self.client.get_default_database()
+                self.last_used = time.time()
                 logger.info("Successfully connected to MongoDB")
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
             raise
 
     def ensure_connected(self):
-        """Ensure database connection is active"""
+        """Ensure database connection is active and not timed out"""
+        try:
+            current_time = time.time()
+            
+            # If client is None, connect
+            if self.client is None:
+                logger.info("No MongoDB connection. Connecting...")
+                self.connect()
+                return
+            
+            # Check if connection has timed out
+            if (current_time - self.last_used) > self.connection_timeout:
+                logger.info("Connection timed out. Reconnecting...")
+                self.close()
+                self.connect()
+                return
+            
+            # Test if connection is still alive with a lightweight command
+            self.client.admin.command('ismaster')
+            self.last_used = current_time  # Update last used time
+        except Exception as e:
+            logger.warning(f"Lost connection to MongoDB: {str(e)}. Attempting to reconnect...")
+            self.close()
+            self.connect()
+
+    def close(self):
+        """Explicitly close the MongoDB connection"""
+        if self.client:
+            self.client.close()
+            self.client = None
+            self.db = None
+            logger.info("MongoDB connection closed")
+
+    def get_connection(self):
+        """Return the current connection for reuse"""
         try:
             if self.client is None:
                 self.connect()
             else:
+                # Test if the connection is still valid
                 self.client.server_info()
         except Exception:
-            logger.warning("Lost connection to MongoDB, attempting to reconnect...")
+            # Reconnect if there was an error
+            logger.warning("Connection invalid in get_connection. Reconnecting...")
+            self.close()
             self.connect()
+            
+        self.last_used = time.time()  # Update last used time
+        return {'client': self.client, 'db': self.db}
 
     def __del__(self):
-        """Cleanup MongoDB connection"""
-        if self.client:
-            self.client.close()
+        """Cleanup MongoDB connection on object deletion"""
+        self.close()
 
 # ============ Route Utilities ============
 
