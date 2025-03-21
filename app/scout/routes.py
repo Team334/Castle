@@ -1165,7 +1165,7 @@ def get_tba_matches(event_key):
 @login_required
 @limiter.limit("30 per minute")
 def live_match_status():
-    """Route for the live match status modal"""
+    """Route for the live team schedule modal"""
     team_number = request.args.get('team')
     event_code = request.args.get('event')
     
@@ -1296,4 +1296,3 @@ def get_team_paths():
     except Exception as e:
         current_app.logger.error(f"Error fetching team paths: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch team path data."}), 500
-
