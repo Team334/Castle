@@ -1161,6 +1161,68 @@ def get_tba_matches(event_key):
         logger.error(f"Error getting TBA matches: {e}")
         return jsonify({"error": "Failed to fetch matches"}), 500
 
+@scouting_bp.route("/scouting/live-match-status", methods=["GET"])
+@login_required
+@limiter.limit("30 per minute")
+def live_match_status():
+    """Route for the live match status modal"""
+    team_number = request.args.get('team')
+    event_code = request.args.get('event')
+    
+    # Default to empty context data
+    context = {
+        'team_number': team_number,
+        'event_code': event_code
+    }
+    
+    return render_template("scouting/live-match-status.html", **context)
+
+@scouting_bp.route("/api/tba/team-status")
+@login_required
+@limiter.limit("30 per minute")
+def get_team_status():
+    """Get team status at an event including ranking and matches"""
+    team_number = request.args.get('team')
+    event_code = request.args.get('event')
+    
+    if not team_number:
+        return jsonify({"error": "Team number is required"}), 400
+    
+    try:
+        # Format TBA team key
+        team_key = f"frc{team_number}"
+        
+        # Initialize TBA interface
+        tba = TBAInterface()
+        
+        # If event code not provided, find the most recent event
+        if not event_code:
+            most_recent_event = tba.get_most_recent_active_event(team_key)
+            if most_recent_event:
+                event_code = most_recent_event.get('key')
+                # Also return event details for the UI
+                event_name = most_recent_event.get('name', 'Unknown Event')
+            else:
+                return jsonify({"error": "No events found for this team"}), 404
+        
+        # Get team status at event (ranking)
+        status = tba.get_team_status_at_event(team_key, event_code)
+        
+        # Get team matches at event
+        matches = tba.get_team_matches_at_event(team_key, event_code)
+        
+        return jsonify({
+            "status": status,
+            "matches": matches,
+            "event": {
+                "key": event_code,
+                "name": event_name if 'event_name' in locals() else None
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting team status: {e}")
+        return jsonify({"error": "Failed to fetch team status"}), 500
+
 @scouting_bp.route("/api/team_paths")
 @login_required
 @limiter.limit("30 per minute")

@@ -107,3 +107,134 @@ class TBAInterface:
         except Exception as e:
             logger.error(f"Error fetching events from TBA: {e}")
             return None
+            
+    @lru_cache(maxsize=100)
+    def get_team_status_at_event(self, team_key, event_key):
+        """Get team status and ranking at a specific event"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/team/{team_key}/event/{event_key}/status",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            return response.json() if response.status_code == 200 else None
+        except Exception as e:
+            logger.error(f"Error fetching team status from TBA: {e}")
+            return None
+            
+    @lru_cache(maxsize=100)
+    def get_team_matches_at_event(self, team_key, event_key):
+        """Get a team's matches at a specific event with previous and upcoming separation"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/team/{team_key}/event/{event_key}/matches",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                return None
+                
+            matches = response.json()
+            current_time = datetime.now().timestamp()
+            
+            previous_matches = []
+            upcoming_matches = []
+            
+            for match in matches:
+                # Get match details
+                comp_level = match.get('comp_level', 'qm')
+                match_number = match.get('match_number')
+                set_number = match.get('set_number')
+                
+                # Format match name
+                if comp_level == 'qm':
+                    match_name = f"Qualification {match_number}"
+                elif comp_level == 'sf':
+                    match_name = f"Semifinal {set_number}-{match_number}"
+                elif comp_level == 'f':
+                    match_name = f"Final {match_number}"
+                else:
+                    match_name = f"{comp_level.upper()} {match_number}"
+                
+                # Determine alliance
+                alliance = None
+                for color in ['red', 'blue']:
+                    if team_key in match['alliances'][color]['team_keys']:
+                        alliance = color
+                        break
+                
+                match_info = {
+                    'match_name': match_name,
+                    'time': match.get('predicted_time') or match.get('time', 0),
+                    'alliance': alliance,
+                    'score': None if match.get('score_breakdown') is None else {
+                        'red': match['alliances']['red']['score'],
+                        'blue': match['alliances']['blue']['score']
+                    }
+                }
+                
+                # Sort into previous or upcoming
+                if match.get('actual_time', 0) > 0 or match_info['time'] < current_time:
+                    previous_matches.append(match_info)
+                else:
+                    upcoming_matches.append(match_info)
+            
+            # Sort matches by time
+            previous_matches.sort(key=lambda m: m['time'])
+            upcoming_matches.sort(key=lambda m: m['time'])
+            
+            return {
+                'previous': previous_matches,
+                'upcoming': upcoming_matches
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching team matches from TBA: {e}")
+            return None
+            
+    @lru_cache(maxsize=100)
+    def get_team_events(self, team_key, year=None):
+        """Get all events a team is participating in for the given year"""
+        if year is None:
+            year = datetime.now().year
+            
+        try:
+            response = requests.get(
+                f"{self.base_url}/team/{team_key}/events/{year}/simple",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                return None
+                
+            events = response.json()
+            # Sort by start date, most recent first
+            events.sort(key=lambda e: e.get('start_date', ''), reverse=True)
+            
+            return events
+        except Exception as e:
+            logger.error(f"Error fetching team events from TBA: {e}")
+            return None
+            
+    def get_most_recent_active_event(self, team_key):
+        """Find the most recent event that a team is participating in"""
+        year = datetime.now().year
+        events = self.get_team_events(team_key, year)
+        
+        if not events:
+            return None
+            
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        
+        # First try to find events happening now
+        for event in events:
+            start_date = event.get('start_date')
+            end_date = event.get('end_date')
+            
+            if start_date and end_date and start_date <= current_date <= end_date:
+                return event
+                
+        # If no current events, get the most recent event (events are already sorted by date, most recent first)
+        return events[0]

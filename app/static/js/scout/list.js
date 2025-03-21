@@ -205,4 +205,16 @@ document.addEventListener('DOMContentLoaded', function() {
             span.classList.add('cursor-help');
         }
     });
+
+    // Live Match Status button
+    const liveMatchStatusBtn = document.getElementById('liveMatchStatusBtn');
+    if (liveMatchStatusBtn) {
+        liveMatchStatusBtn.addEventListener('click', function() {
+            // Open the live match status page in the same window
+            window.location.href = '/scouting/live-match-status';
+        });
+    }
+
+    // Initialize Coloris
+    Coloris.init();
 });
