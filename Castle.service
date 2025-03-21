@@ -1,0 +1,22 @@
+[Unit]
+Description=Gunicorn instance to serve Castle
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/var/www/Castle
+Environment="PATH=/var/www/Castle/venv/bin"
+ExecStart=/var/www/Castle/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:8000 --timeout 120 wsgi:app
+
+# Resource limits
+LimitNOFILE=4096
+TasksMax=100
+TimeoutStopSec=20
+
+# Restart configuration
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 

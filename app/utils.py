@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import os
 import time
@@ -68,7 +69,17 @@ class DatabaseManager:
         """Establish connection to MongoDB"""
         try:
             if self.client is None:
-                self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
+                # Add maxPoolSize and minPoolSize to reduce threads
+                # Also increase serverSelectionTimeoutMS to avoid rapid reconnects
+                self.client = MongoClient(
+                    self.mongo_uri, 
+                    serverSelectionTimeoutMS=10000,
+                    maxPoolSize=10,        # Limit maximum connections
+                    minPoolSize=1,         # Minimum connections to maintain
+                    connectTimeoutMS=5000, # Connection timeout
+                    socketTimeoutMS=30000, # Socket timeout
+                    waitQueueTimeoutMS=10000  # How long to wait in queue
+                )
                 self.client.server_info()
                 self.db = self.client.get_default_database()
                 self.last_used = time.time()
@@ -130,7 +141,8 @@ class DatabaseManager:
 
     def __del__(self):
         """Cleanup MongoDB connection on object deletion"""
-        self.close()
+        with contextlib.suppress(ImportError, AttributeError, TypeError):
+            self.close()
 
 # ============ Route Utilities ============
 
