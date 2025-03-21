@@ -166,7 +166,7 @@ class TBAInterface:
                 
                 match_info = {
                     'match_name': match_name,
-                    'time': match.get('predicted_time') or match.get('time', 0),
+                    'time': match.get('predicted_time') or match.get('time', 0) or 0,
                     'alliance': alliance,
                     'score': None if match.get('score_breakdown') is None else {
                         'red': match['alliances']['red']['score'],
@@ -175,7 +175,8 @@ class TBAInterface:
                 }
                 
                 # Sort into previous or upcoming
-                if match.get('actual_time', 0) > 0 or match_info['time'] < current_time:
+                actual_time = match.get('actual_time')
+                if (actual_time is not None and actual_time > 0) or match_info['time'] < current_time:
                     previous_matches.append(match_info)
                 else:
                     upcoming_matches.append(match_info)

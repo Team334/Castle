@@ -25,6 +25,7 @@
           </svg>
         </a>
       </div>
+      <p class="mt-2 text-sm text-gray-500">Upcoming match time data is only a prediction from the Blue Alliance API</p>
     </div>
 
     <!-- Team Input Form -->
@@ -89,19 +90,19 @@
         </div>
       </div>
 
-      <!-- Previous Matches -->
-      <div id="previousMatchesContainer" class="px-6 py-4 border-b">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Previous Matches</h2>
-        <div id="previousMatches" class="space-y-3">
-          <!-- Previous matches will be populated by JavaScript -->
-        </div>
-      </div>
-
       <!-- Upcoming Matches -->
-      <div id="upcomingMatchesContainer" class="px-6 py-4">
+      <div id="upcomingMatchesContainer" class="px-6 py-4 border-b">
         <h2 class="text-lg font-semibold text-gray-900 mb-3">Upcoming Matches</h2>
         <div id="upcomingMatches" class="space-y-3">
           <!-- Upcoming matches will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Previous Matches -->
+      <div id="previousMatchesContainer" class="px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Previous Matches</h2>
+        <div id="previousMatches" class="space-y-3">
+          <!-- Previous matches will be populated by JavaScript -->
         </div>
       </div>
     </div>
@@ -210,8 +211,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Display ranking information
     if (status && status.qual) {
       const ranking = status.qual.ranking;
-      // If num_teams is undefined, use the rank numbers in the API to determine the count
-      const rankingPoints = ranking.extra_stats ? ranking.extra_stats[0] : 0;
       
       // Add ranking info
       rankingDetails.innerHTML = `
@@ -224,8 +223,12 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="text-xl font-bold">${wins}-${losses}-${ties}</div>
         </div>
         <div class="bg-gray-50 p-3 rounded-lg">
-          <div class="text-sm text-gray-500">Total Ranking Points</div>
-          <div class="text-xl font-bold">${rankingPoints.toFixed(0)}</div>
+          <div class="text-sm text-gray-500">The Blue Alliance Page</div>
+          <div class="text-xl font-bold">
+            <a href="https://thebluealliance.com/team/${teamNumber}" target="_blank" class="text-blue-500 hover:underline">
+              View
+            </a>
+          </div>
         </div>
       `;
       
