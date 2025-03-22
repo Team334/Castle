@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .match-item {
+    border-left: 4px solid transparent;
+  }
+  .match-item.red-alliance {
+    border-left-color: #ef4444;
+  }
+  .match-item.blue-alliance {
+    border-left-color: #3b82f6;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b">
+      <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-900">Live Team Schedule</h1>
+        <a href="{{ url_for('scouting.home') }}" class="text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </a>
+      </div>
+      <p class="mt-2 text-sm text-gray-500">Upcoming match time data is only a prediction from the Blue Alliance API</p>
+    </div>
+
+    <!-- Team Input Form -->
+    <div class="px-6 py-4 border-b">
+      <form id="teamStatusForm" class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <label for="teamNumber" class="block text-sm font-medium text-gray-700 mb-1">Team Number</label>
+          <input type="number" id="teamNumber" name="teamNumber" value="{{ team_number }}" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="e.g. 334" required>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" 
+                  class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            View Status
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Event Info Banner -->
+    <div id="eventInfoBanner" class="px-6 py-3 bg-blue-50 border-b hidden">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <p class="text-sm text-blue-700">
+          Showing data for event: <span id="eventName" class="font-semibold"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="px-6 py-12 hidden">
+      <div class="flex justify-center">
+        <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="noDataMessage" class="px-6 py-12 hidden">
+      <div class="text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 13h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">No match data available</h3>
+        <p class="mt-1 text-gray-500">Either this team is not registered for any events, or the event has not published matches yet.</p>
+      </div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultsContainer" class="hidden">
+      <!-- Team Ranking -->
+      <div id="teamRanking" class="px-6 py-4 border-b">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Team Standing</h2>
+        <div id="rankingDetails" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Ranking details will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Upcoming Matches -->
+      <div id="upcomingMatchesContainer" class="px-6 py-4 border-b">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Upcoming Matches</h2>
+        <div id="upcomingMatches" class="space-y-3">
+          <!-- Upcoming matches will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Previous Matches -->
+      <div id="previousMatchesContainer" class="px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Previous Matches</h2>
+        <div id="previousMatches" class="space-y-3">
+          <!-- Previous matches will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Elements
+  const teamNumberInput = document.getElementById('teamNumber');
+  const teamStatusForm = document.getElementById('teamStatusForm');
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  const noDataMessage = document.getElementById('noDataMessage');
+  const resultsContainer = document.getElementById('resultsContainer');
+  const teamRanking = document.getElementById('teamRanking');
+  const rankingDetails = document.getElementById('rankingDetails');
+  const previousMatches = document.getElementById('previousMatches');
+  const upcomingMatches = document.getElementById('upcomingMatches');
+  const previousMatchesContainer = document.getElementById('previousMatchesContainer');
+  const upcomingMatchesContainer = document.getElementById('upcomingMatchesContainer');
+  const eventInfoBanner = document.getElementById('eventInfoBanner');
+  const eventNameSpan = document.getElementById('eventName');
+  
+  // Load team status if team is provided in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const teamParam = urlParams.get('team');
+  
+  if (teamParam) {
+    teamNumberInput.value = teamParam;
+    loadTeamStatus(teamParam);
+  }
+  
+  // Event Listeners
+  teamStatusForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const teamNumber = teamNumberInput.value.trim();
+    
+    if (teamNumber) {
+      loadTeamStatus(teamNumber);
+      
+      // Update URL with parameters
+      const url = new URL(window.location);
+      url.searchParams.set('team', teamNumber);
+      window.history.pushState({}, '', url);
+    }
+  });
+  
+  async function loadTeamStatus(teamNumber) {
+    // Show loading, hide results and no data message
+    loadingIndicator.classList.remove('hidden');
+    resultsContainer.classList.add('hidden');
+    noDataMessage.classList.add('hidden');
+    eventInfoBanner.classList.add('hidden');
+    
+    try {
+      const response = await fetch(`/api/tba/team-status?team=${teamNumber}`);
+      const data = await response.json();
+      
+      if (response.ok && data.status && data.matches) {
+        displayTeamStatus(data, teamNumber);
+        
+        // Display event info
+        if (data.event && data.event.name) {
+          eventNameSpan.textContent = data.event.name;
+          eventInfoBanner.classList.remove('hidden');
+        }
+      } else {
+        // Show no data message
+        noDataMessage.classList.remove('hidden');
+      }
+    } catch (error) {
+      console.error('Error loading team status:', error);
+      noDataMessage.classList.remove('hidden');
+    } finally {
+      loadingIndicator.classList.add('hidden');
+    }
+  }
+  
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  
+  function displayTeamStatus(data, teamNumber) {
+    const { status, matches } = data;
+    
+    // Calculate record from all previous matches
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+    
+    if (matches.previous && matches.previous.length > 0) {
+      matches.previous.forEach(match => {
+        if (match.score) {
+          const redScore = match.score.red;
+          const blueScore = match.score.blue;
+          
+          if (match.alliance === 'red') {
+            if (redScore > blueScore) wins++;
+            else if (redScore < blueScore) losses++;
+            else ties++;
+          } else { // blue alliance
+            if (blueScore > redScore) wins++;
+            else if (blueScore < redScore) losses++;
+            else ties++;
+          }
+        }
+      });
+    }
+    
+    // Display ranking information
+    if (status && status.qual) {
+      const ranking = status.qual.ranking;
+      
+      // Add ranking info
+      rankingDetails.innerHTML = `
+        <div class="bg-gray-50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500">Rank</div>
+          <div class="text-xl font-bold">${escapeHtml(String(ranking.rank))}</div>
+        </div>
+        <div class="bg-gray-50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500">Record (All Matches)</div>
+          <div class="text-xl font-bold">${escapeHtml(String(wins))}-${escapeHtml(String(losses))}-${escapeHtml(String(ties))}</div>
+        </div>
+        <div class="bg-gray-50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500">The Blue Alliance Page</div>
+          <div class="text-xl font-bold">
+            <a href="https://thebluealliance.com/team/${escapeHtml(String(teamNumber))}" target="_blank" class="text-blue-500 hover:underline">
+              View
+            </a>
+          </div>
+        </div>
+      `;
+      
+      teamRanking.classList.remove('hidden');
+    } else {
+      rankingDetails.innerHTML = `
+        <div class="col-span-3 bg-gray-50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500 text-center">No ranking information available yet</div>
+        </div>
+      `;
+    }
+    
+    // Display previous matches
+    if (matches.previous && matches.previous.length > 0) {
+      previousMatches.innerHTML = '';
+      
+      // Sort matches by time, most recent first
+      const sortedMatches = [...matches.previous].sort((a, b) => b.time - a.time);
+      
+      sortedMatches.forEach(match => {
+        const matchTime = new Date(match.time * 1000).toLocaleString();
+        const allianceClass = match.alliance === 'red' ? 'red-alliance' : 'blue-alliance';
+        
+        let resultText = 'No Score';
+        let resultClass = 'text-gray-600';
+        
+        if (match.score) {
+          const redScore = match.score.red;
+          const blueScore = match.score.blue;
+          
+          if (match.alliance === 'red') {
+            resultText = `${escapeHtml(String(redScore))} - ${escapeHtml(String(blueScore))}`;
+            resultClass = redScore > blueScore ? 'text-green-600 font-semibold' : 
+                         redScore < blueScore ? 'text-red-600' : 'text-yellow-600';
+          } else {
+            resultText = `${escapeHtml(String(blueScore))} - ${escapeHtml(String(redScore))}`;
+            resultClass = blueScore > redScore ? 'text-green-600 font-semibold' : 
+                         blueScore < redScore ? 'text-red-600' : 'text-yellow-600';
+          }
+        }
+        
+        const matchElement = document.createElement('div');
+        matchElement.className = `match-item ${allianceClass} bg-gray-50 p-3 rounded-lg`;
+        matchElement.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-medium">${escapeHtml(match.match_name)}</div>
+              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
+            </div>
+            <div class="${resultClass}">${resultText}</div>
+          </div>
+        `;
+        
+        previousMatches.appendChild(matchElement);
+      });
+      
+      previousMatchesContainer.classList.remove('hidden');
+    } else {
+      previousMatchesContainer.classList.add('hidden');
+    }
+    
+    // Display upcoming matches
+    if (matches.upcoming && matches.upcoming.length > 0) {
+      upcomingMatches.innerHTML = '';
+      
+      // Sort matches by time, soonest first
+      const sortedMatches = [...matches.upcoming].sort((a, b) => a.time - b.time);
+      
+      sortedMatches.forEach(match => {
+        const matchTime = new Date(match.time * 1000).toLocaleString();
+        const allianceClass = match.alliance === 'red' ? 'red-alliance' : 'blue-alliance';
+        const allianceColor = match.alliance; // Store the alliance color for CSS classes
+        
+        const matchElement = document.createElement('div');
+        matchElement.className = `match-item ${allianceClass} bg-gray-50 p-3 rounded-lg`;
+        matchElement.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-medium">${escapeHtml(match.match_name)}</div>
+              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
+            </div>
+            <div class="text-sm bg-${allianceColor}-100 text-${allianceColor}-800 px-2 py-1 rounded-full">
+              ${escapeHtml(match.alliance.charAt(0).toUpperCase() + match.alliance.slice(1))} Alliance
+            </div>
+          </div>
+        `;
+        
+        upcomingMatches.appendChild(matchElement);
+      });
+      
+      upcomingMatchesContainer.classList.remove('hidden');
+    } else {
+      upcomingMatchesContainer.classList.add('hidden');
+    }
+    
+    // Show results container
+    resultsContainer.classList.remove('hidden');
+  }
+});
+</script>
+{% endblock %} 
