@@ -181,6 +181,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  
   function displayTeamStatus(data, teamNumber) {
     const { status, matches } = data;
     
@@ -225,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="bg-gray-50 p-3 rounded-lg">
           <div class="text-sm text-gray-500">The Blue Alliance Page</div>
           <div class="text-xl font-bold">
-            <a href="https://thebluealliance.com/team/${teamNumber}" target="_blank" class="text-blue-500 hover:underline">
+            <a href="https://thebluealliance.com/team/${escapeHtml(teamNumber)}" target="_blank" class="text-blue-500 hover:underline">
               View
             </a>
           </div>
