@@ -225,16 +225,16 @@ document.addEventListener('DOMContentLoaded', function() {
       rankingDetails.innerHTML = `
         <div class="bg-gray-50 p-3 rounded-lg">
           <div class="text-sm text-gray-500">Rank</div>
-          <div class="text-xl font-bold">${ranking.rank}</div>
+          <div class="text-xl font-bold">${escapeHtml(String(ranking.rank))}</div>
         </div>
         <div class="bg-gray-50 p-3 rounded-lg">
           <div class="text-sm text-gray-500">Record (All Matches)</div>
-          <div class="text-xl font-bold">${wins}-${losses}-${ties}</div>
+          <div class="text-xl font-bold">${escapeHtml(String(wins))}-${escapeHtml(String(losses))}-${escapeHtml(String(ties))}</div>
         </div>
         <div class="bg-gray-50 p-3 rounded-lg">
           <div class="text-sm text-gray-500">The Blue Alliance Page</div>
           <div class="text-xl font-bold">
-            <a href="https://thebluealliance.com/team/${escapeHtml(teamNumber)}" target="_blank" class="text-blue-500 hover:underline">
+            <a href="https://thebluealliance.com/team/${escapeHtml(String(teamNumber))}" target="_blank" class="text-blue-500 hover:underline">
               View
             </a>
           </div>
@@ -269,11 +269,11 @@ document.addEventListener('DOMContentLoaded', function() {
           const blueScore = match.score.blue;
           
           if (match.alliance === 'red') {
-            resultText = `${redScore} - ${blueScore}`;
+            resultText = `${escapeHtml(String(redScore))} - ${escapeHtml(String(blueScore))}`;
             resultClass = redScore > blueScore ? 'text-green-600 font-semibold' : 
                          redScore < blueScore ? 'text-red-600' : 'text-yellow-600';
           } else {
-            resultText = `${blueScore} - ${redScore}`;
+            resultText = `${escapeHtml(String(blueScore))} - ${escapeHtml(String(redScore))}`;
             resultClass = blueScore > redScore ? 'text-green-600 font-semibold' : 
                          blueScore < redScore ? 'text-red-600' : 'text-yellow-600';
           }
@@ -284,8 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
         matchElement.innerHTML = `
           <div class="flex justify-between items-center">
             <div>
-              <div class="font-medium">${match.match_name}</div>
-              <div class="text-sm text-gray-500">${matchTime}</div>
+              <div class="font-medium">${escapeHtml(match.match_name)}</div>
+              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
             </div>
             <div class="${resultClass}">${resultText}</div>
           </div>
@@ -309,17 +309,18 @@ document.addEventListener('DOMContentLoaded', function() {
       sortedMatches.forEach(match => {
         const matchTime = new Date(match.time * 1000).toLocaleString();
         const allianceClass = match.alliance === 'red' ? 'red-alliance' : 'blue-alliance';
+        const allianceColor = match.alliance; // Store the alliance color for CSS classes
         
         const matchElement = document.createElement('div');
         matchElement.className = `match-item ${allianceClass} bg-gray-50 p-3 rounded-lg`;
         matchElement.innerHTML = `
           <div class="flex justify-between items-center">
             <div>
-              <div class="font-medium">${match.match_name}</div>
-              <div class="text-sm text-gray-500">${matchTime}</div>
+              <div class="font-medium">${escapeHtml(match.match_name)}</div>
+              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
             </div>
-            <div class="text-sm bg-${match.alliance}-100 text-${match.alliance}-800 px-2 py-1 rounded-full">
-              ${match.alliance.charAt(0).toUpperCase() + match.alliance.slice(1)} Alliance
+            <div class="text-sm bg-${allianceColor}-100 text-${allianceColor}-800 px-2 py-1 rounded-full">
+              ${escapeHtml(match.alliance.charAt(0).toUpperCase() + match.alliance.slice(1))} Alliance
             </div>
           </div>
         `;
