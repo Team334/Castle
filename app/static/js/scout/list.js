@@ -206,15 +206,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Live Team Schedule button
-    const liveMatchStatusBtn = document.getElementById('liveMatchStatusBtn');
-    if (liveMatchStatusBtn) {
-        liveMatchStatusBtn.addEventListener('click', function() {
-            // Open the live team schedule page in the same window
-            window.location.href = '/scouting/live-match-status';
-        });
-    }
-
     // Initialize Coloris
     Coloris.init();
 });
