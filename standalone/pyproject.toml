@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "Castle"
 bundle = "com.team334.castle"
-version = "25.1.2"
+version = "25.1.3"
 url = "https://castlescouting.com"
 license.file = "LICENSE"
 author = "Cherriae"
