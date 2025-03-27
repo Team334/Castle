@@ -105,7 +105,7 @@ def is_safe_url(target):
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("8 per minute")
+# @limiter.limit("8 per minute")
 @async_route
 @handle_route_errors
 async def login():

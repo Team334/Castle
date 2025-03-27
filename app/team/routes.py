@@ -64,7 +64,7 @@ async def join():
 
 @team_bp.route("/create", methods=["GET", "POST"])
 @login_required
-@limiter.limit("5 per minute")
+@limiter.limit("15 per minute")
 @async_route
 async def create():
     """Handle team creation"""
@@ -206,7 +206,7 @@ async def remove_admin(team_number):
 
 @team_bp.route("/<int:team_number>/assignments", methods=["POST"])
 @login_required
-@limiter.limit("10 per minute")
+# @limiter.limit("10 per minute")
 @async_route
 async def create_assignment(team_number):
     """Create a new assignment"""
@@ -233,7 +233,7 @@ async def create_assignment(team_number):
 
 @team_bp.route("/assignments/<assignment_id>/status", methods=["PUT"])
 @login_required
-@limiter.limit("5 per minute")
+# @limiter.limit("5 per minute")
 def update_assignment_status(assignment_id):
     """Update assignment status"""
 
@@ -252,7 +252,7 @@ def update_assignment_status(assignment_id):
 
 @team_bp.route("/assignments/<assignment_id>/update", methods=["PUT"])
 @login_required
-@limiter.limit("15 per minute")
+# @limiter.limit("15 per minute")
 @async_route
 async def update_assignment(assignment_id):
 
@@ -266,7 +266,7 @@ async def update_assignment(assignment_id):
 
 @team_bp.route("/assignments/<assignment_id>/delete", methods=["DELETE"])
 @login_required
-@limiter.limit("10 per minute")
+# @limiter.limit("10 per minute")
 @async_route
 async def delete_assignment(assignment_id):
 
@@ -281,7 +281,7 @@ async def delete_assignment(assignment_id):
 @team_bp.route("/manage/<int:team_number>", methods=["GET", "POST"])
 @team_bp.route("/", methods=["GET", "POST"])
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @async_route
 async def manage(team_number=None):
     """Manage team"""

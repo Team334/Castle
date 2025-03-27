@@ -31,7 +31,7 @@ def on_blueprint_init(state):
 
 @scouting_bp.route("/scouting/add", methods=["GET", "POST"])
 @login_required
-@limiter.limit("15 per minute")
+# @limiter.limit("15 per minute")
 @handle_route_errors
 def add():
     if request.method != "POST":
@@ -69,7 +69,7 @@ def add():
 
 @scouting_bp.route("/scouting/list")
 @scouting_bp.route("/scouting")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def home():
     try:
@@ -94,7 +94,7 @@ def home():
 
 
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])
-@limiter.limit("15 per minute")
+# @limiter.limit("15 per minute")
 @login_required
 def edit(id):
     try:
@@ -141,7 +141,7 @@ def edit(id):
 
 
 @scouting_bp.route("/scouting/delete/<string:id>")
-@limiter.limit("10 per minute")
+# @limiter.limit("10 per minute")
 @login_required
 def delete(id):
     try:
@@ -182,13 +182,13 @@ def delete(id):
 
 
 @scouting_bp.route("/lighthouse")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def lighthouse():
     return render_template("lighthouse.html")
 
 @scouting_bp.route("/lighthouse/auton")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def auton():
     return render_template("lighthouse/auton.html")
@@ -222,7 +222,7 @@ def format_team_stats(stats):
 
 
 @scouting_bp.route("/api/compare")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def compare_teams():
     try:
@@ -339,7 +339,7 @@ def compare_teams():
 
 @scouting_bp.route("/api/search")
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @async_route
 async def search_teams():
     query = request.args.get("q", "").strip()
@@ -444,7 +444,7 @@ async def search_teams():
         return jsonify({"error": "Failed to fetch team data due to an internal error."}), 500
 
 @scouting_bp.route("/leaderboard")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def leaderboard():
     try:
         MIN_MATCHES = 1
@@ -672,7 +672,7 @@ def leaderboard():
                               events=[], selected_event='all')
 
 @scouting_bp.route("/scouter-leaderboard")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def scouter_leaderboard():
     try:
@@ -778,7 +778,7 @@ def scouter_leaderboard():
         )
 
 @scouting_bp.route("/scouting/matches")
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 @login_required
 def matches():
     try:
@@ -951,7 +951,7 @@ def check_team():
 
 @scouting_bp.route("/scouting/pit")
 @login_required
-@limiter.limit("50 per minute")
+# @limiter.limit("50 per minute")
 def pit_scouting():
     try:
         # Update to use filtered pit scouting data
@@ -967,7 +967,7 @@ def pit_scouting():
 
 @scouting_bp.route("/scouting/pit/add", methods=["GET", "POST"])
 @login_required
-@limiter.limit("15 per minute")
+# @limiter.limit("15 per minute")
 def pit_scouting_add():
     if request.method == "POST":
         try:
@@ -1056,7 +1056,7 @@ def pit_scouting_add():
 
 @scouting_bp.route("/scouting/pit/edit/<int:team_number>", methods=["GET", "POST"])
 @login_required
-@limiter.limit("10 per minute")
+# @limiter.limit("10 per minute")
 def pit_scouting_edit(team_number):
     pit_data = scouting_manager.get_pit_scouting(team_number)
     if not pit_data:
@@ -1142,7 +1142,7 @@ def pit_scouting_delete(team_number):
 
 @scouting_bp.route("/api/tba/events")
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def get_tba_events():
     try:
         year = datetime.now().year
@@ -1155,7 +1155,7 @@ def get_tba_events():
 
 @scouting_bp.route("/api/tba/matches/<event_key>")
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def get_tba_matches(event_key):
     try:
         tba = TBAInterface()
@@ -1167,7 +1167,7 @@ def get_tba_matches(event_key):
 
 @scouting_bp.route("/scouting/live-match-status", methods=["GET"])
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def live_match_status():
     """Route for the live team schedule modal"""
     team_number = request.args.get('team')
@@ -1183,7 +1183,7 @@ def live_match_status():
 
 @scouting_bp.route("/api/tba/team-status")
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def get_team_status():
     """Get team status at an event including ranking and matches"""
     team_number = request.args.get('team')
@@ -1229,7 +1229,7 @@ def get_team_status():
 
 @scouting_bp.route("/api/team_paths")
 @login_required
-@limiter.limit("30 per minute")
+# @limiter.limit("30 per minute")
 def get_team_paths():
     team_number = request.args.get('team')
     
