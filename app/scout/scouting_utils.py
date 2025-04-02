@@ -4,17 +4,19 @@ import logging
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from pymongo import MongoClient
 
 from app.models import TeamData
-from app.utils import DatabaseManager, with_mongodb_retry
+from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
 
 logger = logging.getLogger(__name__)
 
 
 class ScoutingManager(DatabaseManager):
-    def __init__(self, mongo_uri):
-        super().__init__(mongo_uri)
+    def __init__(self, mongo_uri, existing_connection=None):
+        # Use existing connection if provided, otherwise get shared connection
+        if existing_connection is None:
+            existing_connection = get_database_connection(mongo_uri)
+        super().__init__(mongo_uri, existing_connection=existing_connection)
         self._ensure_collections()
 
     def _ensure_collections(self):
@@ -48,54 +50,18 @@ class ScoutingManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error during pit scouting migration: {str(e)}")
 
-    def connect(self):
-        """Establish connection to MongoDB with basic error handling"""
-        try:
-            if self.client is None:
-                self._connect()
-        except Exception as e:
-            logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            raise
-
-    def _connect(self):
-        self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
-        # Test the connection
-        self.client.server_info()
-        self.db = self.client.get_default_database()
-        logger.info("Successfully connected to MongoDB")
-
-        # Ensure collections exist
-        collections = self.db.list_collection_names()
-        if "team_data" not in collections:
-            self._create_team_data_collection()
-        if "pit_scouting" not in collections:
-            self.db.create_collection("pit_scouting")
-            self.db.pit_scouting.create_index([("team_number", 1)])
-            self.db.pit_scouting.create_index([("scouter_id", 1)])
-            logger.info("Created pit_scouting collection and indexes")
-
     def _create_team_data_collection(self):
         self.db.create_collection("team_data")
         self.db.team_data.create_index([("team_number", 1)])
         self.db.team_data.create_index([("scouter_id", 1)])
         logger.info("Created team_data collection and indexes")
 
-    def ensure_connected(self):
-        """Ensure we have a valid connection, reconnect if necessary"""
-        try:
-            if self.client is None:
-                self.connect()
-            else:
-                # Test if connection is still alive
-                self.client.server_info()
-        except Exception:
-            logger.warning("Lost connection to MongoDB, attempting to reconnect.")
-            self.connect()
-
     @with_mongodb_retry(retries=3, delay=2)
     def add_scouting_data(self, data, scouter_id):
         """Add new scouting data with retry mechanism"""
+        # Ensure we have a valid connection
         self.ensure_connected()
+        
         try:
             # Validate team number
             team_number = int(data["team_number"])
@@ -295,7 +261,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_team_data(self, team_id, scouter_id=None):
         """Get specific team data with optional scouter verification"""
-        self.ensure_connected()
         try:
             # Just get the data by ID first
             data = self.db.team_data.find_one({"_id": ObjectId(team_id)})
@@ -323,7 +288,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def update_team_data(self, team_id, data, scouter_id):
         """Update existing team data if user is the owner"""
-        self.ensure_connected()
         try:
             # First verify ownership and get current data
             existing_data = self.db.team_data.find_one(
@@ -453,7 +417,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def delete_team_data(self, team_id, user_id, admin_override=False):
         """Delete team data if scouter has permission (original scouter or team admin)"""
-        self.ensure_connected()
         try:
             # First get the team data to check permissions
             team_data = self.db.team_data.find_one({"_id": ObjectId(team_id)})
@@ -505,7 +468,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def has_team_data(self, team_number):
         """Check if there is any scouting data for a given team number"""
-        self.ensure_connected()
         try:
             count = self.db.team_data.count_documents({"team_number": int(team_number)})
             return count > 0
@@ -516,7 +478,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_team_stats(self, team_number):
         """Get comprehensive stats for a team"""
-        self.ensure_connected()
         try:
             pipeline = [
                 {"$match": {"team_number": int(team_number)}},
@@ -567,7 +528,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_team_matches(self, team_number):
         """Get all match data for a specific team"""
-        self.ensure_connected()
         try:
             pipeline = [
                 {"$match": {"team_number": int(team_number)}},
@@ -591,7 +551,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_auto_paths(self, team_number):
         """Get all auto paths for a specific team"""
-        self.ensure_connected()
         try:
             paths = list(self.db.team_data.find(
                 {
@@ -621,7 +580,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def add_pit_scouting(self, data):
         """Add new pit scouting data with team validation"""
-        self.ensure_connected()
         try:
             team_number = int(data["team_number"])
             scouter_id = ObjectId(data["scouter_id"])  # Convert to ObjectId
@@ -665,7 +623,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_pit_scouting(self, team_number):
         """Get pit scouting data with scouter information"""
-        self.ensure_connected()
         try:
             pipeline = [
                 {
@@ -717,7 +674,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def get_all_pit_scouting(self, user_team_number=None, user_id=None):
         """Get all pit scouting data with team-based access control"""
-        self.ensure_connected()
         try:
             logger.info(f"Fetching pit scouting data for user_id: {user_id}, team_number: {user_team_number}")
 
@@ -816,7 +772,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def update_pit_scouting(self, team_number, data, scouter_id):
         """Update pit scouting data with team validation"""
-        self.ensure_connected()
         try:
             # First verify ownership and get current data
             existing_data = self.db.pit_scouting.find_one(
@@ -869,7 +824,6 @@ class ScoutingManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def delete_pit_scouting(self, team_number, scouter_id):
         """Delete pit scouting data"""
-        self.ensure_connected()
         try:
             result = self.db.pit_scouting.delete_one({
                 "team_number": int(team_number),

@@ -3,10 +3,10 @@ import threading
 from datetime import datetime, timedelta
 import json
 from bson import ObjectId
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple
 
 from app.models import AssignmentSubscription
-from app.utils import DatabaseManager, with_mongodb_retry
+from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
 from pywebpush import webpush, WebPushException
 
 logger = logging.getLogger(__name__)
@@ -14,15 +14,20 @@ logger = logging.getLogger(__name__)
 class NotificationManager(DatabaseManager):
     """Manages push notifications and subscriptions"""
     
-    def __init__(self, mongo_uri: str, vapid_private_key: str, vapid_claims: Dict[str, str]):
+    def __init__(self, mongo_uri: str, vapid_private_key: str, vapid_claims: Dict[str, str], existing_connection=None):
         """Initialize NotificationManager with MongoDB connection and VAPID keys
         
         Args:
             mongo_uri: MongoDB connection URI
             vapid_private_key: VAPID private key for WebPush
             vapid_claims: Dictionary containing email and subject for VAPID
+            existing_connection: Existing MongoDB connection to reuse (optional)
         """
-        super().__init__(mongo_uri)
+        # Use existing connection if provided, otherwise get shared connection
+        if existing_connection is None:
+            existing_connection = get_database_connection(mongo_uri)
+        super().__init__(mongo_uri, existing_connection=existing_connection)
+        
         self.vapid_private_key = vapid_private_key
         self.vapid_claims = vapid_claims
         self._shutdown_event = threading.Event()

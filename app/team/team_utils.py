@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Dict, Optional, Tuple, Union
 
@@ -12,7 +12,7 @@ from bson.objectid import ObjectId
 from PIL import Image, ImageDraw, ImageFont
 
 from app.models import Assignment, Team, User
-from app.utils import DatabaseManager, with_mongodb_retry
+from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
 from flask import current_app
 
 logging.basicConfig(level=logging.INFO)
@@ -27,8 +27,11 @@ DatabaseID = Union[str, ObjectId]
 class TeamManager(DatabaseManager):
     """Handles all team-related operations"""
     
-    def __init__(self, mongo_uri: str):
-        super().__init__(mongo_uri)
+    def __init__(self, mongo_uri: str, existing_connection=None):
+        # Use existing connection if provided, otherwise get shared connection
+        if existing_connection is None:
+            existing_connection = get_database_connection(mongo_uri)
+        super().__init__(mongo_uri, existing_connection=existing_connection)
         self._ensure_collections()
 
     def _ensure_collections(self) -> None:
@@ -377,6 +380,7 @@ class TeamManager(DatabaseManager):
                         self.mongo_uri,
                         vapid_private_key=current_app.config.get("VAPID_PRIVATE_KEY"),
                         vapid_claims={"sub": f"mailto:{current_app.config.get('VAPID_CLAIM_EMAIL')}"},
+                        existing_connection=self.get_connection()
                     )
                     
                     # Use with context manager pattern to ensure proper cleanup

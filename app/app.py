@@ -1,23 +1,16 @@
 import os
-import threading
 import time
-from datetime import datetime, timedelta
-import json
 import logging
 
 from dotenv import load_dotenv
-from flask import (Flask, jsonify, make_response, render_template,
-                   send_from_directory, g, current_app, redirect, url_for)
-from flask_login import LoginManager, current_user
+from flask import (Flask, make_response, render_template,
+                   send_from_directory, g, current_app)
+from flask_login import LoginManager
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
-from pywebpush import webpush, WebPushException
 
 from app.auth.auth_utils import UserManager
-from app.models import AssignmentSubscription
-from app.utils import limiter
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from app.utils import limiter, get_database_connection, release_connection, force_close_connection
 
 csrf = CSRFProtect()
 mongo = PyMongo()
@@ -54,27 +47,46 @@ def create_app():
     app.mongo = mongo
     # csrf.init_app(app)
     limiter.init_app(app)
+    
+    # Initialize db_managers dictionary to store all database managers for proper cleanup
+    app.db_managers = {}
 
     with app.app_context():
-        if "users" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("users")
-        if "teams" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("teams")
-        if "team_data" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("team_data")
-        if "pit_scouting" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("pit_scouting")
-        if "assignments" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("assignments")
-        if "assignment_subscriptions" not in mongo.db.list_collection_names():
-            mongo.db.create_collection("assignment_subscriptions")
+        # Get a shared MongoDB connection
+        conn = get_database_connection(app.config["MONGO_URI"])
+        db = conn['db']
+        
+        # Initialize collections
+        if "users" not in db.list_collection_names():
+            db.create_collection("users")
+        if "teams" not in db.list_collection_names():
+            db.create_collection("teams")
+        if "team_data" not in db.list_collection_names():
+            db.create_collection("team_data")
+        if "pit_scouting" not in db.list_collection_names():
+            db.create_collection("pit_scouting")
+        if "assignments" not in db.list_collection_names():
+            db.create_collection("assignments")
+        if "assignment_subscriptions" not in db.list_collection_names():
+            db.create_collection("assignment_subscriptions")
+            
+        # Store the connection in app context for reuse
+        app.db_connection = conn
+            
+        # Release the initial connection reference
+        release_connection()
             
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "error"
 
+    # Initialize UserManager with the shared connection
     try:
-        user_manager = UserManager(app.config["MONGO_URI"])
+        # Create user manager with existing connection
+        user_manager = UserManager(app.config["MONGO_URI"], existing_connection=app.db_connection)
+        
+        # Store in app context for proper cleanup
+        app.user_manager = user_manager
     except Exception as e:
         app.logger.error(f"Failed to initialize UserManager: {e}")
         raise
@@ -86,8 +98,6 @@ def create_app():
         except Exception as e:
             app.logger.error(f"Error loading user: {e}")
             return None
-
-    user_manager = UserManager(app.config["MONGO_URI"])
 
     # Import blueprints inside create_app to avoid circular imports
     from app.auth.routes import auth_bp
@@ -148,73 +158,87 @@ def create_app():
     
     @app.teardown_appcontext
     def close_db_connections(exception=None):
-        """Close all database connections when the app context ends"""
-        if hasattr(current_app, 'db_connections'):
-            for name, connection in list(current_app.db_connections.items()):
-                try:
-                    if connection:
-                        if hasattr(connection, 'close'):
-                            # If this is a DatabaseManager instance
-                            connection.close()
-                        elif 'client' in connection and connection['client']:
-                            # If this is a raw connection dictionary
-                            connection['client'].close()
-                            connection['client'] = None
-                            connection['db'] = None
-                    app.logger.info(f"Closed {name} database connection")
-                except Exception as e:
-                    app.logger.error(f"Error closing {name} connection: {str(e)}")
+        """Release database connections when the app context ends, but only if they were accessed"""
+        # Only log at debug level since this happens for every request
+        logger.debug("App context teardown - checking database connections")
         
-        # Clear the connections dictionary
-        if hasattr(current_app, 'db_connections'):
-            current_app.db_connections = {}
+        # Only clean up connections if the request actually accessed the database
+        # We can check if g has certain attributes to determine this
+        if not hasattr(g, 'db_accessed'):
+            logger.debug("No database access detected for this request, skipping connection cleanup")
+            return
+        
+        # Clean up the user manager if it exists
+        if hasattr(current_app, 'user_manager') and current_app.user_manager:
+            try:
+                current_app.user_manager.close()
+                logger.info("Closed user_manager database connection")
+            except Exception as e:
+                logger.error(f"Error closing user_manager connection: {str(e)}")
+        
+        # Clean up all database managers
+        if hasattr(current_app, 'db_managers'):
+            for name, manager in list(current_app.db_managers.items()):
+                try:
+                    if manager and hasattr(manager, 'close'):
+                        # Special handling for notification manager to stop the service
+                        if name == 'notification' and hasattr(manager, 'stop_notification_service'):
+                            manager.stop_notification_service()
+                            logger.info("Notification service stopped during app shutdown")
+                        
+                        # Close the database connection
+                        manager.close()
+                        logger.info(f"Closed {name} database manager connection")
+                except Exception as e:
+                    logger.error(f"Error closing {name} connection: {str(e)}")
+            
+            # Clear the managers dictionary
+            current_app.db_managers = {}
+            
+        # Final check of global connection pool during actual application shutdown
+        # (not just request end) - we can detect this by checking if the app is tearing down
+        if exception is not None and isinstance(exception, Exception):
+            from app.utils import _GLOBAL_DB_CONNECTION
+            if _GLOBAL_DB_CONNECTION['count'] > 0:
+                logger.warning(f"Connection pool still has {_GLOBAL_DB_CONNECTION['count']} references at shutdown")
+                # Force close the connection during application teardown
+                force_close_connection()
 
-    # Database connection timeout middleware
+    # Setup notification service shutdown for app termination
+    @app.after_request
+    def initialize_notification_cleanup(response):
+        """Initialize notification cleanup on first request"""
+        # Only run once by using an attribute check
+        if not hasattr(app, '_notification_cleanup_initialized'):
+            app._notification_cleanup_initialized = True
+            
+            try:
+                # Ensure we only register this once
+                from app.notifications.routes import notification_manager
+                
+                if 'notification' in app.db_managers and app.db_managers['notification']:
+                    logger.info("Notification service already registered for cleanup")
+                else:
+                    # Make sure notification manager is registered for cleanup
+                    logger.info("Registering notification service for cleanup")
+                    app.db_managers['notification'] = notification_manager
+            except ImportError:
+                logger.warning("Could not import notification_manager, skipping cleanup setup")
+                
+        return response
+
+    # Since we're now using a global connection pool, let's add a periodic cleanup
     @app.after_request
     def check_db_connections(response):
-        """Check and close idle database connections after a request is processed"""
-        try:
-            # Only run this check occasionally (e.g., 1% of requests) to avoid overhead
-            if hasattr(current_app, 'db_connections') and hash(str(time.time())) % 100 == 0:
-                logger.info("Checking for idle database connections")
-                idle_time = 300  # 5 minutes
-                current_time = time.time()
-                
-                # Store connections to close in a separate list to avoid modifying during iteration
-                connections_to_close = []
-                
-                # First identify idle connections
-                for name, connection in current_app.db_connections.items():
-                    # Only attempt to close DatabaseManager instances
-                    if (connection and 
-                        'client' in connection and 
-                        connection['client'] and 
-                        hasattr(connection, 'last_used') and 
-                        (current_time - connection.last_used) > idle_time):
-                        connections_to_close.append(name)
-                        
-                # Log the idle connections
-                if connections_to_close:
-                    logger.info(f"Closing {len(connections_to_close)} idle connections: {connections_to_close}")
-                    
-                    # Close the idle connections
-                    for name in connections_to_close:
-                        try:
-                            # Make sure the connection still exists (might have been closed elsewhere)
-                            if name in current_app.db_connections and current_app.db_connections[name]:
-                                # Only close the client, don't delete from the dict so we know it was closed
-                                if hasattr(current_app.db_connections[name], 'close'):
-                                    current_app.db_connections[name].close()
-                                else:
-                                    # Handle raw connection dictionaries
-                                    client = current_app.db_connections[name].get('client')
-                                    if client:
-                                        client.close()
-                                        current_app.db_connections[name]['client'] = None
-                        except Exception as e:
-                            logger.error(f"Error closing idle connection {name}: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in check_db_connections: {str(e)}")
+        """Occasionally check the global connection pool"""
+        # Only run this check occasionally (e.g., 1% of requests) to avoid overhead
+        if hash(str(time.time())) % 100 == 0:
+            from app.utils import _GLOBAL_DB_CONNECTION
+            logger.info(f"Current connection pool count: {_GLOBAL_DB_CONNECTION['count']}")
+            
+            # If count is high, it might indicate a leak
+            if _GLOBAL_DB_CONNECTION['count'] > 10:
+                logger.warning(f"High connection count detected: {_GLOBAL_DB_CONNECTION['count']}")
         
         return response
 

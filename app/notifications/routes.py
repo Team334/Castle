@@ -19,12 +19,18 @@ def on_blueprint_init(state):
         "sub": f"mailto:{app.config.get('VAPID_CLAIM_EMAIL', 'admin@example.com')}"
     }
     
-    # Initialize notification manager
+    # Use the existing shared connection
     notification_manager = NotificationManager(
         mongo_uri=app.config["MONGO_URI"],
         vapid_private_key=vapid_private_key,
-        vapid_claims=vapid_claims
+        vapid_claims=vapid_claims,
+        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
     )
+    
+    # Store in app context for proper cleanup
+    if not hasattr(app, 'db_managers'):
+        app.db_managers = {}
+    app.db_managers['notification'] = notification_manager
     
     # Start the notification service
     notification_manager.start_notification_service()

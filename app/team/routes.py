@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -15,7 +15,6 @@ from app.team.team_utils import TeamManager
 from app.utils import (allowed_file, async_route, error_response,
                        handle_route_errors, limiter, save_file_to_gridfs,
                        success_response)
-from app.models import AssignmentSubscription
 
 from .forms import CreateTeamForm
 
@@ -26,7 +25,17 @@ team_manager = None
 def on_blueprint_init(state):
     global team_manager
     app = state.app
-    team_manager = TeamManager(app.config["MONGO_URI"])
+    
+    # Use the existing shared connection
+    team_manager = TeamManager(
+        app.config["MONGO_URI"],
+        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
+    )
+    
+    # Store in app context for proper cleanup
+    if not hasattr(app, 'db_managers'):
+        app.db_managers = {}
+    app.db_managers['team'] = team_manager
 
 @team_bp.route("/join", methods=["GET", "POST"])
 @login_required

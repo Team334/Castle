@@ -26,7 +26,17 @@ logger = logging.getLogger(__name__)
 def on_blueprint_init(state):
     global scouting_manager, limiter
     app = state.app
-    scouting_manager = ScoutingManager(app.config["MONGO_URI"])
+    
+    # Use the existing shared connection
+    scouting_manager = ScoutingManager(
+        app.config["MONGO_URI"], 
+        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
+    )
+    
+    # Store in app context for proper cleanup
+    if not hasattr(app, 'db_managers'):
+        app.db_managers = {}
+    app.db_managers['scouting'] = scouting_manager
 
 
 @scouting_bp.route("/scouting/add", methods=["GET", "POST"])

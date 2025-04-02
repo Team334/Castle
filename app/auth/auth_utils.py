@@ -8,7 +8,7 @@ from gridfs import GridFS
 from werkzeug.security import generate_password_hash
 
 from app.models import User
-from app.utils import DatabaseManager, allowed_file, with_mongodb_retry
+from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,8 +24,11 @@ async def check_password_strength(password):
 
 
 class UserManager(DatabaseManager):
-    def __init__(self, mongo_uri):
-        super().__init__(mongo_uri)
+    def __init__(self, mongo_uri, existing_connection=None):
+        # Use existing connection if provided, otherwise get shared connection
+        if existing_connection is None:
+            existing_connection = get_database_connection(mongo_uri)
+        super().__init__(mongo_uri, existing_connection=existing_connection)
         self._ensure_collections()
 
     def _ensure_collections(self):
