@@ -33,7 +33,7 @@ _GLOBAL_DB_CONNECTION = {
     'client': None,
     'db': None,
     'last_used': None,
-    'connection_timeout': 120,  # 5 minutes timeout
+    'connection_timeout': 60,  # 1 minutes timeout
     'count': 0  # Reference counter
 }
 
@@ -273,7 +273,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=os.getenv("MONGO_URI"),
     default_limits=["5000 per day", "1000 per hour"],
-    strategy="fixed-window-elastic-expiry"
+    strategy="moving-window"
 )
 
 
