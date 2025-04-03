@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 from app.team.team_utils import TeamManager
 from app.utils import (allowed_file, async_route, error_response,
                        handle_route_errors, limiter, save_file_to_gridfs,
-                       success_response)
+                       success_response, get_gridfs)
 
 from .forms import CreateTeamForm
 
@@ -75,11 +75,9 @@ async def join():
 async def create():
     """Handle team creation"""
     if current_user.teamNumber:
-
         return redirect(url_for("team.manage"))
 
     form = CreateTeamForm()
-
 
     if form.validate_on_submit():
         current_app.logger.debug("Form validated successfully")
@@ -97,12 +95,11 @@ async def create():
                 image.save(buffer, format='PNG')
                 buffer.seek(0)
                 
-                fs = GridFS(team_manager.db)
                 filename = secure_filename(
                     f"team_{form.team_number.data}_logo.png"
                 )
                 current_app.logger.debug(f"Uploading file: {filename}")
-                logo_id = fs.put(
+                logo_id = get_gridfs().put(
                     buffer.getvalue(),
                     filename=filename,
                     content_type='image/png'
@@ -122,9 +119,7 @@ async def create():
                 return redirect(url_for("team.manage"))
             else:
                 if logo_id:  # Clean up uploaded file if team creation failed
-
-                    fs = GridFS(team_manager.db)
-                    fs.delete(logo_id)
+                    get_gridfs().delete(logo_id)
                 flash(f"Error creating team: {result}", "error")
 
         except Exception as e:
@@ -412,12 +407,11 @@ async def delete_team(team_number):
 @team_bp.route("/team/<int:team_number>/logo")
 def team_logo(team_number):
     try:
-        fs = GridFS(team_manager.db)
         team = team_manager.db.teams.find_one({"team_number": team_number})
         
         if team and team.get("logo_id"):
             logo_id = ObjectId(team["logo_id"]) if isinstance(team["logo_id"], str) else team["logo_id"]
-            logo = fs.get(logo_id)
+            logo = get_gridfs().get(logo_id)
             return send_file(
                 BytesIO(logo.read()),
                 mimetype=logo.content_type,
@@ -502,8 +496,7 @@ async def update_team_logo(team_number):
         
     success, message = await team_manager.update_team_logo(team_number, new_logo_id)
     if not success:
-        fs = GridFS(team_manager.db)
-        fs.delete(new_logo_id)
+        get_gridfs().delete(new_logo_id)
         
     return success_response(message) if success else error_response("An internal error has occurred.", log_message="Error updating team logo")
 
@@ -546,20 +539,19 @@ async def update_team_info(team_number):
             if file and file.filename:
                 if allowed_file(file.filename):
                     # Save new logo to GridFS
-                    fs = GridFS(team_manager.db)
                     
                     # Clean up old logo and its chunks if it exists
                     if team.logo_id:
                         try:
                             # Delete old file and its chunks
-                            fs.delete(team.logo_id)
+                            get_gridfs().delete(team.logo_id)
                             # Also clean up any orphaned chunks
                             team_manager.db.fs.chunks.delete_many({"files_id": team.logo_id})
                         except Exception as e:
                             flash("An internal error has occurred.")
                     
                     filename = secure_filename(f"team_{team_number}_logo_{file.filename}")
-                    file_id = fs.put(
+                    file_id = get_gridfs().put(
                         file.stream.read(),
                         filename=filename,
                         content_type=file.content_type

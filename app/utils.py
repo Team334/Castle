@@ -99,12 +99,15 @@ class MongoDB:
 
 # Global instance
 _mongodb_instance = None
+fs = None  # Initialize as None, will be set up when needed
 
 def get_mongodb_instance(mongo_uri=None):
     """Get the singleton MongoDB instance"""
-    global _mongodb_instance
+    global _mongodb_instance, fs
     if _mongodb_instance is None:
         _mongodb_instance = MongoDB(mongo_uri)
+        # Initialize GridFS with the singleton connection
+        fs = GridFS(_mongodb_instance.get_db())
     # Mark the database as accessed for the current request
     _mark_db_accessed()
     return _mongodb_instance
@@ -197,7 +200,7 @@ def handle_route_errors(f):
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=os.getenv("MONGO_URI"),
-    default_limits=["5000 per day", "1000 per hour"],
+    default_limits=["50000 per day", "10000 per hour"],
     strategy="moving-window"
 )
 
@@ -211,9 +214,8 @@ def allowed_file(filename: str) -> bool:
 def save_file_to_gridfs(file, db, prefix: str = '') -> str:
     """Save file to GridFS and return file ID"""
     if file and allowed_file(file.filename):
-        fs = GridFS(db)
         filename = secure_filename(f"{prefix}_{file.filename}" if prefix else file.filename)
-        file_id = fs.put(
+        file_id = get_gridfs().put(
             file.stream.read(),
             filename=filename,
             content_type=file.content_type
@@ -224,10 +226,9 @@ def save_file_to_gridfs(file, db, prefix: str = '') -> str:
 def send_gridfs_file(file_id, db, default_path: str = None):
     """Send file from GridFS or return default file"""
     try:
-        fs = GridFS(db)
         if isinstance(file_id, str):
             file_id = ObjectId(file_id)
-        file_data = fs.get(file_id)
+        file_data = get_gridfs().get(file_id)
         return send_file(
             BytesIO(file_data.read()),
             mimetype=file_data.content_type,
@@ -275,4 +276,11 @@ async def check_password_strength(password: str) -> tuple[bool, str]:
     """
     if len(password) < 8:
         return False, "Password must be at least 8 characters long"
-    return True, "Password meets all requirements" 
+    return True, "Password meets all requirements"
+
+def get_gridfs():
+    """Get the GridFS instance"""
+    global fs
+    if fs is None:
+        get_mongodb_instance()  # This will initialize both MongoDB and GridFS
+    return fs 

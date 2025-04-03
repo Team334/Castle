@@ -8,7 +8,7 @@ from gridfs import GridFS
 from werkzeug.security import generate_password_hash
 
 from app.models import User
-from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection
+from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection, get_gridfs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -162,7 +162,6 @@ class UserManager(DatabaseManager):
         
         try:
             from bson.objectid import ObjectId
-            from gridfs import GridFS
 
             # Get the old profile picture ID first
             user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
@@ -177,9 +176,8 @@ class UserManager(DatabaseManager):
             # If update was successful and there was an old picture, delete it
             if result.modified_count > 0 and old_picture_id:
                 try:
-                    fs = GridFS(self.db)
-                    if fs.exists(ObjectId(old_picture_id)):
-                        fs.delete(ObjectId(old_picture_id))
+                    if get_gridfs().exists(ObjectId(old_picture_id)):
+                        get_gridfs().delete(ObjectId(old_picture_id))
                         logger.info(f"Deleted old profile picture: {old_picture_id}")
                 except Exception as e:
                     logger.error(f"Error deleting old profile picture: {str(e)}")
@@ -216,8 +214,7 @@ class UserManager(DatabaseManager):
             # Delete profile picture if exists
             if user_data.get('profile_picture_id'):
                 try:
-                    fs = GridFS(self.db)
-                    fs.delete(ObjectId(user_data['profile_picture_id']))
+                    get_gridfs().delete(ObjectId(user_data['profile_picture_id']))
                 except Exception as e:
                     logger.error(f"Error deleting profile picture: {str(e)}")
 
@@ -255,9 +252,8 @@ class UserManager(DatabaseManager):
             if profile_picture and allowed_file(profile_picture.filename):
                 from werkzeug.utils import secure_filename
                 if profile_picture and allowed_file(profile_picture.filename):
-                    fs = GridFS(self.db)
                     filename = secure_filename(profile_picture.filename)
-                    file_id = fs.put(
+                    file_id = get_gridfs().put(
                         profile_picture.stream.read(),
                         filename=filename,
                         content_type=profile_picture.content_type

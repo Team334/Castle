@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
 from app.utils import (async_route, handle_route_errors, is_safe_url, limiter,
-                       send_gridfs_file)
+                       send_gridfs_file, get_gridfs)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -24,15 +24,10 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def get_gridfs():
-    """Get GridFS instance"""
-    return GridFS(user_manager.db)
-
 def save_profile_picture(file):
     """Save profile picture to GridFS"""
     if file and allowed_file(file.filename):
-        fs = get_gridfs()
-        return fs.put(
+        return get_gridfs().put(
             file.stream.read(),
             filename=secure_filename(file.filename),
             content_type=file.content_type,
@@ -42,13 +37,12 @@ def save_profile_picture(file):
 def send_profile_picture(file_id):
     """Retrieve profile picture from GridFS"""
     try:
-        fs = get_gridfs()
         # Convert string ID to ObjectId if necessary
         if isinstance(file_id, str):
             file_id = ObjectId(file_id)
             
         # Get the file from GridFS
-        file_data = fs.get(file_id)
+        file_data = get_gridfs().get(file_id)
         
         return send_file(
             file_data,

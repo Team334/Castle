@@ -12,7 +12,7 @@ from bson.objectid import ObjectId
 from PIL import Image, ImageDraw, ImageFont
 
 from app.models import Assignment, Team, User
-from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
+from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection, get_gridfs
 from flask import current_app
 
 logging.basicConfig(level=logging.INFO)
@@ -92,13 +92,11 @@ class TeamManager(DatabaseManager):
         try:
             if await self.get_team_by_number(team_number):
                 return False, "Team number already exists"
-
-            fs = gridfs.GridFS(self.db)
             
             # If no logo provided, create default
             if not logo_id:
                 logo_bytes = self.create_default_team_logo(team_number)
-                logo_id = fs.put(
+                logo_id = get_gridfs().put(
                     logo_bytes,
                     filename=f"team_{team_number}_default_logo.png",
                     content_type='image/png'
@@ -484,12 +482,9 @@ class TeamManager(DatabaseManager):
 
             # Delete team logo from GridFS if it exists
             if team.logo_id:
-                from gridfs import GridFS
-
-                fs = GridFS(self.db)
                 try:
                     # Delete the file and its chunks
-                    fs.delete(team.logo_id)
+                    get_gridfs().delete(team.logo_id)
                 except Exception as e:
                     logger.error(f"Error deleting team logo: {str(e)}")
 
@@ -629,8 +624,6 @@ class TeamManager(DatabaseManager):
     async def update_team_logo(self, team_number: int, new_logo_id) -> Tuple[bool, str]:
         """Update team logo and clean up old one"""
         try:
-            from gridfs import GridFS
-
             # Get current team data
             team = await self.get_team_by_number(team_number)
             if not team:
@@ -648,9 +641,8 @@ class TeamManager(DatabaseManager):
                 # Clean up old logo if it exists
                 if old_logo_id:
                     try:
-                        fs = GridFS(self.db)
-                        if fs.exists(old_logo_id):
-                            fs.delete(old_logo_id)
+                        if get_gridfs().exists(old_logo_id):
+                            get_gridfs().delete(old_logo_id)
                     except Exception as e:
                         logger.error(f"Error deleting old team logo: {str(e)}")
                         
