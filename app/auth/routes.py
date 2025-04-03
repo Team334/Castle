@@ -4,6 +4,7 @@ import asyncio
 import os
 from functools import wraps
 from urllib.parse import urljoin, urlparse
+import hashlib
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -123,9 +124,16 @@ async def login():
         login = request.form.get("login", "").strip()
         password = request.form.get("password", "").strip()
         remember = bool(request.form.get("remember", False))
+        team_passcode = request.form.get("team_passcode", "").strip()
 
-        if not login or not password:
-            flash("Please provide both login and password", "error")
+        if not login or not password or not team_passcode:
+            flash("Please provide login, password, and team access code", "error")
+            return render_template("auth/login.html", form_data={"login": login})
+            
+        # Verify the team access code by comparing hashes
+        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
+            flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/login.html", form_data={"login": login})
 
         success, user = await user_manager.authenticate_user(login, password)
@@ -156,10 +164,17 @@ async def register():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
+        team_passcode = request.form.get("team_passcode", "").strip()
 
         form_data = {"email": email, "username": username}
+        
+        # Verify the team access code by comparing hashes
+        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
+            flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
+            return render_template("auth/register.html", form_data=form_data)
 
-        if not all([email, username, password, confirm_password]):
+        if not all([email, username, password, confirm_password, team_passcode]):
             flash("All fields are required", "error")
             return render_template("auth/register.html", form_data=form_data)
 

@@ -47,6 +47,17 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <div>
+                        <label for="team_passcode" class="block text-sm font-medium text-gray-700">Team Access Code</label>
+                        <div class="mt-1">
+                            <input type="password" 
+                                   id="team_passcode" 
+                                   name="team_passcode" 
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                                   required>
+                        </div>
+                    </div>
 
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
@@ -73,6 +84,9 @@
                         <a href="{{ url_for('auth.register') }}" class="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
                             Register here
                         </a>
+                    </p>
+                    <p class="mt-2 text-xs text-gray-500">
+                        This is a private application for Team 334 members only.
                     </p>
                 </div>
             </div>

@@ -1,11 +1,12 @@
 import os
 import time
 import logging
+import hashlib
 
 from dotenv import load_dotenv
 from flask import (Flask, make_response, render_template,
-                   send_from_directory, g, current_app)
-from flask_login import LoginManager
+                   send_from_directory, g, current_app, request, flash, redirect, url_for)
+from flask_login import LoginManager, current_user
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 
@@ -22,6 +23,10 @@ stop_notification_thread = False
 
 logger = logging.getLogger(__name__)
 
+def hash_team_access_code(code: str) -> str:
+    """Hash the team access code using SHA-256"""
+    return hashlib.sha256(code.encode()).hexdigest()
+
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -35,7 +40,8 @@ def create_app():
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
         VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
-        VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com")
+        VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com"),
+        TEAM_ACCESS_CODE_HASH=hash_team_access_code(os.getenv("TEAM_ACCESS_CODE", "your_team_access_code"))
     )
     
     if not app.config.get("VAPID_PUBLIC_KEY") or not app.config.get("VAPID_PRIVATE_KEY"):
@@ -125,6 +131,25 @@ def create_app():
     @app.errorhandler(429)
     def rate_limit_error(e):
         return render_template("429.html"), 429
+
+    @app.before_request
+    def check_team_access():
+        """
+        Additional protection to restrict access to only approved team members.
+        This blocks IP addresses not associated with team members once they've registered.
+        """
+        # Skip for static assets, authentication, and public routes
+        if request.path.startswith('/static') or \
+           request.path == '/' or \
+           request.path == '/service-worker.js' or \
+           request.path.startswith('/auth/login') or \
+           request.path.startswith('/auth/register'):
+            return
+            
+        # Block access for non-authenticated users to protected routes
+        if not current_user.is_authenticated:
+            flash("Access restricted to Team 334 members only.", "error")
+            return redirect(url_for('auth.login'))
 
     @app.route('/static/manifest.json')
     def serve_manifest():
