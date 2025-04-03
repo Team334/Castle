@@ -19,12 +19,11 @@ def on_blueprint_init(state):
         "sub": f"mailto:{app.config.get('VAPID_CLAIM_EMAIL', 'admin@example.com')}"
     }
     
-    # Use the existing shared connection
+    # Create notification manager with the singleton connection
     notification_manager = NotificationManager(
         mongo_uri=app.config["MONGO_URI"],
         vapid_private_key=vapid_private_key,
-        vapid_claims=vapid_claims,
-        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
+        vapid_claims=vapid_claims
     )
     
     # Store in app context for proper cleanup

@@ -10,7 +10,7 @@ from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 
 from app.auth.auth_utils import UserManager
-from app.utils import limiter, get_database_connection, release_connection, force_close_connection
+from app.utils import limiter, get_mongodb_instance, close_mongodb_connection
 
 csrf = CSRFProtect()
 mongo = PyMongo()
@@ -52,9 +52,9 @@ def create_app():
     app.db_managers = {}
 
     with app.app_context():
-        # Get a shared MongoDB connection
-        conn = get_database_connection(app.config["MONGO_URI"])
-        db = conn['db']
+        # Get the singleton MongoDB instance
+        mongodb = get_mongodb_instance(app.config["MONGO_URI"])
+        db = mongodb.get_db()
         
         # Initialize collections
         if "users" not in db.list_collection_names():
@@ -70,20 +70,14 @@ def create_app():
         if "assignment_subscriptions" not in db.list_collection_names():
             db.create_collection("assignment_subscriptions")
             
-        # Store the connection in app context for reuse
-        app.db_connection = conn
-            
-        # Release the initial connection reference
-        release_connection()
-            
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "error"
 
-    # Initialize UserManager with the shared connection
+    # Initialize UserManager with the singleton connection
     try:
-        # Create user manager with existing connection
-        user_manager = UserManager(app.config["MONGO_URI"], existing_connection=app.db_connection)
+        # Create user manager with singleton connection
+        user_manager = UserManager(app.config["MONGO_URI"])
         
         # Store in app context for proper cleanup
         app.user_manager = user_manager
@@ -155,92 +149,15 @@ def create_app():
     @app.route('/offline.html')
     def offline():
         return render_template('offline.html')
-    
+
+    # Handle application shutdown to close the singleton MongoDB connection
     @app.teardown_appcontext
-    def close_db_connections(exception=None):
-        """Release database connections when the app context ends, but only if they were accessed"""
-        # Only log at debug level since this happens for every request
-        logger.debug("App context teardown - checking database connections")
-        
-        # Only clean up connections if the request actually accessed the database
-        # We can check if g has certain attributes to determine this
-        if not hasattr(g, 'db_accessed'):
-            logger.debug("No database access detected for this request, skipping connection cleanup")
-            return
-        
-        # Clean up the user manager if it exists
-        if hasattr(current_app, 'user_manager') and current_app.user_manager:
-            try:
-                current_app.user_manager.close()
-                logger.info("Closed user_manager database connection")
-            except Exception as e:
-                logger.error(f"Error closing user_manager connection: {str(e)}")
-        
-        # Clean up all database managers
-        if hasattr(current_app, 'db_managers'):
-            for name, manager in list(current_app.db_managers.items()):
-                try:
-                    if manager and hasattr(manager, 'close'):
-                        # Special handling for notification manager to stop the service
-                        if name == 'notification' and hasattr(manager, 'stop_notification_service'):
-                            manager.stop_notification_service()
-                            logger.info("Notification service stopped during app shutdown")
-                        
-                        # Close the database connection
-                        manager.close()
-                        logger.info(f"Closed {name} database manager connection")
-                except Exception as e:
-                    logger.error(f"Error closing {name} connection: {str(e)}")
-            
-            # Clear the managers dictionary
-            current_app.db_managers = {}
-            
-        # Final check of global connection pool during actual application shutdown
-        # (not just request end) - we can detect this by checking if the app is tearing down
+    def teardown_db_connection(exception=None):
+        """Close the singleton MongoDB connection only during application shutdown"""
         if exception is not None and isinstance(exception, Exception):
-            from app.utils import _GLOBAL_DB_CONNECTION
-            if _GLOBAL_DB_CONNECTION['count'] > 0:
-                logger.warning(f"Connection pool still has {_GLOBAL_DB_CONNECTION['count']} references at shutdown")
-                # Force close the connection during application teardown
-                force_close_connection()
-
-    # Setup notification service shutdown for app termination
-    @app.after_request
-    def initialize_notification_cleanup(response):
-        """Initialize notification cleanup on first request"""
-        # Only run once by using an attribute check
-        if not hasattr(app, '_notification_cleanup_initialized'):
-            app._notification_cleanup_initialized = True
-            
-            try:
-                # Ensure we only register this once
-                from app.notifications.routes import notification_manager
-                
-                if 'notification' in app.db_managers and app.db_managers['notification']:
-                    logger.info("Notification service already registered for cleanup")
-                else:
-                    # Make sure notification manager is registered for cleanup
-                    logger.info("Registering notification service for cleanup")
-                    app.db_managers['notification'] = notification_manager
-            except ImportError:
-                logger.warning("Could not import notification_manager, skipping cleanup setup")
-                
-        return response
-
-    # Since we're now using a global connection pool, let's add a periodic cleanup
-    @app.after_request
-    def check_db_connections(response):
-        """Occasionally check the global connection pool"""
-        # Only run this check occasionally (e.g., 1% of requests) to avoid overhead
-        if hash(str(time.time())) % 100 == 0:
-            from app.utils import _GLOBAL_DB_CONNECTION
-            logger.info(f"Current connection pool count: {_GLOBAL_DB_CONNECTION['count']}")
-            
-            # If count is high, it might indicate a leak
-            if _GLOBAL_DB_CONNECTION['count'] > 10:
-                logger.warning(f"High connection count detected: {_GLOBAL_DB_CONNECTION['count']}")
-        
-        return response
+            # Only close during actual application shutdown, not regular request teardown
+            close_mongodb_connection()
+            logger.info("Closed singleton MongoDB connection during application shutdown")
 
     return app
 

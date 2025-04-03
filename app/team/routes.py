@@ -26,11 +26,8 @@ def on_blueprint_init(state):
     global team_manager
     app = state.app
     
-    # Use the existing shared connection
-    team_manager = TeamManager(
-        app.config["MONGO_URI"],
-        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
-    )
+    # Create TeamManager with the singleton connection
+    team_manager = TeamManager(app.config["MONGO_URI"])
     
     # Store in app context for proper cleanup
     if not hasattr(app, 'db_managers'):

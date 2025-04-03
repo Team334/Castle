@@ -17,6 +17,7 @@ from .TBA import TBAInterface
 
 scouting_bp = Blueprint("scouting", __name__)
 scouting_manager = None
+tba = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 @scouting_bp.record
 def on_blueprint_init(state):
-    global scouting_manager, limiter
+    global scouting_manager, tba
     app = state.app
     
-    # Use the existing shared connection
-    scouting_manager = ScoutingManager(
-        app.config["MONGO_URI"], 
-        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
-    )
+    # Create ScoutingManager with the singleton connection
+    scouting_manager = ScoutingManager(app.config["MONGO_URI"])
+    
+    # Initialize TBA
+    tba = TBAInterface(api_key=app.config.get("TBA_KEY", ""))
     
     # Store in app context for proper cleanup
     if not hasattr(app, 'db_managers'):

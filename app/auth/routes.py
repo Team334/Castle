@@ -88,11 +88,8 @@ def on_blueprint_init(state):
     app = state.app
     mongo = PyMongo(app)
     
-    # Use the existing shared connection
-    user_manager = UserManager(
-        app.config["MONGO_URI"],
-        existing_connection=app.db_connection if hasattr(app, 'db_connection') else None
-    )
+    # Create the UserManager with the singleton connection
+    user_manager = UserManager(app.config["MONGO_URI"])
     
     # Store in app context for proper cleanup
     if not hasattr(app, 'db_managers'):
@@ -279,11 +276,8 @@ async def check_username():
 async def delete_account():
     """Delete user account"""
     try:
-        # Use the existing shared connection
-        user_manager = UserManager(
-            current_app.config["MONGO_URI"],
-            existing_connection=current_app.db_connection if hasattr(current_app, 'db_connection') else None
-        )
+        # Create a UserManager with the singleton connection
+        user_manager = UserManager(current_app.config["MONGO_URI"])
         success, message = await user_manager.delete_user(current_user.get_id())
 
         if success:

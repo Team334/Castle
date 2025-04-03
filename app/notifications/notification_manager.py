@@ -14,19 +14,16 @@ logger = logging.getLogger(__name__)
 class NotificationManager(DatabaseManager):
     """Manages push notifications and subscriptions"""
     
-    def __init__(self, mongo_uri: str, vapid_private_key: str, vapid_claims: Dict[str, str], existing_connection=None):
+    def __init__(self, mongo_uri: str, vapid_private_key: str, vapid_claims: Dict[str, str]):
         """Initialize NotificationManager with MongoDB connection and VAPID keys
         
         Args:
             mongo_uri: MongoDB connection URI
             vapid_private_key: VAPID private key for WebPush
             vapid_claims: Dictionary containing email and subject for VAPID
-            existing_connection: Existing MongoDB connection to reuse (optional)
         """
-        # Use existing connection if provided, otherwise get shared connection
-        if existing_connection is None:
-            existing_connection = get_database_connection(mongo_uri)
-        super().__init__(mongo_uri, existing_connection=existing_connection)
+        # Use the singleton connection
+        super().__init__(mongo_uri)
         
         self.vapid_private_key = vapid_private_key
         self.vapid_claims = vapid_claims
@@ -80,7 +77,7 @@ class NotificationManager(DatabaseManager):
     @with_mongodb_retry()
     def _process_pending_notifications(self):
         """Process all pending notifications that are due to be sent"""
-        self.ensure_connected()
+        
 
         # Find notifications scheduled for now or earlier that haven't been sent
         now = datetime.now()
@@ -134,7 +131,7 @@ class NotificationManager(DatabaseManager):
     @with_mongodb_retry()
     def _schedule_assignment_notifications(self):
         """Schedule notifications for assignments with due dates"""
-        self.ensure_connected()
+        
         
         # Get assignments with due dates
         assignments = self.db.assignments.find({
@@ -302,7 +299,7 @@ class NotificationManager(DatabaseManager):
         Returns:
             Tuple[bool, str]: Success status and message
         """
-        self.ensure_connected()
+        
 
         try:
             # Check if user is in the team
@@ -401,7 +398,7 @@ class NotificationManager(DatabaseManager):
         Returns:
             Tuple[bool, str]: Success status and message
         """
-        self.ensure_connected()
+        
         
         try:
             query = {"user_id": user_id}
@@ -433,7 +430,7 @@ class NotificationManager(DatabaseManager):
     #     Returns:
     #         Tuple[bool, str]: Success status and message
     #     """
-    #     self.ensure_connected()
+    #     
 
     #     try:
     #         # Get the user's subscriptions
@@ -474,7 +471,7 @@ class NotificationManager(DatabaseManager):
             assignment_data: The assignment data including title, description, etc.
             team_number: The team number
         """
-        self.ensure_connected()
+        
         
         try:
             # Get all subscriptions for assigned users

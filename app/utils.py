@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from flask import flash, jsonify, render_template, request, send_file, g
+from flask import flash, jsonify, render_template, request, send_file, g, current_app
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from gridfs import GridFS
@@ -28,127 +28,126 @@ load_dotenv()
 
 # ============ Database Utilities ============
 
-# Global connection pool singleton
-_GLOBAL_DB_CONNECTION = {
-    'client': None,
-    'db': None,
-    'last_used': None,
-    'connection_timeout': 120,  # 5 minutes timeout
-    'count': 0  # Reference counter
-}
+class MongoDB:
+    """
+    Singleton MongoDB connection manager that maintains exactly one connection
+    throughout the application lifecycle.
+    """
+    # Class variables for the single global connection
+    _instance = None
+    _client = None
+    _db = None
+    _initialized = False
+    
+    def __new__(cls, mongo_uri=None, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(MongoDB, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self, mongo_uri=None):
+        # Only initialize once
+        if not MongoDB._initialized:
+            self.mongo_uri = mongo_uri or os.getenv("MONGO_URI")
+            self._connect()
+            MongoDB._initialized = True
+    
+    def _connect(self):
+        """Create the MongoDB connection"""
+        try:
+            logger.info("Creating new MongoDB connection")
+            self._client = MongoClient(
+                self.mongo_uri,
+                serverSelectionTimeoutMS=10000,
+                maxPoolSize=10,
+                minPoolSize=1,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=30000
+            )
+            
+            # Test the connection
+            self._client.server_info()
+            self._db = self._client.get_default_database()
+            logger.info("MongoDB connection established successfully")
+        except Exception as e:
+            logger.error(f"Failed to connect to MongoDB: {str(e)}")
+            raise
+    
+    def get_client(self):
+        """Get the MongoDB client"""
+        if self._client is None:
+            self._connect()
+        return self._client
+    
+    def get_db(self):
+        """Get the MongoDB database"""
+        if self._db is None:
+            self._connect()
+        return self._db
+    
+    def close(self):
+        """Close the MongoDB connection during application shutdown"""
+        if self._client is not None:
+            try:
+                self._client.close()
+                logger.info("Closed MongoDB connection")
+            except Exception as e:
+                logger.warning(f"Error closing MongoDB connection: {str(e)}")
+            finally:
+                self._client = None
+                self._db = None
+                MongoDB._initialized = False
 
-def get_database_connection(mongo_uri):
-    """
-    Get or create a global database connection
-    
-    Args:
-        mongo_uri: MongoDB connection URI
-        
-    Returns:
-        dict with client and db objects
-    """
-    global _GLOBAL_DB_CONNECTION
-    
-    # Mark this request as having accessed the database
-    mark_db_accessed()
-    
-    current_time = time.time()
-    
-    # If we already have a connection that's in use, return it without incrementing the counter
-    if (_GLOBAL_DB_CONNECTION['client'] is not None and 
-        _GLOBAL_DB_CONNECTION['last_used'] is not None and 
-        (current_time - _GLOBAL_DB_CONNECTION['last_used']) <= _GLOBAL_DB_CONNECTION['connection_timeout']):
-        
-        # Test if the connection is still valid before returning it
-        try:
-            _GLOBAL_DB_CONNECTION['client'].admin.command('ismaster')
-            _GLOBAL_DB_CONNECTION['last_used'] = current_time
-            logger.debug("Reusing existing MongoDB connection")
-            
-            # Only increment the reference counter for new owners
-            _GLOBAL_DB_CONNECTION['count'] += 1
-            logger.info(f"MongoDB connection reference count increased to: {_GLOBAL_DB_CONNECTION['count']}")
-            
-            return {
-                'client': _GLOBAL_DB_CONNECTION['client'], 
-                'db': _GLOBAL_DB_CONNECTION['db']
-            }
-        except Exception as e:
-            logger.warning(f"Existing connection test failed: {str(e)}. Will create new connection.")
-    
-    # If we get here, we need to create a new connection
-    # Close the existing connection if there is one
-    if _GLOBAL_DB_CONNECTION['client'] is not None:
-        try:
-            _GLOBAL_DB_CONNECTION['client'].close()
-            logger.info("Closed stale MongoDB connection")
-        except Exception as e:
-            logger.warning(f"Error closing MongoDB connection: {str(e)}")
-    
-    # Create a new connection
+# Global instance
+_mongodb_instance = None
+
+def get_mongodb_instance(mongo_uri=None):
+    """Get the singleton MongoDB instance"""
+    global _mongodb_instance
+    if _mongodb_instance is None:
+        _mongodb_instance = MongoDB(mongo_uri)
+    # Mark the database as accessed for the current request
+    _mark_db_accessed()
+    return _mongodb_instance
+
+def _mark_db_accessed():
+    """Mark this request as having accessed the database"""
     try:
-        client = MongoClient(
-            mongo_uri,
-            serverSelectionTimeoutMS=10000,
-            maxPoolSize=10,
-            minPoolSize=1,
-            connectTimeoutMS=5000,
-            socketTimeoutMS=30000,
-            waitQueueTimeoutMS=10000
-        )
-        # Test the connection
-        client.server_info()
-        db = client.get_default_database()
-        
-        _GLOBAL_DB_CONNECTION['client'] = client
-        _GLOBAL_DB_CONNECTION['db'] = db
-        _GLOBAL_DB_CONNECTION['last_used'] = current_time
-        _GLOBAL_DB_CONNECTION['count'] = 1  # Start with 1 since we're returning it
-        
-        logger.info("Created new MongoDB connection")
-        logger.info(f"MongoDB connection reference count increased to: 1")
-        
-        return {
-            'client': _GLOBAL_DB_CONNECTION['client'], 
-            'db': _GLOBAL_DB_CONNECTION['db']
-        }
-    except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {str(e)}")
-        raise
+        if hasattr(g, '_get_current_object'):
+            g.db_accessed = True
+    except (RuntimeError, ImportError):
+        # Not in a Flask context
+        pass
+
+def close_mongodb_connection():
+    """Close the MongoDB connection at application shutdown"""
+    global _mongodb_instance
+    if _mongodb_instance:
+        _mongodb_instance.close()
+        _mongodb_instance = None
+
+class DBManager:
+    """Base database manager that uses the singleton MongoDB connection"""
+    
+    def __init__(self, mongo_uri=None):
+        """Initialize the database manager with the global singleton connection"""
+        mongodb = get_mongodb_instance(mongo_uri)
+        self.client = mongodb.get_client()
+        self.db = mongodb.get_db()
+
+DatabaseManager = DBManager
+
+def get_database_connection(mongo_uri=None):
+    """Legacy function for backward compatibility"""
+    mongodb = get_mongodb_instance(mongo_uri)
+    return {'client': mongodb.get_client(), 'db': mongodb.get_db()}
 
 def release_connection():
-    """
-    Release a reference to the global connection.
-    When count reaches 0, the connection remains but is marked as unused.
-    """
-    global _GLOBAL_DB_CONNECTION
-    
-    if _GLOBAL_DB_CONNECTION['count'] > 0:
-        _GLOBAL_DB_CONNECTION['count'] -= 1
-        logger.info(f"MongoDB connection reference count decreased to: {_GLOBAL_DB_CONNECTION['count']}")
-    
-    # Update last_used time
-    _GLOBAL_DB_CONNECTION['last_used'] = time.time()
+    """Legacy function for backward compatibility - now a no-op"""
+    pass
 
 def force_close_connection():
-    """
-    Force close the global connection regardless of reference count.
-    Should only be used during application shutdown.
-    """
-    global _GLOBAL_DB_CONNECTION
-    
-    try:
-        if _GLOBAL_DB_CONNECTION['client'] is not None:
-            _GLOBAL_DB_CONNECTION['client'].close()
-            logger.info("Forced close of MongoDB connection")
-    except Exception as e:
-        logger.error(f"Error force closing MongoDB connection: {str(e)}")
-    
-    # Reset all connection values
-    _GLOBAL_DB_CONNECTION['client'] = None
-    _GLOBAL_DB_CONNECTION['db'] = None
-    _GLOBAL_DB_CONNECTION['count'] = 0
-    _GLOBAL_DB_CONNECTION['last_used'] = None
+    """Legacy function for backward compatibility"""
+    close_mongodb_connection()
 
 def with_mongodb_retry(retries=3, delay=2):
     """Decorator for retrying MongoDB operations"""
@@ -170,83 +169,9 @@ def with_mongodb_retry(retries=3, delay=2):
         return wrapper
     return decorator
 
-class DatabaseManager:
-    """Base class for database operations"""
-    def __init__(self, mongo_uri: str, existing_connection=None):
-        self.mongo_uri = mongo_uri
-        self.client = None
-        self.db = None
-        self.owns_connection = False
-        
-        # Use existing connection if provided, otherwise get from global pool
-        if (existing_connection and 
-            existing_connection.get('client') is not None and 
-            existing_connection.get('db') is not None):
-            # We're reusing an existing connection, don't increment the counter
-            self.client = existing_connection['client']
-            self.db = existing_connection['db']
-            logger.info("Using existing MongoDB connection")
-            # This instance doesn't "own" the connection (won't decrement on close)
-            self.owns_connection = False
-        else:
-            # Get a new connection from the pool, counter already incremented
-            conn = get_database_connection(self.mongo_uri)
-            self.client = conn['client']
-            self.db = conn['db']
-            # This instance "owns" a reference and will decrement on close
-            self.owns_connection = True
-            logger.info("Using global MongoDB connection")
-
-    def connect(self):
-        """Ensure connection to MongoDB"""
-        conn = get_database_connection(self.mongo_uri)
-        self.client = conn['client']
-        self.db = conn['db']
-
-    def ensure_connected(self):
-        """Ensure database connection is active"""
-        try:
-            # Mark this request as having accessed the database
-            mark_db_accessed()
-
-            # Check if client is None first
-            if self.client is None or self.db is None:
-                logger.warning("No active MongoDB connection. Connecting...")
-                self.connect()
-                return
-                
-            # Test if connection is still alive with a lightweight command
-            self.client.admin.command('ismaster')
-        except Exception as e:
-            logger.warning(f"Lost connection to MongoDB: {str(e)}. Attempting to reconnect...")
-            self.connect()
-
-    def close(self):
-        """Release the MongoDB connection reference"""
-        if self.owns_connection:
-            release_connection()
-            self.client = None
-            self.db = None
-            logger.info("Released MongoDB connection reference")
-
-    def get_connection(self):
-        """Return the current connection for reuse"""
-        self.ensure_connected()
-        return {'client': self.client, 'db': self.db}
-
-    def __del__(self):
-        """Cleanup MongoDB connection reference on object deletion"""
-        with contextlib.suppress(ImportError, AttributeError, TypeError):
-            self.close()
-
 def mark_db_accessed():
     """Mark the current request as having accessed the database"""
-    try:
-        if hasattr(g, '_get_current_object'):
-            g.db_accessed = True
-    except (RuntimeError, ImportError):
-        # Handle case when not in a Flask context
-        pass
+    _mark_db_accessed()
 
 # ============ Route Utilities ============
 
@@ -273,7 +198,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=os.getenv("MONGO_URI"),
     default_limits=["5000 per day", "1000 per hour"],
-    strategy="fixed-window-elastic-expiry"
+    strategy="moving-window"
 )
 
 

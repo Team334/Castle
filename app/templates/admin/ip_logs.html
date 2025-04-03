@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>IP Access Logs</h2>
+    
+    <form class="mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <input type="text" name="ip" class="form-control" placeholder="Filter by IP address">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="limit" class="form-control" placeholder="Limit" value="100">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </div>
+    </form>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Endpoint</th>
+                    <th>Status</th>
+                    <th>User ID</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.ip_address }}</td>
+                    <td>{{ log.endpoint }}</td>
+                    <td>{{ log.status_code }}</td>
+                    <td>{{ log.user_id or 'Anonymous' }}</td>
+                    <td>{{ log.datetime }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

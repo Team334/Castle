@@ -7,11 +7,13 @@ import requests
 logger = logging.getLogger(__name__)
 
 class TBAInterface:
-    def __init__(self):
+    def __init__(self, api_key=None):
         self.base_url = "https://www.thebluealliance.com/api/v3"
-        self.api_key = os.getenv('TBA_AUTH_KEY')
+        
+        # First try to use provided api_key, then fall back to environment variable
+        self.api_key = api_key or os.getenv('TBA_AUTH_KEY')
         if not self.api_key:
-            logger.warning("TBA_AUTH_KEY not found in environment variables")
+            logger.warning("TBA_AUTH_KEY not found in environment variables or provided as parameter")
         
         self.headers = {
             "X-TBA-Auth-Key": self.api_key,

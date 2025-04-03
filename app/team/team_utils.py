@@ -27,11 +27,9 @@ DatabaseID = Union[str, ObjectId]
 class TeamManager(DatabaseManager):
     """Handles all team-related operations"""
     
-    def __init__(self, mongo_uri: str, existing_connection=None):
-        # Use existing connection if provided, otherwise get shared connection
-        if existing_connection is None:
-            existing_connection = get_database_connection(mongo_uri)
-        super().__init__(mongo_uri, existing_connection=existing_connection)
+    def __init__(self, mongo_uri=None):
+        # Use the singleton connection
+        super().__init__(mongo_uri)
         self._ensure_collections()
 
     def _ensure_collections(self) -> None:
@@ -60,7 +58,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry()
     def get_team_by_number_sync(self, team_number: int) -> Optional[Team]:
         """Synchronous version of get_team_by_number"""
-        self.ensure_connected()
+        
         if team_data := self.db.teams.find_one({"team_number": team_number}):
             return Team.create_from_db(team_data)
         return None
@@ -68,7 +66,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry()
     async def get_team_by_number(self, team_number: int) -> Optional[Team]:
         """Get team by team number"""
-        self.ensure_connected()
+        
         try:
             if team_number is None:
                 logger.warning("get_team_by_number called with None team_number")
@@ -90,7 +88,7 @@ class TeamManager(DatabaseManager):
                          description: Optional[str] = None, 
                          logo_id: Optional[str] = None) -> TeamResult:
         """Create a new team"""
-        self.ensure_connected()
+        
         try:
             if await self.get_team_by_number(team_number):
                 return False, "Team number already exists"
@@ -136,7 +134,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def join_team(self, user_id: str, team_join_code: str):
         """Add a user to a team using the join code"""
-        self.ensure_connected()
+        
         try:
             team_data = self.db.teams.find_one({"team_join_code": team_join_code})
             if not team_data:
@@ -171,7 +169,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def leave_team(self, user_id: str, team_number: int):
         """Remove a user from a team and remove their admin status"""
-        self.ensure_connected()
+        
         try:
             # Get team to check if user is owner
             team = await self.get_team_by_number(team_number)
@@ -208,7 +206,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def get_team_members(self, team_number: int):
         """Get all members of a team"""
-        self.ensure_connected()
+        
         try:
             team = self.db.teams.find_one({"team_number": team_number})
             if not team:
@@ -228,7 +226,7 @@ class TeamManager(DatabaseManager):
         self, team_number: int, user_id: str, admin_id: str
     ) -> Tuple[bool, str]:
         """Add a new admin to the team"""
-        self.ensure_connected()
+        
         try:
             # Get the team to check owner status
             team = await self.get_team_by_number(team_number)
@@ -265,7 +263,7 @@ class TeamManager(DatabaseManager):
         self, team_number: int, user_id: str, admin_id: str
     ) -> Tuple[bool, str]:
         """Remove an admin from the team"""
-        self.ensure_connected()
+        
         try:
             # Get the team to check owner status
             team = await self.get_team_by_number(team_number)
@@ -300,7 +298,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def remove_user(self, team_number: int, user_id: str, admin_id: str):
         """Remove a user from a team (admin action)"""
-        self.ensure_connected()
+        
         try:
             team = await self.get_team_by_number(team_number)
             if not team:
@@ -341,7 +339,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def create_or_update_assignment(self, team_number: int, assignment_data: dict, creator_id: str):
         """Create or update an assignment"""
-        self.ensure_connected()
+        
         try:
             team = await self.get_team_by_number(team_number)
             if not team:
@@ -408,7 +406,7 @@ class TeamManager(DatabaseManager):
         self, assignment_id: str, user_id: str, new_status: str
     ):
         """Update the status of an assignment"""
-        self.ensure_connected()
+        
         try:
             assignment = self.db.assignments.find_one({"_id": ObjectId(assignment_id)})
             if not assignment:
@@ -433,7 +431,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def get_team_assignments(self, team_number: int):
         """Get all assignments for a team"""
-        self.ensure_connected()
+        
         try:
             assignments = self.db.assignments.find({"team_number": team_number})
             return [Assignment.create_from_db(assignment) for assignment in assignments]
@@ -447,7 +445,7 @@ class TeamManager(DatabaseManager):
     ) -> Tuple[bool, str]:
         """Clear all assignments for a team if user is admin"""
         try:
-            self.ensure_connected()
+            
 
             # Get the team to check admin status
             team = await self.get_team_by_number(team_number)
@@ -473,7 +471,7 @@ class TeamManager(DatabaseManager):
     async def delete_team(self, team_number: int, user_id: str) -> Tuple[bool, str]:
         """Delete a team and all associated data if user is owner"""
         try:
-            self.ensure_connected()
+            
 
             # Get the team to check owner status
             team = await self.get_team_by_number(team_number)
@@ -520,7 +518,7 @@ class TeamManager(DatabaseManager):
     ) -> Tuple[bool, str]:
         """Delete an assignment if user is admin"""
         try:
-            self.ensure_connected()
+            
 
             # Get the assignment
             assignment = self.db.assignments.find_one({"_id": ObjectId(assignment_id)})
@@ -552,7 +550,7 @@ class TeamManager(DatabaseManager):
         self, assignment_id: str, user_id: str, assignment_data: Dict
     ) -> Tuple[bool, str]:
         """Update an existing assignment"""
-        self.ensure_connected()
+        
         try:
             # Get the assignment and team
             assignment = self.db.assignments.find_one({"_id": ObjectId(assignment_id)})
@@ -592,7 +590,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def reset_user_team(self, user_id: str):
         """Reset user's team number to None"""
-        self.ensure_connected()
+        
         try:
             result = self.db.users.update_one(
                 {"_id": ObjectId(user_id)}, {"$unset": {"teamNumber": ""}}
@@ -608,7 +606,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def validate_user_team(self, user_id: str, team_number: int):
         """Validate that a user's team exists and update if it doesn't"""
-        self.ensure_connected()
+        
         try:
             # Get the user's current team
             team = await self.get_team_by_number(team_number)
@@ -742,7 +740,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def transfer_ownership(self, team_number: int):
         """Transfer team ownership to next admin or member"""
-        self.ensure_connected()
+        
         try:
             team = await self.get_team_by_number(team_number)
             if not team:
@@ -779,7 +777,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def get_user_team(self, user_id: str) -> Optional[Team]:
         """Get the team associated with a user"""
-        self.ensure_connected()
+        
         try:
             # Find the user to get their team number
             user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
