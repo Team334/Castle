@@ -43,7 +43,7 @@ class UserManager(DatabaseManager):
         team_number=None
     ):
         """Create a new user with retry mechanism"""
-        self.ensure_connected()
+        
         try:
             # Check for existing email
             if self.db.users.find_one({"email": email}):
@@ -81,7 +81,7 @@ class UserManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def authenticate_user(self, login, password):
         """Authenticate user with retry mechanism"""
-        self.ensure_connected()
+        
         try:
             if user_data := self.db.users.find_one(
                 {"$or": [{"email": login}, {"username": login}]}
@@ -103,7 +103,7 @@ class UserManager(DatabaseManager):
 
     def get_user_by_id(self, user_id):
         """Retrieve user by ID with retry mechanism"""
-        self.ensure_connected()
+        
         try:
             from bson.objectid import ObjectId
 
@@ -116,7 +116,7 @@ class UserManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def update_user_profile(self, user_id, updates):
         """Update user profile information"""
-        self.ensure_connected()
+        
         try:
             from bson.objectid import ObjectId
 
@@ -148,7 +148,7 @@ class UserManager(DatabaseManager):
 
     def get_user_profile(self, username):
         """Get user profile by username"""
-        self.ensure_connected()
+        
         try:
             user_data = self.db.users.find_one({"username": username})
             return User.create_from_db(user_data) if user_data else None
@@ -159,7 +159,7 @@ class UserManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def update_profile_picture(self, user_id, file_id):
         """Update user's profile picture and clean up old one"""
-        self.ensure_connected()
+        
         try:
             from bson.objectid import ObjectId
             from gridfs import GridFS
@@ -192,7 +192,7 @@ class UserManager(DatabaseManager):
 
     def get_profile_picture(self, user_id):
         """Get user's profile picture ID"""
-        self.ensure_connected()
+        
         try:
             from bson.objectid import ObjectId
             user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
@@ -204,7 +204,7 @@ class UserManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def delete_user(self, user_id):
         """Delete a user account and all associated data"""
-        self.ensure_connected()
+        
         try:
             from bson.objectid import ObjectId
 
@@ -235,7 +235,7 @@ class UserManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     async def update_user_settings(self, user_id, form_data, profile_picture=None):
         """Update user settings including profile picture"""
-        self.ensure_connected()
+        
         try:
             updates = {}
             
