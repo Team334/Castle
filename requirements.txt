@@ -12,3 +12,4 @@ Flask-Limiter[mongodb]
 pywebpush
 py-vapid
 cachetools
+Flask-CORS

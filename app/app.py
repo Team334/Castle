@@ -1,14 +1,14 @@
 import os
-import time
 import logging
 import hashlib
 
 from dotenv import load_dotenv
 from flask import (Flask, make_response, render_template,
-                   send_from_directory, g, current_app, request, flash, redirect, url_for)
+                   send_from_directory, request, flash, redirect, url_for)
 from flask_login import LoginManager, current_user
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
+from flask_cors import CORS
 
 from app.auth.auth_utils import UserManager
 from app.utils import limiter, get_mongodb_instance, close_mongodb_connection
@@ -53,7 +53,7 @@ def create_app():
     app.mongo = mongo
     # csrf.init_app(app)
     limiter.init_app(app)
-    
+    CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE"]}})
     # Initialize db_managers dictionary to store all database managers for proper cleanup
     app.db_managers = {}
 
