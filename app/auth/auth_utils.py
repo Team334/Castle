@@ -62,8 +62,7 @@ class UserManager(DatabaseManager):
             user_data = {
                 "email": email,
                 "username": username,
-                "334
-              Number": team_number,
+                "teamNumber": team_number,
                 "password_hash": generate_password_hash(password),
                 "created_at": datetime.now(timezone.utc),
                 "last_login": None,
