@@ -101,6 +101,7 @@ class UserManager(DatabaseManager):
             logger.error(f"Authentication error: {str(e)}")
             return False, None
 
+    @with_mongodb_retry(retries=3, delay=2)
     def get_user_by_id(self, user_id):
         """Retrieve user by ID with retry mechanism"""
         

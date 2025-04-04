@@ -127,7 +127,7 @@ def create_app():
 
     @app.errorhandler(Exception)
     def handle_exception(e):
-        trace = traceback.format_exec()
+        trace = traceback.format_exc()
         timestamp = strftime('[%Y-%b-%d %H:%M]')
         app.logger.error(f"{timestamp} User: {current_user.username if current_user.is_authenticated else "Anonymous"} Unhandled exception: {str(e)}\nTraceback: {trace}", exc_info=True)
         return render_template("500.html"), 500
