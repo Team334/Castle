@@ -38,6 +38,7 @@ class MongoDB:
     _client = None
     _db = None
     _initialized = False
+    _is_closed = False
     
     def __new__(cls, mongo_uri=None, *args, **kwargs):
         if cls._instance is None:
@@ -50,6 +51,7 @@ class MongoDB:
             self.mongo_uri = mongo_uri or os.getenv("MONGO_URI")
             self._connect()
             MongoDB._initialized = True
+            MongoDB._is_closed = False
     
     def _connect(self):
         """Create the MongoDB connection"""
@@ -68,19 +70,21 @@ class MongoDB:
             self._client.server_info()
             self._db = self._client.get_default_database()
             logger.info("MongoDB connection established successfully")
+            MongoDB._is_closed = False
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
+            MongoDB._is_closed = True
             raise
     
     def get_client(self):
         """Get the MongoDB client"""
-        if self._client is None:
+        if self._client is None or MongoDB._is_closed:
             self._connect()
         return self._client
     
     def get_db(self):
         """Get the MongoDB database"""
-        if self._db is None:
+        if self._db is None or MongoDB._is_closed:
             self._connect()
         return self._db
     
@@ -96,21 +100,37 @@ class MongoDB:
                 self._client = None
                 self._db = None
                 MongoDB._initialized = False
+                MongoDB._is_closed = True
 
 # Global instance
 _mongodb_instance = None
 fs = None  # Initialize as None, will be set up when needed
 
 def get_mongodb_instance(mongo_uri=None):
-    """Get the singleton MongoDB instance"""
+    """Get the singleton MongoDB instance with retry logic"""
     global _mongodb_instance, fs
-    if _mongodb_instance is None:
-        _mongodb_instance = MongoDB(mongo_uri)
-        # Initialize GridFS with the singleton connection
-        fs = GridFS(_mongodb_instance.get_db())
-    # Mark the database as accessed for the current request
-    _mark_db_accessed()
-    return _mongodb_instance
+    max_retries = 3
+    retry_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            if _mongodb_instance is None or MongoDB._is_closed:
+                _mongodb_instance = MongoDB(mongo_uri)
+                # Initialize GridFS with the singleton connection
+                fs = GridFS(_mongodb_instance.get_db())
+            # Mark the database as accessed for the current request
+            _mark_db_accessed()
+            return _mongodb_instance
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Attempt {attempt + 1} to get MongoDB instance failed: {str(e)}")
+                time.sleep(retry_delay)
+                # Reset the instance to force a new connection
+                _mongodb_instance = None
+                MongoDB._is_closed = True
+            else:
+                logger.error(f"Failed to get MongoDB instance after {max_retries} attempts: {str(e)}")
+                raise
 
 def _mark_db_accessed():
     """Mark this request as having accessed the database"""
