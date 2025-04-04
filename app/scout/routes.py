@@ -1003,13 +1003,13 @@ def pit_scouting_add():
                     "vortex": "vortex" in request.form.getlist("motors"),
                     "other": request.form.get("motors_other", "")
                 },
-                "motor_count": int(request.form.get("motor_count", 0)),
+                "motor_count": int(request.form.get("motor_count", 0) if not (request.form.get("motor_count") == '') else 0),
                 
                 # Dimensions
                 "dimensions": {
-                    "length": float(request.form.get("length", 0)),
-                    "width": float(request.form.get("width", 0)),
-                    "height": float(request.form.get("height", 0))
+                    "length": float(request.form.get("length", 0) if not (request.form.get("length") == '') else 0),
+                    "width": float(request.form.get("width", 0) if not (request.form.get("width") == '') else 0),
+                    "height": float(request.form.get("height", 0) if not (request.form.get("height") == '') else 0)
                 },
                 
                 # Mechanisms
@@ -1033,14 +1033,14 @@ def pit_scouting_add():
                 "programming_language": request.form.get("programming_language", ""),
                 "autonomous_capabilities": {
                     "has_auto": request.form.get("has_auto") == "true",
-                    "num_routes": int(request.form.get("auto_routes", 0)) if request.form.get("has_auto") == "true" else 0,
+                    "num_routes": int(request.form.get("auto_routes", 0) if not (request.form.get("auto_routes") == '') else 0) if request.form.get("has_auto") == "true" else 0,
                     "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
                     "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
                 },
                 
                 # Driver Experience
                 "driver_experience": {
-                    "years": int(request.form.get("driver_years", 0)),
+                    "years": int(request.form.get("years", 0) if not (request.form.get("years") == '') else 0),
                     "notes": request.form.get("driver_notes", "")
                 },
                 
