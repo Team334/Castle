@@ -1,6 +1,8 @@
 import os
 import logging
 import hashlib
+from time import strftime
+import traceback
 
 from dotenv import load_dotenv
 from flask import (Flask, make_response, render_template,
@@ -120,12 +122,14 @@ def create_app():
 
     @app.errorhandler(500)
     def server_error(e):
-        app.logger.error(f"Server error: {str(e)}", exc_info=True)
+        app.logger.error(f"Server error: {str(e)} - User: {current_user.username if current_user.is_authenticated else "Anonymous"}", exc_info=True)
         return render_template("500.html"), 500
 
     @app.errorhandler(Exception)
     def handle_exception(e):
-        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        trace = traceback.format_exec()
+        timestamp = strftime('[%Y-%b-%d %H:%M]')
+        app.logger.error(f"{timestamp} User: {current_user.username if current_user.is_authenticated else "Anonymous"} Unhandled exception: {str(e)}\nTraceback: {trace}", exc_info=True)
         return render_template("500.html"), 500
     
     @app.errorhandler(429)
@@ -150,6 +154,12 @@ def create_app():
         if not current_user.is_authenticated:
             flash("Access restricted to Team 334 members only.", "error")
             return redirect(url_for('auth.login'))
+        
+    @app.after_request
+    def after_request(response): 
+        timestamp = strftime('[%Y-%b-%d %H:%M]')
+        logger.info('%s %s User: %s %s %s %s %s', timestamp, request.remote_addr, current_user.username if current_user.is_authenticated else "Anonymous", request.method, request.scheme, request.full_path, response.status)
+        return response
 
     @app.route('/static/manifest.json')
     def serve_manifest():
