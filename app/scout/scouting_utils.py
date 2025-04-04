@@ -680,16 +680,16 @@ class ScoutingManager(DatabaseManager):
             logger.info(f"Total documents in pit_scouting collection: {total_count}")
 
             # Log the raw documents for debugging
-            raw_docs = list(self.db.pit_scouting.find())
-            for doc in raw_docs:
-                logger.info(f"Raw pit scouting document: {doc}")
-                if 'scouter_id' in doc:
-                    scouter = self.db.users.find_one({"_id": doc['scouter_id']})
-                    logger.info(f"Associated scouter: {scouter}")
+            # raw_docs = list(self.db.pit_scouting.find())
+            # for doc in raw_docs:
+                # logger.info(f"Raw pit scouting document: {doc}")
+                # if 'scouter_id' in doc:
+                    # scouter = self.db.users.find_one({"_id": doc['scouter_id']})
+                    # logger.info(f"Associated scouter: {scouter}")
 
             # Log the user's info
-            user_info = self.db.users.find_one({"_id": ObjectId(user_id)})
-            logger.info(f"User info: {user_info}")
+            # user_info = self.db.users.find_one({"_id": ObjectId(user_id)})
+            # logger.info(f"User info: {user_info}")
 
             # Add match stage for filtering based on team number or user ID
             if user_team_number:
@@ -748,18 +748,18 @@ class ScoutingManager(DatabaseManager):
                 ),
             ]
             # Log the full pipeline for debugging
-            logger.info(f"MongoDB pipeline: {pipeline}")
+            # logger.info(f"MongoDB pipeline: {pipeline}")
 
             # Execute the pipeline on the pit_scouting collection
             pit_data = list(self.db.pit_scouting.aggregate(pipeline))
             logger.info(f"Retrieved {len(pit_data)} pit scouting records")
 
             # Log the first record if any exist (excluding sensitive info)
-            if pit_data:
-                sample_record = pit_data[0].copy()
-                if "scouter_id" in sample_record:
-                    del sample_record["scouter_id"]
-                logger.info(f"Sample record: {sample_record}")
+            # if pit_data:
+            #     sample_record = pit_data[0].copy()
+            #     if "scouter_id" in sample_record:
+            #         del sample_record["scouter_id"]
+            #     logger.info(f"Sample record: {sample_record}")
 
             return pit_data
 
