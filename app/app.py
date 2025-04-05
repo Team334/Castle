@@ -122,14 +122,14 @@ def create_app():
 
     @app.errorhandler(500)
     def server_error(e):
-        app.logger.error(f"Server error: {str(e)} - User: {current_user.username if current_user.is_authenticated else "Anonymous"}", exc_info=True)
+        app.logger.error(f"Server error: {str(e)} - User: {current_user.username if current_user.is_authenticated else 'Anonymous'}", exc_info=True)
         return render_template("500.html"), 500
 
     @app.errorhandler(Exception)
     def handle_exception(e):
         trace = traceback.format_exc()
         timestamp = strftime('[%Y-%b-%d %H:%M]')
-        app.logger.error(f"{timestamp} User: {current_user.username if current_user.is_authenticated else "Anonymous"} Unhandled exception: {str(e)}\nTraceback: {trace}", exc_info=True)
+        app.logger.error(f"{timestamp} User: {current_user.username if current_user.is_authenticated else 'Anonymous'} Unhandled exception: {str(e)}\nTraceback: {trace}", exc_info=True)
         return render_template("500.html"), 500
     
     @app.errorhandler(429)
@@ -158,7 +158,7 @@ def create_app():
     @app.after_request
     def after_request(response): 
         timestamp = strftime('[%Y-%b-%d %H:%M]')
-        logger.info('%s %s User: %s %s %s %s %s', timestamp, request.remote_addr, current_user.username if current_user.is_authenticated else "Anonymous", request.method, request.scheme, request.full_path, response.status)
+        logger.info('%s %s User: %s %s %s %s %s', timestamp, request.remote_addr, current_user.username if current_user.is_authenticated else 'Anonymous', request.method, request.scheme, request.full_path, response.status)
         return response
 
     @app.route('/static/manifest.json')
