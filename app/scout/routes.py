@@ -143,10 +143,10 @@ def edit(id):
             
             if scouting_manager.update_team_data(id, data, current_user.get_id()):
                 flash("Data updated successfully", "success")
-                current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
+                current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 return redirect(url_for("scouting.home"))
             
-            current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
+            current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Unable to update data", "error")
 
         return render_template("scouting/edit.html", team_data=team_data)
@@ -962,7 +962,8 @@ def check_team():
             {"$unwind": "$scouter"},
         ]
         
-        if current_id:
+        # Only add current_id filter if it's a valid ObjectId
+        if current_id and current_id != 'undefined' and ObjectId.is_valid(current_id):
             pipeline[0]["$match"]["_id"] = {"$ne": ObjectId(current_id)}
             
         existing = list(scouting_manager.db.team_data.aggregate(pipeline))
