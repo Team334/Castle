@@ -120,7 +120,7 @@ async def login():
         team_passcode = request.form.get("team_passcode", "").strip()
 
         if not login or not password or not team_passcode:
-            current_app.logger.info(f"Invalid login, password, or team access code {login}, {password}, {team_passcode} for user {current_user.username if current_user.is_authenticated else "Anonymous"}")
+            current_app.logger.info(f"Invalid login, password, or team access code {login}, {password}, {team_passcode} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Please provide login, password, and team access code", "error")
             return render_template("auth/login.html", form_data={"login": login})
             
