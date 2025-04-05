@@ -69,8 +69,8 @@ def add():
             return redirect(url_for("scouting.home"))
 
     success, message = scouting_manager.add_scouting_data(data, current_user.get_id())
-    current_app.logger.info(f"Tried to add scouting data ({success}) {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-    current_app.logger.info(f"Scouting.add Form Details {request.form}")
+    current_app.logger.info(f"Tried to add scouting data ({success}) {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
+    current_app.logger.info(f"Scouting.add Form Details {request.form} - {message}")
 
     if success:
         flash("Team data added successfully", "success")
@@ -98,7 +98,7 @@ def home():
             if team_doc := scouting_manager.db.teams.find_one(team_query):
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
-        current_app.logger.info(f"Successfully fetched team data {team} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        current_app.logger.info(f"Successfully fetched team data {team_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/list.html", team_data=team_data, team=team)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
@@ -143,10 +143,10 @@ def edit(id):
             
             if scouting_manager.update_team_data(id, data, current_user.get_id()):
                 flash("Data updated successfully", "success")
-                current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+                current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
                 return redirect(url_for("scouting.home"))
             
-            current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
             flash("Unable to update data", "error")
 
         return render_template("scouting/edit.html", team_data=team_data)
@@ -688,8 +688,8 @@ def leaderboard():
             })
 
         pipeline.append({"$sort": {sort_field: -1}})
-        current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         teams = list(scouting_manager.db.team_data.aggregate(pipeline))
+        current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/leaderboard.html", teams=teams, current_sort=sort_type, 
                               events=events, selected_event=selected_event)
     except Exception as e:
