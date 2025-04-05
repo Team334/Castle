@@ -1,26 +1,22 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+import secrets
+import hashlib
+from datetime import datetime, timezone, timedelta
 
 from flask_login import current_user
 from gridfs import GridFS
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.models import User
-from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection, get_gridfs
+from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection, get_gridfs, check_password_strength as util_check_password_strength
+
+# Use the check_password_strength from utils
+check_password_strength = util_check_password_strength
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-async def check_password_strength(password):
-    """
-    Check if password meets minimum requirements:
-    - At least 8 characters
-    """
-    if len(password) < 8:
-        return False, "Password must be at least 8 characters long"
-    return True, "Password meets all requirements"
 
 
 class UserManager(DatabaseManager):
@@ -269,3 +265,97 @@ class UserManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error updating user settings: {str(e)}")
             return False, "An internal error has occurred."
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def find_user_for_reset(self, login: str):
+        """Find a user by email or username for password reset."""
+        try:
+            user_data = self.db.users.find_one(
+                {"$or": [{"email": login}, {"username": login}]}
+            )
+            return User.create_from_db(user_data) if user_data else None
+        except Exception as e:
+            logger.error(f"Error finding user for reset: {str(e)}")
+            return None
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def set_password_reset_token(self, user_id: str) -> str | None:
+        """Generate, hash, and store a password reset token."""
+        try:
+            from bson.objectid import ObjectId
+
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            expiry = datetime.now(timezone.utc) + timedelta(minutes=30) # 30 minute expiry
+
+            result = self.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {
+                    "password_reset_token_hash": token_hash,
+                    "token_expiry": expiry
+                }}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Set password reset token for user {user_id}")
+                return token # Return the raw token only on success
+            else:
+                logger.warning(f"Failed to set password reset token for user {user_id}")
+                return None
+        except Exception as e:
+            logger.error(f"Error setting password reset token: {str(e)}")
+            return None
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def verify_password_reset_token(self, token: str) -> User | None:
+        """Verify a password reset token and return the user if valid."""
+        try:
+            if not token:
+                return None
+
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+            user_data = self.db.users.find_one({
+                "password_reset_token_hash": token_hash,
+                "token_expiry": {"$gt": datetime.now(timezone.utc)}
+            })
+
+            return User.create_from_db(user_data) if user_data else None
+        except Exception as e:
+            logger.error(f"Error verifying password reset token: {str(e)}")
+            return None
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def reset_password(self, user_id: str, new_password: str) -> bool:
+        """Reset the user's password and clear the token."""
+        try:
+            from bson.objectid import ObjectId
+
+            # Check password strength first
+            password_valid, message = await check_password_strength(new_password)
+            if not password_valid:
+                logger.warning(f"Password reset failed for user {user_id}: {message}")
+                # We might want to return the message here, but for simplicity, just return False
+                return False
+
+            new_password_hash = generate_password_hash(new_password)
+
+            result = self.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {
+                    "password_hash": new_password_hash,
+                    "password_reset_token_hash": None, # Clear token
+                    "token_expiry": None             # Clear expiry
+                }}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Password successfully reset for user {user_id}")
+                return True
+            else:
+                # This might happen if the token was already used/cleared between verification and reset
+                logger.warning(f"Password reset failed for user {user_id} (update count 0)")
+                return False
+        except Exception as e:
+            logger.error(f"Error resetting password for user {user_id}: {str(e)}")
+            return False

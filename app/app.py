@@ -43,13 +43,22 @@ def create_app():
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
         VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
         VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com"),
-        TEAM_ACCESS_CODE_HASH=hash_team_access_code(os.getenv("TEAM_ACCESS_CODE", "your_team_access_code"))
+        TEAM_ACCESS_CODE_HASH=hash_team_access_code(os.getenv("TEAM_ACCESS_CODE", "your_team_access_code")),
+        # Email configuration for password reset
+        EMAIL_ADDRESS=os.getenv("EMAIL_ADDRESS"),
+        EMAIL_APP_PASSWORD=os.getenv("EMAIL_APP_PASSWORD"),
     )
     
     if not app.config.get("VAPID_PUBLIC_KEY") or not app.config.get("VAPID_PRIVATE_KEY"):
         app.logger.warning("VAPID keys not configured. Push notifications will not work.")
     else:
         app.logger.info("VAPID keys configured properly.")
+
+    # Check for email configuration
+    if not app.config.get("EMAIL_ADDRESS") or not app.config.get("EMAIL_APP_PASSWORD"):
+        app.logger.warning("EMAIL_ADDRESS or EMAIL_APP_PASSWORD not configured. Password reset via email will not be available.")
+    else:
+        app.logger.info("Email credentials configured for password reset.")
 
     mongo.init_app(app)
     app.mongo = mongo
@@ -147,9 +156,11 @@ def create_app():
            request.path == '/' or \
            request.path == '/service-worker.js' or \
            request.path.startswith('/auth/login') or \
-           request.path.startswith('/auth/register'):
+           request.path.startswith('/auth/register') or \
+           request.path.startswith('/auth/forgot-password') or \
+           request.path.startswith('/auth/reset-password'): # Allow reset routes
             return
-            
+
         # Block access for non-authenticated users to protected routes
         if not current_user.is_authenticated:
             flash("Access restricted to Team 334 members only.", "error")

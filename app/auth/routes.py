@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
+import hashlib
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from urllib.parse import urljoin, urlparse
-import hashlib
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -16,7 +18,7 @@ from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
 from app.utils import (async_route, handle_route_errors, is_safe_url, limiter,
-                       send_gridfs_file, get_gridfs)
+                       send_gridfs_file, get_gridfs, send_password_reset_email)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -142,7 +144,109 @@ async def login():
         
         flash("Invalid login credentials", "error")
 
-    return render_template("auth/login.html", form_data={})
+    # Add link to forgot password if email is configured
+    email_configured = bool(current_app.config.get("EMAIL_ADDRESS") and current_app.config.get("EMAIL_APP_PASSWORD"))
+    return render_template("auth/login.html", form_data={}, email_configured=email_configured)
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute") # Rate limit forgot password requests
+@async_route
+@handle_route_errors
+async def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    email_configured = bool(current_app.config.get("EMAIL_ADDRESS") and current_app.config.get("EMAIL_APP_PASSWORD"))
+    if not email_configured:
+        flash("Password reset via email is not configured for this application.", "warning")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        login_identifier = request.form.get("login", "").strip()
+        team_passcode = request.form.get("team_passcode", "").strip()
+
+        if not login_identifier or not team_passcode:
+            flash("Please enter your username/email and the Team Access Code.", "error")
+            return render_template("auth/forgot_password.html")
+
+        # Verify the team access code first
+        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
+            flash("Invalid Team Access Code.", "error")
+            # Return the same generic message as success to prevent probing
+            flash("If an account with that username or email exists and password reset is enabled, a reset link has been sent. Please check your inbox (and spam folder).", "info")
+            return redirect(url_for("auth.login")) # Redirect to login to avoid revealing code failure
+
+        # Team code is valid, now find the user
+        user = await user_manager.find_user_for_reset(login_identifier)
+
+        if user:
+            # User found, attempt to set token and send email
+            token = await user_manager.set_password_reset_token(user.id)
+            if token:
+                # Token set successfully, try sending email
+                email_sent = send_password_reset_email(user.email, token)
+                if not email_sent:
+                    # Logged in utils, but don't expose failure to user
+                    pass # Proceed to generic message
+            else:
+                # Failed to set token (logged in auth_utils)
+                 pass # Proceed to generic message
+
+        # Always show generic message for security
+        flash("If an account with that username or email exists and password reset is enabled, a reset link has been sent. Please check your inbox (and spam folder).", "info")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/forgot_password.html")
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("5 per minute") # Rate limit password reset attempts
+@async_route
+@handle_route_errors
+async def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    user = await user_manager.verify_password_reset_token(token)
+
+    if not user:
+        flash("The password reset link is invalid or has expired.", "error")
+        return render_template("auth/invalid_token.html") # Or redirect to login
+
+    if request.method == "POST":
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+
+        if not password or not confirm_password:
+            flash("Both password fields are required.", "error")
+            return render_template("auth/reset_password_form.html", token=token)
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth/reset_password_form.html", token=token)
+
+        # Re-verify token just before resetting (in case it expired between GET and POST)
+        # Although UserManager.reset_password implicitly handles this by clearing the token
+        # if the update succeeds, an explicit check adds clarity.
+        verified_user_again = await user_manager.verify_password_reset_token(token)
+        if not verified_user_again or verified_user_again.id != user.id:
+             flash("The password reset link is invalid or has expired.", "error")
+             return render_template("auth/invalid_token.html")
+
+        success = await user_manager.reset_password(user.id, password)
+
+        if success:
+            flash("Your password has been successfully reset. Please log in.", "success")
+            return redirect(url_for("auth.login"))
+        else:
+            # Failure likely due to password strength check in reset_password
+            flash("Password reset failed. Ensure your new password meets the strength requirements (at least 8 characters).", "error")
+            return render_template("auth/reset_password_form.html", token=token)
+
+    # GET request
+    return render_template("auth/reset_password_form.html", token=token)
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])

@@ -17,6 +17,9 @@ class User(UserMixin):
         self.created_at = data.get("created_at")
         self.description = data.get("description", "")
         self.profile_picture_id = data.get("profile_picture_id")
+        # Fields for password reset
+        self.password_reset_token_hash = data.get("password_reset_token_hash")
+        self.token_expiry = data.get("token_expiry")
 
     @property
     def id(self):

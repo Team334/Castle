@@ -68,6 +68,13 @@
                                    {% if form_data.get('remember') %}checked{% endif %}>
                             <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
                         </div>
+                        {% if email_configured %} {# Check if email is configured #}
+                        <div class="text-sm">
+                            <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+                                Forgot password?
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div>
