@@ -7,7 +7,6 @@ from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, send_file, url_for)
 from flask_login import current_user, login_required
-from gridfs import GridFS
 from PIL import Image
 from werkzeug.utils import secure_filename
 
@@ -44,11 +43,14 @@ async def join():
 
         if request.method == "POST":
             join_code = request.form.get("join_code")
+            current_app.logger.info(f"Team.join Form Details {request.form}")
+
             if not join_code:
                 flash("Join code is required", "error")
                 return redirect(url_for("team.join"))
 
             success, result = await team_manager.join_team(current_user.get_id(), join_code)
+            current_app.logger.info(f"Tried to join team ({success}) {join_code} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
             if success:
                 team, updated_user = result
@@ -113,6 +115,7 @@ async def create():
                 description=form.description.data,
                 logo_id=str(logo_id) if logo_id else None,
             )
+            current_app.logger.info(f"Tried to create team ({success}) {form.team_number.data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
             if success:
                 flash("Team created successfully!", "success")
@@ -137,6 +140,8 @@ async def leave(team_number):
     """Leave a team"""
 
     success, message = await team_manager.leave_team(current_user.get_id(), team_number)
+
+    current_app.logger.info(f"Tried to leave team ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return jsonify({"success": success, "message": message})
@@ -182,6 +187,8 @@ async def add_admin(team_number):
         team_number, user_id, current_user.get_id()
     )
 
+    current_app.logger.info(f"Tried to add admin ({success}) {user_id} to team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}") 
+
     return jsonify({"success": success, "message": message}), 200 if success else 400
 
 
@@ -201,6 +208,7 @@ async def remove_admin(team_number):
     success, message = await team_manager.remove_admin(
         team_number, user_id, current_user.get_id()
     )
+    current_app.logger.info(f"Tried to remove admin ({success}) {user_id} from team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
     return jsonify({"success": success, "message": message}), 200 if success else 400
 
@@ -217,6 +225,8 @@ async def create_assignment(team_number):
         success, message = await team_manager.create_or_update_assignment(
             team_number, data, current_user.get_id()
         )
+
+        current_app.logger.info(f"Tried to create assignment ({success}) for team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         if success:
             return (
@@ -247,7 +257,7 @@ def update_assignment_status(assignment_id):
     success, message = team_manager.update_assignment_status(
         assignment_id, current_user.get_id(), new_status
     )
-
+    current_app.logger.info(f"Tried to update assignment status ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return jsonify({"success": success, "message": message}), 200 if success else 400
 
 
@@ -262,6 +272,7 @@ async def update_assignment(assignment_id):
     success, message = await team_manager.update_assignment(
         assignment_id, current_user.get_id(), data
     )
+    current_app.logger.info(f"Tried to update assignment ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return jsonify({"success": success, "message": message}), 200 if success else 400
 
 
@@ -275,6 +286,7 @@ async def delete_assignment(assignment_id):
     success, message = await team_manager.delete_assignment(
         assignment_id, current_user.get_id()
     )
+    current_app.logger.info(f"Tried to delete assignment ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return jsonify({"success": success, "message": message}), 200 if success else 400
 
 
@@ -293,7 +305,7 @@ async def manage(team_number=None):
     success, result = await team_manager.validate_user_team(
         current_user.get_id(), current_user.teamNumber
     )
-
+    current_app.logger.info(f"Tried to validate user team ({success}) {current_user.teamNumber} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     if not success:
         current_user.teamNumber = None
         flash(result, "warning")
@@ -343,7 +355,7 @@ async def remove_user(team_number, user_id):
     success, message = await team_manager.remove_user(
         team_number, user_id, current_user.get_id()
     )
-
+    current_app.logger.info(f"Tried to remove user ({success}) {user_id} from team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return (
             jsonify({"success": success, "message": message}),
@@ -370,6 +382,7 @@ async def clear_assignments(team_number):
     success, message = await team_manager.clear_assignments(
         team_number, current_user.get_id()
     )
+    current_app.logger.info(f"Tried to clear assignments ({success}) for team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return (
@@ -392,6 +405,7 @@ async def clear_assignments(team_number):
 async def delete_team(team_number):
     """Delete team (owner only)"""
     success, message = await team_manager.delete_team(team_number, current_user.get_id())
+    current_app.logger.info(f"Tried to delete team ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return jsonify({"success": success, "message": message}), 200 if success else 400
@@ -438,6 +452,7 @@ async def edit_assignment(assignment_id):
             user_id=current_user.get_id(),
             assignment_data=data,
         )
+        current_app.logger.info(f"Tried to edit assignment ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         return jsonify({"success": success, "message": result}), 200 if success else 400
 
@@ -495,6 +510,7 @@ async def update_team_logo(team_number):
         return error_response("Invalid file type")
         
     success, message = await team_manager.update_team_logo(team_number, new_logo_id)
+    current_app.logger.info(f"Tried to update team logo ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     if not success:
         get_gridfs().delete(new_logo_id)
         
@@ -557,6 +573,7 @@ async def update_team_info(team_number):
                         content_type=file.content_type
                     )
                     updates['logo_id'] = file_id
+                    current_app.logger.info(f"Tried to update team logo ({team_number}) for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 else:
                     flash("Invalid file type. Please use PNG, JPG, or JPEG", "error")
                     return redirect(url_for("team.manage", team_number=team_number))
@@ -568,6 +585,8 @@ async def update_team_info(team_number):
         
         # Update team information
         success, message = await team_manager.update_team_info(team_number, updates)
+        current_app.logger.info(f"Tried to update team info ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        current_app.logger.info(f"Team.update_team_info Form Details {request.form}")
         flash(message, "success" if success else "error")
         return redirect(url_for("team.manage", team_number=team_number))
         

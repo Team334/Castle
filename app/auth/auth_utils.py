@@ -4,7 +4,6 @@ import logging
 from datetime import datetime, timezone
 
 from flask_login import current_user
-from gridfs import GridFS
 from werkzeug.security import generate_password_hash
 
 from app.models import User

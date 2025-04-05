@@ -82,18 +82,20 @@ async def create_subscription():
         )
         
         if success:
+            current_app.logger.info(f"Successfully created subscription {subscription_json} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             return jsonify({
                 "success": True,
                 "message": message
             }), 200
         else:
+            current_app.logger.info(f"Failed to create subscription {subscription_json} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             return jsonify({
                 "success": False,
                 "message": message
             }), 400
     
     except Exception as e:
-        current_app.logger.error(f"Error creating subscription: {str(e)}")
+        current_app.logger.error(f"Error creating subscription: {str(e)}", exc_info=True)
         return jsonify({
             "success": False,
             "message": "An internal error has occurred."
@@ -115,14 +117,14 @@ async def delete_subscription():
             team_number=team_number,
             assignment_id=assignment_id
         )
-        
+        current_app.logger.info(f"Successfully deleted subscription {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify({
             "success": success,
             "message": message
         }), 200 if success else 400
     
     except Exception as e:
-        current_app.logger.error(f"Error deleting subscription: {str(e)}")
+        current_app.logger.error(f"Error deleting subscription: {str(e)}", exc_info=True)
         return jsonify({
             "success": False,
             "message": "An internal error has occurred."

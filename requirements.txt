@@ -13,3 +13,4 @@ pywebpush
 py-vapid
 cachetools
 Flask-CORS
+colorlog
