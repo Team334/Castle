@@ -120,14 +120,14 @@ async def login():
         team_passcode = request.form.get("team_passcode", "").strip()
 
         if not login or not password or not team_passcode:
-            current_app.logger.info(f"Invalid login, password, or team access code {login}, {password}, {team_passcode} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Invalid login, password, or team access code {login} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Please provide login, password, and team access code", "error")
             return render_template("auth/login.html", form_data={"login": login})
             
         # Verify the team access code by comparing hashes
         hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
-            current_app.logger.info(f"Invalid team access code {team_passcode} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Invalid team access code for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/login.html", form_data={"login": login})
 
@@ -168,17 +168,17 @@ async def register():
         # Verify the team access code by comparing hashes
         hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
-            current_app.logger.info(f"Invalid team access code {team_passcode} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Invalid team access code for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/register.html", form_data=form_data)
 
         if not all([email, username, password, confirm_password, team_passcode]):
-            current_app.logger.info(f"All fields are required {email}, {username}, {password}, {confirm_password}, {team_passcode} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"All fields are required for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("All fields are required", "error")
             return render_template("auth/register.html", form_data=form_data)
 
         if password != confirm_password:
-            current_app.logger.info(f"Passwords do not match {password} != {confirm_password} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Passwords do not match for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Passwords do not match", "error")
             return render_template("auth/register.html", form_data=form_data)
 
