@@ -11,7 +11,6 @@ from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, send_file, url_for)
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_pymongo import PyMongo
-from gridfs import GridFS
 from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
@@ -121,17 +120,20 @@ async def login():
         team_passcode = request.form.get("team_passcode", "").strip()
 
         if not login or not password or not team_passcode:
+            current_app.logger.info(f"Invalid login, password, or team access code {login} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Please provide login, password, and team access code", "error")
             return render_template("auth/login.html", form_data={"login": login})
             
         # Verify the team access code by comparing hashes
         hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
+            current_app.logger.info(f"Invalid team access code for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/login.html", form_data={"login": login})
 
         success, user = await user_manager.authenticate_user(login, password)
         if success and user:
+            current_app.logger.info(f"Successfully authenticated user {user.username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             login_user(user, remember=remember)
             next_page = request.args.get('next')
             if not next_page or not is_safe_url(next_page):
@@ -140,6 +142,7 @@ async def login():
             flash("Successfully logged in", "success")
             return redirect(next_page)
         
+        current_app.logger.info(f"Failed to authenticate user {login} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         flash("Invalid login credentials", "error")
 
     return render_template("auth/login.html", form_data={})
@@ -165,14 +168,17 @@ async def register():
         # Verify the team access code by comparing hashes
         hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
+            current_app.logger.info(f"Invalid team access code for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/register.html", form_data=form_data)
 
         if not all([email, username, password, confirm_password, team_passcode]):
+            current_app.logger.info(f"All fields are required for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("All fields are required", "error")
             return render_template("auth/register.html", form_data=form_data)
 
         if password != confirm_password:
+            current_app.logger.info(f"Passwords do not match for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Passwords do not match", "error")
             return render_template("auth/register.html", form_data=form_data)
 
@@ -183,10 +189,12 @@ async def register():
                 password=password
             )
             if success:
+                current_app.logger.info(f"Successfully registered user {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Registration successful! Please login.", "success")
                 return redirect(url_for("auth.login"))
             flash(message, "error")
         except Exception as e:
+            current_app.logger.error(f"An internal error has occurred: {str(e)}", exc_info=True)
             flash("An internal error has occurred.", "error")
 
     return render_template("auth/register.html", form_data=form_data)
@@ -195,6 +203,7 @@ async def register():
 @auth_bp.route("/logout")
 @login_required
 def logout():
+    current_app.logger.info(f"Successfully logged out user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     logout_user()
     flash("Successfully logged out", "success")
     return redirect(url_for("auth.login"))
@@ -218,8 +227,10 @@ async def settings():
             )
             
             if success:
+                current_app.logger.info(f"Successfully updated settings for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Settings updated successfully", "success")
             else:
+                current_app.logger.info(f"Failed to update settings for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Unable to update settings", "error")
                 
         return render_template("auth/settings.html")
@@ -234,6 +245,7 @@ def profile(username):
     user = user_manager.get_user_profile(username)
     if not user:
         flash("User not found", "error")
+        current_app.logger.info(f"User not found {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return redirect(url_for("index"))
     
     return render_template("auth/profile.html", profile_user=user)
@@ -261,18 +273,20 @@ async def check_username():
     try:
         data = request.get_json()
         username = data.get('username', '').strip()
-        
+        current_app.logger.info(f"Checking username {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+
         # Don't query if it's the user's current username
-        if username == current_user.username:
+        if username == current_user.username and current_user.is_authenticated:
             return jsonify({"available": True})
         
         # Check if username exists in database
         existing_user = user_manager.db.users.find_one({"username": username})
-        
+        current_app.logger.info(f"Tried to check username {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} Status: {not existing_user}")
         return jsonify({
             "available": not existing_user
         })
     except Exception as e:
+        current_app.logger.error(f"Error checking username {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} {str(e)}", exc_info=True)
         return jsonify({
             "available": False,
             "error": "An internal error has occurred."
@@ -291,12 +305,14 @@ async def delete_account():
 
         if success:
             logout_user()
+            current_app.logger.info(f"Successfully deleted account for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Your account has been successfully deleted", "success")
             return jsonify({"success": True, "redirect": url_for("index")})
         else:
+            current_app.logger.info(f"Failed to delete account for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash(message, "error")
             return jsonify({"success": False, "message": message})
 
     except Exception as e:
-        current_app.logger.error(f"Error deleting account: {str(e)}")
+        current_app.logger.error(f"Error deleting account for user {current_user.username if current_user.is_authenticated else 'Anonymous'} {str(e)}", exc_info=True)
         return jsonify({"success": False, "message": "An internal error has occurred."})

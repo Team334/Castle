@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.models import TeamData
-from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
+from app.utils import DatabaseManager, with_mongodb_retry
 
 logger = logging.getLogger(__name__)
 

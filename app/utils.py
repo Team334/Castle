@@ -6,6 +6,7 @@ import time
 from functools import wraps
 from io import BytesIO
 from urllib.parse import urljoin, urlparse
+from datetime import datetime
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -16,10 +17,60 @@ from gridfs import GridFS
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from werkzeug.utils import secure_filename
+import colorlog
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging with custom format and color with colorlog and file logging
+def setup_logger():
+    # Create log directory if it doesn't exist
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # Create a timestamp for the log filename
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    log_file = os.path.join(log_dir, f'app_{timestamp}.log')
+    
+    # Set up root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Clear any existing handlers (in case of app restart)
+    if root_logger.handlers:
+        root_logger.handlers.clear()
+    
+    # Console handler with colors
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    
+    # Color formatter for console
+    color_formatter = colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red,bg_white',
+        },
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    console_handler.setFormatter(color_formatter)
+    
+    # File handler for logging to file
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    
+    # Add handlers to root logger
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Logging initialized. Log file: {log_file}")
+    return logger
+
+# Initialize logger
+logger = setup_logger()
 
 # File handling constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

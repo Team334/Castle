@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 
 import logging
 from app.scout.scouting_utils import ScoutingManager
-from app.utils import async_route, handle_route_errors, limiter
+from app.utils import async_route, handle_route_errors
 
 from .TBA import TBAInterface
 
@@ -69,6 +69,8 @@ def add():
             return redirect(url_for("scouting.home"))
 
     success, message = scouting_manager.add_scouting_data(data, current_user.get_id())
+    current_app.logger.info(f"Tried to add scouting data ({success}) {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    current_app.logger.info(f"Scouting.add Form Details {request.form}")
 
     if success:
         flash("Team data added successfully", "success")
@@ -96,7 +98,7 @@ def home():
             if team_doc := scouting_manager.db.teams.find_one(team_query):
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
-
+        current_app.logger.info(f"Successfully fetched team data {team} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/list.html", team_data=team_data, team=team)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
@@ -126,7 +128,7 @@ def edit(id):
 
         if request.method == "POST":
             data = request.form.to_dict()
-            
+            current_app.logger.info(f"Scouting.edit Form Details {request.form}")
             # Add edit tracking - record who made the edit
             data['last_edited_by'] = current_user.get_id()
             data['last_edited_at'] = datetime.now().isoformat()
@@ -141,7 +143,10 @@ def edit(id):
             
             if scouting_manager.update_team_data(id, data, current_user.get_id()):
                 flash("Data updated successfully", "success")
+                current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 return redirect(url_for("scouting.home"))
+            
+            current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Unable to update data", "error")
 
         return render_template("scouting/edit.html", team_data=team_data)
@@ -164,6 +169,7 @@ def delete(id):
 
         # Attempt to delete
         if scouting_manager.delete_team_data(id, current_user.get_id()):
+            current_app.logger.info(f"Successfully deleted scouting data {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Record deleted successfully", "success")
         elif team_data.scouter_id == current_user.get_id():
             flash("Error deleting your record. Please try again.", "error")
@@ -177,14 +183,19 @@ def delete(id):
                 if team.is_admin(current_user.get_id()):
                     # Try to delete again with admin override
                     if scouting_manager.delete_team_data(id, current_user.get_id(), admin_override=True):
+                        current_app.logger.info(f"Successfully deleted scouting data {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} (admin)")
                         flash("Record deleted successfully (admin)", "success")
                     else:
+                        current_app.logger.info(f"Failed to delete scouting data {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} (admin)")
                         flash("Error deleting team member's record. Please try again.", "error")
                 else:
+                    current_app.logger.info(f"Permission denied: You must be a team admin to delete other members' records {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                     flash("Permission denied: You must be a team admin to delete other members' records", "error")
             else:
+                current_app.logger.info(f"Permission denied: Team not found {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Permission denied: Team not found", "error")
         else:
+            current_app.logger.info(f"Permission denied: You can only delete records from your own team {id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Permission denied: You can only delete records from your own team", "error")
     except Exception as e:
         current_app.logger.error(f"Delete error: {str(e)}", exc_info=True)
@@ -196,12 +207,14 @@ def delete(id):
 # @limiter.limit("30 per minute")
 @login_required
 def lighthouse():
+    current_app.logger.info(f"Successfully fetched lighthouse for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return render_template("lighthouse.html")
 
 @scouting_bp.route("/lighthouse/auton")
 # @limiter.limit("30 per minute")
 @login_required
 def auton():
+    current_app.logger.info(f"Successfully fetched lighthouse/auton for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return render_template("lighthouse/auton.html")
 
 def format_team_stats(stats):
@@ -342,6 +355,7 @@ def compare_teams():
         if not teams_data:
             return jsonify({"error": "No data available for the selected teams"}), 404
 
+        current_app.logger.info(f"Successfully fetched team data {teams_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return json_util.dumps(teams_data)
 
     except Exception as e:
@@ -448,6 +462,7 @@ async def search_teams():
         }]
 
         # Use json_util.dumps to handle MongoDB types
+        current_app.logger.info(f"Successfully fetched team data {response_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return json_util.dumps(response_data), 200, {'Content-Type': 'application/json'}
 
     except Exception as e:
@@ -673,12 +688,12 @@ def leaderboard():
             })
 
         pipeline.append({"$sort": {sort_field: -1}})
-
+        current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         teams = list(scouting_manager.db.team_data.aggregate(pipeline))
         return render_template("scouting/leaderboard.html", teams=teams, current_sort=sort_type, 
                               events=events, selected_event=selected_event)
     except Exception as e:
-        # print(f"Error in leaderboard: {str(e)}")
+        current_app.logger.error(f"Error in leaderboard: {str(e)}", exc_info=True)
         return render_template("scouting/leaderboard.html", teams=[], current_sort='coral', 
                               events=[], selected_event='all')
 
@@ -767,6 +782,7 @@ def scouter_leaderboard():
         ]
         teams = [team["_id"] for team in scouting_manager.db.team_data.aggregate(teams_pipeline)]
         
+        current_app.logger.info(f"Successfully fetched scouter leaderboard {scouters} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template(
             "scouting/scouter-leaderboard.html", 
             scouters=scouters, 
@@ -777,7 +793,7 @@ def scouter_leaderboard():
             selected_team=selected_team
         )
     except Exception as e:
-        # Log the error
+        current_app.logger.error(f"Error fetching scouter leaderboard: {str(e)}", exc_info=True)
         return render_template(
             "scouting/scouter-leaderboard.html", 
             scouters=[], 
@@ -907,7 +923,7 @@ def matches():
                 "blue_coral": blue_coral,
                 "blue_algae": blue_algae
             })
-        
+        current_app.logger.info(f"Successfully fetched matches {matches} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/matches.html", matches=matches)
 
     except Exception as e:
@@ -970,6 +986,7 @@ def pit_scouting():
             current_user.teamNumber,
             current_user.get_id()
         ))
+        current_app.logger.info(f"Successfully fetched pit scouting data {pit_data_list} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/pit-scouting.html", pit_data=pit_data_list)
     except Exception as e:
         current_app.logger.error(f"Error fetching pit scouting data: {str(e)}", exc_info=True)
@@ -982,6 +999,7 @@ def pit_scouting():
 def pit_scouting_add():
     if request.method == "POST":
         try:
+            current_app.logger.info(f"Scouting.add Form Details {request.form}")
             # Process form data
             pit_data = {
                 "team_number": int(request.form.get("team_number")),
@@ -1054,9 +1072,11 @@ def pit_scouting_add():
 
             # Add to database
             if scouting_manager.add_pit_scouting(pit_data):
+                current_app.logger.info(f"Successfully added pit scouting data {pit_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Pit scouting data added successfully!", "success")
                 return redirect(url_for("scouting.pit_scouting"))
             else:
+                current_app.logger.info(f"Failed to add pit scouting data {pit_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Error adding pit scouting data. Please try again.", "error")
         except Exception as e:
             flash("An error occurred while adding pit scouting data.", "error")
@@ -1080,6 +1100,7 @@ def pit_scouting_edit(team_number):
     
     if request.method == "POST":
         try:
+            current_app.logger.info(f"Scouting.edit Form Details {request.form}")
             data = {
                 "team_number": int(request.form["team_number"]),
                 "scouter_id": ObjectId(current_user.get_id()),
@@ -1133,11 +1154,14 @@ def pit_scouting_edit(team_number):
             }
             
             if scouting_manager.update_pit_scouting(team_number, data, current_user.get_id()):
+                current_app.logger.info(f"Successfully updated pit scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Pit scouting data updated successfully", "success")
                 return redirect(url_for("scouting.pit_scouting"))
             else:
+                current_app.logger.info(f"Failed to update pit scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Error updating pit scouting data", "error")
         except Exception as e:
+            current_app.logger.info(f"Error updating pit scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} {str(e)}", exc_info=True)
             flash("An internal error has occurred.", "error")
 
     return render_template("scouting/pit-scouting-edit.html", pit_data=pit_data)
@@ -1146,8 +1170,10 @@ def pit_scouting_edit(team_number):
 @login_required
 def pit_scouting_delete(team_number):
     if scouting_manager.delete_pit_scouting(team_number, current_user.get_id()):
+        current_app.logger.info(f"Successfully deleted pit scouting data {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         flash("Pit scouting data deleted successfully", "success")
     else:
+        current_app.logger.info(f"Failed to delete pit scouting data {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         flash("Error deleting pit scouting data", "error")
     return redirect(url_for("scouting.pit_scouting"))
 
@@ -1159,9 +1185,10 @@ def get_tba_events():
         year = datetime.now().year
         tba = TBAInterface()
         events = tba.get_current_events(year)
+        current_app.logger.info(f"Successfully fetched TBA events {events} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(events)
     except Exception as e:
-        logger.error(f"Error getting TBA events: {e}")
+        current_app.logger.error(f"Error getting TBA events: {e}")
         return jsonify({"error": "Failed to fetch events"}), 500
 
 @scouting_bp.route("/api/tba/matches/<event_key>")
@@ -1171,9 +1198,10 @@ def get_tba_matches(event_key):
     try:
         tba = TBAInterface()
         matches = tba.get_event_matches(event_key)
+        current_app.logger.info(f"Successfully fetched TBA matches {matches} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(matches)
     except Exception as e:
-        logger.error(f"Error getting TBA matches: {e}")
+        current_app.logger.error(f"Error getting TBA matches: {e}")
         return jsonify({"error": "Failed to fetch matches"}), 500
 
 @scouting_bp.route("/scouting/live-match-status", methods=["GET"])
@@ -1189,7 +1217,7 @@ def live_match_status():
         'team_number': team_number,
         'event_code': event_code
     }
-    
+    current_app.logger.info(f"Successfully fetched live match status {context} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     return render_template("scouting/live-match-status.html", **context)
 
 @scouting_bp.route("/api/tba/team-status")
@@ -1225,7 +1253,8 @@ def get_team_status():
         
         # Get team matches at event
         matches = tba.get_team_matches_at_event(team_key, event_code)
-        
+        current_app.logger.info(f"Successfully fetched team status {status} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+
         return jsonify({
             "status": status,
             "matches": matches,
@@ -1306,6 +1335,7 @@ def get_team_paths():
             "paths": paths
         }
         
+        current_app.logger.info(f"Successfully fetched team paths {response} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return json_util.dumps(response), 200, {'Content-Type': 'application/json'}
         
     except Exception as e:
