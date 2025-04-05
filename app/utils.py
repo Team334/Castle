@@ -311,14 +311,34 @@ def send_password_reset_email(recipient_email: str, token: str):
 
     reset_url = url_for('auth.reset_password', token=token, _external=True)
 
-    subject = "Castle App - Password Reset Request"
+    subject = "Castle Scouting - Password Reset Request"
+    # Enhanced HTML body with basic inline styles
     body = f"""
-    <p>You requested a password reset for your Castle App account.</p>
-    <p>Click the link below to set a new password:</p>
-    <p><a href="{reset_url}">{reset_url}</a></p>
-    <p>This link will expire in 30 minutes.</p>
-    <p>If you did not request a password reset, please ignore this email.</p>
-    <p>Please check your spam folder if you don't see this email in your inbox.</p>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+        <style>
+            body {{ font-family: sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }}
+            .button {{ display: inline-block; padding: 10px 20px; margin: 15px 0; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; }}
+            .footer {{ margin-top: 20px; font-size: 0.9em; color: #777; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Password Reset Request</h2>
+            <p>Hello,</p>
+            <p>You (or someone pretending to be you) requested a password reset for your Castle Scouting account associated with this email address.</p>
+            <p>If this was you, click the button below to set a new password:</p>
+            <a href="{reset_url}" class="button" style="color: #ffffff;">Reset Password</a>
+            <p>This link is valid for 30 minutes.</p>
+            <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+        </div>
+    </body>
+    </html>
     """
 
     em = EmailMessage()
