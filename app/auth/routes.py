@@ -127,7 +127,7 @@ async def login():
             return render_template("auth/login.html", form_data={"login": login})
             
         # Verify the team access code by comparing hashes
-        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        hashed_passcode = hashlib.sha512(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/login.html", form_data={"login": login})
@@ -171,7 +171,7 @@ async def forgot_password():
             return render_template("auth/forgot_password.html")
 
         # Verify the team access code first
-        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        hashed_passcode = hashlib.sha512(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
             flash("Invalid Team Access Code.", "error")
             # Return the same generic message as success to prevent probing
@@ -267,7 +267,7 @@ async def register():
         form_data = {"email": email, "username": username}
         
         # Verify the team access code by comparing hashes
-        hashed_passcode = hashlib.sha256(team_passcode.encode()).hexdigest()
+        hashed_passcode = hashlib.sha512(team_passcode.encode()).hexdigest()
         if hashed_passcode != current_app.config.get("TEAM_ACCESS_CODE_HASH"):
             flash("Invalid team access code. This application is restricted to Team 334 members only.", "error")
             return render_template("auth/register.html", form_data=form_data)

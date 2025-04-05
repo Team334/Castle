@@ -285,7 +285,7 @@ class UserManager(DatabaseManager):
             from bson.objectid import ObjectId
 
             token = secrets.token_urlsafe(32)
-            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            token_hash = hashlib.sha512(token.encode()).hexdigest()
             expiry = datetime.now(timezone.utc) + timedelta(minutes=30) # 30 minute expiry
 
             result = self.db.users.update_one(
@@ -313,7 +313,7 @@ class UserManager(DatabaseManager):
             if not token:
                 return None
 
-            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            token_hash = hashlib.sha512(token.encode()).hexdigest()
 
             user_data = self.db.users.find_one({
                 "password_reset_token_hash": token_hash,
