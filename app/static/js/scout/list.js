@@ -208,4 +208,79 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize Coloris
     Coloris.init();
+
+    document.querySelectorAll('.event-section').forEach(section => {
+        const entriesPerPage = section.querySelector('.entriesPerPage');
+        const prevPage = section.querySelector('.prevPage');
+        const nextPage = section.querySelector('.nextPage');
+        const paginationInfo = section.querySelector('.paginationInfo');
+        const rows = Array.from(section.querySelectorAll('tbody tr'));
+        
+        let currentPage = 1;
+        let currentEntriesPerPage = parseInt(entriesPerPage.value);
+        
+        function updatePagination() {
+            const totalRows = rows.length;
+            const totalPages = Math.ceil(totalRows / currentEntriesPerPage);
+            
+            // Update pagination info
+            const start = (currentPage - 1) * currentEntriesPerPage + 1;
+            const end = Math.min(currentPage * currentEntriesPerPage, totalRows);
+            paginationInfo.textContent = `Showing ${start} to ${end} of ${totalRows} entries`;
+            
+            // Hide all rows first
+            rows.forEach(row => row.style.display = 'none');
+            
+            // Show only rows for current page
+            const startIndex = (currentPage - 1) * currentEntriesPerPage;
+            const endIndex = Math.min(startIndex + currentEntriesPerPage, totalRows);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                rows[i].style.display = '';
+            }
+            
+            // Update button states
+            prevPage.disabled = currentPage === 1;
+            nextPage.disabled = currentPage === totalPages;
+            
+            // Add visual feedback for disabled state
+            if (prevPage.disabled) {
+                prevPage.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                prevPage.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            if (nextPage.disabled) {
+                nextPage.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                nextPage.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        entriesPerPage.addEventListener('change', function() {
+            currentEntriesPerPage = parseInt(this.value);
+            currentPage = 1;
+            updatePagination();
+        });
+        
+        prevPage.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePagination();
+            }
+        });
+        
+        nextPage.addEventListener('click', function() {
+            const totalRows = rows.length;
+            const totalPages = Math.ceil(totalRows / currentEntriesPerPage);
+            
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePagination();
+            }
+        });
+        
+        // Initial pagination setup
+        updatePagination();
+    });
 });
