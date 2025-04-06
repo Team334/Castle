@@ -101,18 +101,18 @@ class ScoutingManager(DatabaseManager):
                         return False, f"Team {team_number} has already been scouted by your team in match {data['match_number']}"
 
             # Get existing match data to validate alliance sizes and calculate scores
-            match_data = list(self.db.team_data.find({
-                "event_code": data["event_code"],
-                "match_number": data["match_number"]
-            }))
+            # match_data = list(self.db.team_data.find({
+            #     "event_code": data["event_code"],
+            #     "match_number": data["match_number"]
+            # }))
 
             # Count teams per alliance
             alliance = data.get("alliance", "red")
-            red_teams = [m for m in match_data if m["alliance"] == "red"]
-            blue_teams = [m for m in match_data if m["alliance"] == "blue"]
+            # red_teams = [m for m in match_data if m["alliance"] == "red"]
+            # blue_teams = [m for m in match_data if m["alliance"] == "blue"]
 
-            if (alliance == "red" and len(red_teams) >= 3) or (alliance == "blue" and len(blue_teams) >= 3):
-                return False, f"Cannot add more teams to {alliance} alliance (maximum 3)"
+            # if (alliance == "red" and len(red_teams) >= 3) or (alliance == "blue" and len(blue_teams) >= 3):
+            #     return False, f"Cannot add more teams to {alliance} alliance (maximum 3)"
 
             # Process form data
             team_data = {

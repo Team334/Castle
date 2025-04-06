@@ -98,7 +98,7 @@ def home():
             if team_doc := scouting_manager.db.teams.find_one(team_query):
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
-        current_app.logger.info(f"Successfully fetched team data {team_data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        current_app.logger.info(f"Successfully fetched team data for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/list.html", team_data=team_data, team=team)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
