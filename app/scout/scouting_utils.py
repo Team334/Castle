@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from math import ceil
 
 from bson import ObjectId
 
@@ -9,6 +10,42 @@ from app.models import TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
 
 logger = logging.getLogger(__name__)
+
+
+class Pagination:
+    """A helper class to manage pagination state"""
+    def __init__(self, page, per_page, total_items):
+        self.page = page
+        self.per_page = per_page
+        self.total_items = total_items
+        
+    @property
+    def pages(self):
+        return ceil(self.total_items / self.per_page)
+        
+    @property
+    def has_prev(self):
+        return self.page > 1
+        
+    @property
+    def has_next(self):
+        return self.page < self.pages
+        
+    @property
+    def prev_page(self):
+        return self.page - 1 if self.has_prev else self.page
+        
+    @property
+    def next_page(self):
+        return self.page + 1 if self.has_next else self.page
+        
+    @property
+    def start_index(self):
+        return (self.page - 1) * self.per_page + 1 if self.total_items > 0 else 0
+        
+    @property
+    def end_index(self):
+        return min(self.start_index + self.per_page - 1, self.total_items)
 
 
 class ScoutingManager(DatabaseManager):
@@ -831,3 +868,153 @@ class ScoutingManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error deleting pit scouting data: {str(e)}")
             return False
+
+    @with_mongodb_retry(retries=3, delay=2)
+    def get_paginated_scouting_data(self, page=1, per_page=25, search=None, filter_type=None, event_code=None, user_team_number=None, user_id=None):
+        """Get paginated scouting data with filtering options"""
+        try:
+            page = int(page)
+            per_page = int(per_page)
+            
+            # Build match criteria based on filters
+            match_criteria = {}
+            
+            # Filter by event code if provided
+            if event_code:
+                match_criteria["event_code"] = event_code
+                
+            # Add search filter based on filter_type
+            if search and filter_type:
+                search_term = search.strip()
+                if filter_type == "team":
+                    # Try to convert to integer if possible for team number search
+                    try:
+                        team_num = int(search_term)
+                        match_criteria["team_number"] = team_num
+                    except ValueError:
+                        # If not a valid integer, search for partial match in string representation
+                        match_criteria["team_number"] = {"$regex": search_term, "$options": "i"}
+                elif filter_type == "match":
+                    try:
+                        match_num = int(search_term)
+                        match_criteria["match_number"] = match_num
+                    except ValueError:
+                        match_criteria["match_number"] = {"$regex": search_term, "$options": "i"}
+                elif filter_type == "scouter":
+                    # We'll handle this in the pipeline for scouter name search
+                    pass
+                elif filter_type == "notes":
+                    # Search across all note fields
+                    match_criteria["$or"] = [
+                        {"notes": {"$regex": search_term, "$options": "i"}},
+                        {"mobility_notes": {"$regex": search_term, "$options": "i"}},
+                        {"durability_notes": {"$regex": search_term, "$options": "i"}},
+                        {"auto_notes": {"$regex": search_term, "$options": "i"}}
+                    ]
+            
+            # Base pipeline for user lookup
+            pipeline = [
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "scouter_id",
+                        "foreignField": "_id",
+                        "as": "scouter"
+                    }
+                },
+                {"$unwind": "$scouter"},
+            ]
+            
+            # Add scouter name search if that's the filter type
+            if search and filter_type == "scouter":
+                pipeline.append({
+                    "$match": {
+                        "scouter.username": {"$regex": search, "$options": "i"}
+                    }
+                })
+            
+            # Add access control filter - only show data from user's team or their own
+            if user_team_number:
+                # If user has a team number, show data from their team and their own data
+                pipeline.append({
+                    "$match": {
+                        "$or": [
+                            {"scouter.teamNumber": user_team_number},
+                            {"scouter._id": ObjectId(user_id)}
+                        ]
+                    }
+                })
+            else:
+                # If user has no team, only show their own data
+                pipeline.append({
+                    "$match": {
+                        "scouter._id": ObjectId(user_id)
+                    }
+                })
+            
+            # Add the main match criteria if any
+            if match_criteria:
+                pipeline.append({"$match": match_criteria})
+                
+            # Add sort by event_code (descending) and match_number (descending)
+            pipeline.append({"$sort": {"event_code": -1, "match_number": -1}})
+            
+            # Count total results matching the criteria (before pagination)
+            count_pipeline = pipeline.copy()
+            count_pipeline.append({"$count": "total"})
+            total_count_result = list(self.db.team_data.aggregate(count_pipeline))
+            total_items = total_count_result[0]["total"] if total_count_result else 0
+            
+            # Add pagination
+            pipeline.append({"$skip": (page - 1) * per_page})
+            pipeline.append({"$limit": per_page})
+            
+            # Project the needed fields
+            pipeline.append({
+                "$project": {
+                    "_id": 1,
+                    "team_number": 1,
+                    "match_number": 1,
+                    "event_code": 1,
+                    "auto_coral_level1": 1,
+                    "auto_coral_level2": 1,
+                    "auto_coral_level3": 1,
+                    "auto_coral_level4": 1,
+                    "teleop_coral_level1": 1,
+                    "teleop_coral_level2": 1,
+                    "teleop_coral_level3": 1,
+                    "teleop_coral_level4": 1,
+                    "auto_algae_net": 1,
+                    "auto_algae_processor": 1,
+                    "teleop_algae_net": 1,
+                    "teleop_algae_processor": 1,
+                    "climb_type": 1,
+                    "climb_success": 1,
+                    "defense_rating": 1,
+                    "defense_notes": 1,
+                    "mobility_rating": 1,
+                    "mobility_notes": 1,
+                    "durability_rating": 1,
+                    "durability_notes": 1,
+                    "auto_path": 1,
+                    "auto_notes": 1,
+                    "notes": 1,
+                    "alliance": 1,
+                    "scouter_id": 1,
+                    "scouter_name": "$scouter.username",
+                    "scouter_team": "$scouter.teamNumber",
+                    "device_type": 1
+                }
+            })
+            
+            # Execute the query and convert to list
+            results = list(self.db.team_data.aggregate(pipeline))
+            
+            # Create pagination object
+            pagination = Pagination(page, per_page, total_items)
+            
+            return results, pagination
+            
+        except Exception as e:
+            logger.error(f"Error getting paginated scouting data: {str(e)}")
+            return [], None

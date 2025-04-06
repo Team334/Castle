@@ -86,9 +86,22 @@ def add():
 @login_required
 def home():
     try:
-        team_data = scouting_manager.get_all_scouting_data(
-            current_user.teamNumber, 
-            current_user.get_id()
+        # Get pagination parameters from request
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 25, type=int)
+        search = request.args.get('search', '')
+        filter_type = request.args.get('filter_type', 'team')
+        event_code = request.args.get('event_code', '')
+        
+        # Get paginated data
+        team_data, pagination = scouting_manager.get_paginated_scouting_data(
+            page=page,
+            per_page=per_page,
+            search=search,
+            filter_type=filter_type,
+            event_code=event_code,
+            user_team_number=current_user.teamNumber, 
+            user_id=current_user.get_id()
         )
 
         # Get the user's team if they have one
@@ -98,8 +111,21 @@ def home():
             if team_doc := scouting_manager.db.teams.find_one(team_query):
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
+                
+        # Get distinct event codes for event filtering
+        event_codes = scouting_manager.db.team_data.distinct("event_code")
+        
         current_app.logger.info(f"Successfully fetched team data for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        return render_template("scouting/list.html", team_data=team_data, team=team)
+        return render_template(
+            "scouting/list.html", 
+            team_data=team_data, 
+            team=team, 
+            pagination=pagination,
+            event_codes=event_codes,
+            search=search,
+            filter_type=filter_type,
+            event_code=event_code
+        )
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
         flash("Unable to fetch scouting data. Please try again later.", "error")

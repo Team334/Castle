@@ -2,42 +2,18 @@ let filterType;
 let searchInput;
 let eventSections;
 
-const filterRows = () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const type = filterType.value;
+// Function to handle page changes for pagination
+function changePage(page) {
+    document.getElementById('currentPage').value = page;
+    document.getElementById('filterForm').submit();
+}
 
-    Array.from(eventSections).forEach(section => {
-        const rows = Array.from(section.querySelectorAll('.team-row'));
-        
-        rows.forEach(row => {
-            let searchValue = '';
-            switch(type) {
-                case 'team':
-                    searchValue = row.dataset.teamNumber;
-                    break;
-                case 'match':
-                    searchValue = row.querySelector('td:nth-child(3)').textContent;
-                    break;
-                case 'scouter':
-                    searchValue = row.dataset.scouter.toLowerCase();
-                    break;
-                case 'notes':
-                    // Combine all note fields for searching
-                    searchValue = (
-                        (row.dataset.notes || '') + ' ' +
-                        (row.dataset.mobilityNotes || '') + ' ' +
-                        (row.dataset.durabilityNotes || '')
-                    ).toLowerCase();
-                    break;
-            }
-
-            row.style.display = searchValue.includes(searchTerm) ? '' : 'none';
-        });
-
-        const visibleRows = Array.from(section.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
-        section.style.display = visibleRows.length > 0 ? '' : 'none';
-    });
-};
+// Set the event code filter
+function setEventCode(eventCode) {
+    document.getElementById('eventCode').value = eventCode;
+    document.getElementById('currentPage').value = 1; // Reset to page 1 when changing event
+    document.getElementById('filterForm').submit();
+}
 
 function showAutoPath(pathData, autoNotes) {
     const modal = document.getElementById('autoPathModal');
@@ -103,84 +79,112 @@ function closeAutoPathModal() {
 }
 
 function exportToCSV() {
-    const headers = [
-        'Event Code',
-        'Match',
-        'Team Number',
-        'Alliance',
-        'Auto Coral (L1/L2/L3/L4)',
-        'Auto Algae (Net/Proc)',
-        'Teleop Coral (L1/L2/L3/L4)',
-        'Teleop Algae (Net/Proc)',
-        'Climb',
-        'Defense Rating',
-        'Mobility Rating',
-        'Durability Rating',
-        'Notes',
-        'Scouter',
-    ];
+    // Show loading indicator
+    const exportButton = document.getElementById('exportCSV');
+    const originalText = exportButton.innerHTML;
+    exportButton.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg> Exporting...`;
+    exportButton.disabled = true;
 
-    let csvContent = headers.join(',') + '\n';
-
-    // Get all visible rows from all event sections
-    const rows = Array.from(document.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
-
-    rows.forEach(row => {
-        const {teamNumber} = row.dataset;
-        const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
-        const match = row.querySelector('td:nth-child(3)').textContent.trim();
-        const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
-        const autoAlgae = row.querySelector('td:nth-child(5)').textContent.trim();
-        const teleopCoral = row.querySelector('td:nth-child(6)').textContent.trim();
-        const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
-        const climb = row.querySelector('td:nth-child(8)').textContent.trim();
-        const defense = row.querySelector('td:nth-child(10)').textContent.trim();
-        const mobility = row.querySelector('td:nth-child(11) span').textContent.trim();
-        const durability = row.querySelector('td:nth-child(12) span').textContent.trim();
-        const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
-        const {scouter} = row.dataset;
-        const {eventCode} = row.closest('.event-section').dataset;
-
-        const rowData = [
-            eventCode,
-            match,
-            teamNumber,
-            alliance,
-            autoCoral,
-            autoAlgae,
-            teleopCoral,
-            teleopAlgae,
-            climb,
-            defense,
-            mobility,
-            durability,
-            `"${notes}"`,
-            scouter,
-        ];
-
-        csvContent += rowData.join(',') + '\n';
+    // Use web worker for CSV generation to prevent UI freezing
+    const worker = new Worker('/static/js/scout/export-worker.js');
+    
+    worker.onmessage = function(e) {
+        const {csvContent, filename} = e.data;
+        
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Reset button
+        exportButton.innerHTML = originalText;
+        exportButton.disabled = false;
+    };
+    
+    // Get all relevant data
+    const rows = Array.from(document.querySelectorAll('.team-row'));
+    const rowData = rows.map(row => {
+        return {
+            teamNumber: row.dataset.teamNumber,
+            alliance: row.querySelector('td:nth-child(2) span').textContent.trim(),
+            match: row.querySelector('td:nth-child(3)').textContent.trim(),
+            autoCoral: row.querySelector('td:nth-child(4)').textContent.trim(),
+            autoAlgae: row.querySelector('td:nth-child(5)').textContent.trim(),
+            teleopCoral: row.querySelector('td:nth-child(6)').textContent.trim(),
+            teleopAlgae: row.querySelector('td:nth-child(7)').textContent.trim(),
+            climb: row.querySelector('td:nth-child(8)').textContent.trim(),
+            defense: row.querySelector('td:nth-child(10)').textContent.trim(),
+            mobility: row.querySelector('td:nth-child(11) span').textContent.trim(),
+            durability: row.querySelector('td:nth-child(12) span').textContent.trim(),
+            notes: (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' '),
+            scouter: row.dataset.scouter,
+            eventCode: row.closest('.event-section').dataset.eventCode
+        };
     });
+    
+    worker.postMessage(rowData);
+}
 
-    // Create and trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'scouting_data.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+// Setup lazy loading for images
+function setupLazyLoading() {
+    if ('IntersectionObserver' in window) {
+        const imgObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.dataset.src;
+                    if (src) {
+                        img.src = src;
+                        img.removeAttribute('data-src');
+                    }
+                    observer.unobserve(img);
+                }
+            });
+        });
+
+        // Find all images with data-src attribute
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imgObserver.observe(img);
+        });
+    } else {
+        // Fallback for browsers without IntersectionObserver
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            img.src = img.dataset.src;
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     filterType = document.getElementById('filterType');
     searchInput = document.getElementById('searchInput');
-    eventSections = document.querySelectorAll('.event-section');
-
-    if (searchInput && filterType) {
-        searchInput.addEventListener('input', filterRows);
-        filterType.addEventListener('change', filterRows);
+    
+    // Setup event listeners for direct form submission on input change
+    if (searchInput) {
+        // Add debounce for search input
+        let debounceTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                document.getElementById('currentPage').value = 1; // Reset to page 1
+                document.getElementById('filterForm').submit();
+            }, 300); // 300ms debounce
+        });
+    }
+    
+    if (filterType) {
+        filterType.addEventListener('change', function() {
+            document.getElementById('currentPage').value = 1; // Reset to page 1
+            document.getElementById('filterForm').submit();
+        });
     }
 
     // Add CSV export button listener
@@ -198,89 +202,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add tooltips or popovers for mobility and durability ratings
-    const mobilityRatings = document.querySelectorAll('.md\\:table-cell span[title]');
-    mobilityRatings.forEach(span => {
+    // Setup tooltips for mobility and durability ratings
+    const ratingSpans = document.querySelectorAll('span[title]');
+    ratingSpans.forEach(span => {
         if (span.title && span.title.trim() !== '') {
             span.classList.add('cursor-help');
         }
     });
 
     // Initialize Coloris
-    Coloris.init();
-
-    document.querySelectorAll('.event-section').forEach(section => {
-        const entriesPerPage = section.querySelector('.entriesPerPage');
-        const prevPage = section.querySelector('.prevPage');
-        const nextPage = section.querySelector('.nextPage');
-        const paginationInfo = section.querySelector('.paginationInfo');
-        const rows = Array.from(section.querySelectorAll('tbody tr'));
-        
-        let currentPage = 1;
-        let currentEntriesPerPage = parseInt(entriesPerPage.value);
-        
-        function updatePagination() {
-            const totalRows = rows.length;
-            const totalPages = Math.ceil(totalRows / currentEntriesPerPage);
-            
-            // Update pagination info
-            const start = (currentPage - 1) * currentEntriesPerPage + 1;
-            const end = Math.min(currentPage * currentEntriesPerPage, totalRows);
-            paginationInfo.textContent = `Showing ${start} to ${end} of ${totalRows} entries`;
-            
-            // Hide all rows first
-            rows.forEach(row => row.style.display = 'none');
-            
-            // Show only rows for current page
-            const startIndex = (currentPage - 1) * currentEntriesPerPage;
-            const endIndex = Math.min(startIndex + currentEntriesPerPage, totalRows);
-            
-            for (let i = startIndex; i < endIndex; i++) {
-                rows[i].style.display = '';
-            }
-            
-            // Update button states
-            prevPage.disabled = currentPage === 1;
-            nextPage.disabled = currentPage === totalPages;
-            
-            // Add visual feedback for disabled state
-            if (prevPage.disabled) {
-                prevPage.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                prevPage.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-            
-            if (nextPage.disabled) {
-                nextPage.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                nextPage.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-        
-        entriesPerPage.addEventListener('change', function() {
-            currentEntriesPerPage = parseInt(this.value);
-            currentPage = 1;
-            updatePagination();
-        });
-        
-        prevPage.addEventListener('click', function() {
-            if (currentPage > 1) {
-                currentPage--;
-                updatePagination();
-            }
-        });
-        
-        nextPage.addEventListener('click', function() {
-            const totalRows = rows.length;
-            const totalPages = Math.ceil(totalRows / currentEntriesPerPage);
-            
-            if (currentPage < totalPages) {
-                currentPage++;
-                updatePagination();
-            }
-        });
-        
-        // Initial pagination setup
-        updatePagination();
-    });
+    if (typeof Coloris !== 'undefined') {
+        Coloris.init();
+    }
+    
+    // Set up lazy loading for images
+    setupLazyLoading();
 });
