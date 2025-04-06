@@ -406,20 +406,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            try {
-                const response = await fetch(`/scouting/check_team?team=${teamNumber}&event=${eventCode}&match=${matchNumber}`);
-                const data = await response.json();
+            // try {
+            //     const response = await fetch(`/scouting/check_team?team=${teamNumber}&event=${eventCode}&match=${matchNumber}`);
+            //     const data = await response.json();
                 
-                if (data.exists) {
-                    alert(`Team ${teamNumber} already exists in match ${matchNumber} for event ${eventCode}`);
-                    return;
-                }
+            //     if (data.exists) {
+            //         alert(`Team ${teamNumber} already exists in match ${matchNumber} for event ${eventCode}`);
+            //         return;
+            //     }
                 
-                form.submit();
-            } catch (error) {
-                console.error('Error checking team:', error);
-                form.submit();
-            }
+            //     form.submit();
+            // } catch (error) {
+            //     console.error('Error checking team:', error);
+            //     form.submit();
+            // }
+            form.submit();
         });
     }
 

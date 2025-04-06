@@ -931,51 +931,51 @@ def matches():
         flash("An internal error has occurred.", "error")
         return render_template("scouting/matches.html", matches=[])
 
-@scouting_bp.route("/scouting/check_team")
-@login_required
-def check_team():
-    team_number = request.args.get('team')
-    event_code = request.args.get('event')
-    match_number = request.args.get('match')
-    current_id = request.args.get('current_id')
+# @scouting_bp.route("/scouting/check_team")
+# @login_required
+# def check_team():
+#     team_number = request.args.get('team')
+#     event_code = request.args.get('event')
+#     match_number = request.args.get('match')
+#     current_id = request.args.get('current_id')
     
-    try:
-        # Get current user's team number
-        current_user_team = current_user.teamNumber
+#     try:
+#         # Get current user's team number
+#         current_user_team = current_user.teamNumber
 
-        pipeline = [
-            {
-                "$match": {
-                    "team_number": int(team_number),
-                    "event_code": event_code,
-                    "match_number": match_number  # Keep as string, don't convert to int
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "scouter_id",
-                    "foreignField": "_id",
-                    "as": "scouter"
-                }
-            },
-            {"$unwind": "$scouter"},
-        ]
+#         pipeline = [
+#             {
+#                 "$match": {
+#                     "team_number": int(team_number),
+#                     "event_code": event_code,
+#                     "match_number": match_number  # Keep as string, don't convert to int
+#                 }
+#             },
+#             {
+#                 "$lookup": {
+#                     "from": "users",
+#                     "localField": "scouter_id",
+#                     "foreignField": "_id",
+#                     "as": "scouter"
+#                 }
+#             },
+#             {"$unwind": "$scouter"},
+#         ]
         
-        # Only add current_id filter if it's a valid ObjectId
-        if current_id and current_id != 'undefined' and ObjectId.is_valid(current_id):
-            pipeline[0]["$match"]["_id"] = {"$ne": ObjectId(current_id)}
+#         # Only add current_id filter if it's a valid ObjectId
+#         if current_id and current_id != 'undefined' and ObjectId.is_valid(current_id):
+#             pipeline[0]["$match"]["_id"] = {"$ne": ObjectId(current_id)}
             
-        existing = list(scouting_manager.db.team_data.aggregate(pipeline))
+#         existing = list(scouting_manager.db.team_data.aggregate(pipeline))
         
-        # Check if any existing entry is from the same team
-        exists = any(entry.get("scouter", {}).get("teamNumber") == current_user_team 
-                    for entry in existing)
+#         # Check if any existing entry is from the same team
+#         exists = any(entry.get("scouter", {}).get("teamNumber") == current_user_team 
+#                     for entry in existing)
         
-        return jsonify({"exists": exists})
-    except Exception as e:
-        current_app.logger.error(f"Error checking team data: {str(e)}", exc_info=True)
-        return jsonify({"error": "An internal error has occurred."}), 500
+#         return jsonify({"exists": exists})
+#     except Exception as e:
+#         current_app.logger.error(f"Error checking team data: {str(e)}", exc_info=True)
+#         return jsonify({"error": "An internal error has occurred."}), 500
 
 @scouting_bp.route("/scouting/pit")
 @login_required
