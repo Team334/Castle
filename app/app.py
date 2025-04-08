@@ -1,8 +1,7 @@
 import os
 import logging
-import hashlib
-from time import strftime
 import traceback
+from time import strftime
 
 from dotenv import load_dotenv
 from flask import (Flask, make_response, render_template,
@@ -25,10 +24,6 @@ stop_notification_thread = False
 
 logger = logging.getLogger(__name__)
 
-def hash_team_access_code(code: str) -> str:
-    """Hash the team access code using SHA-256"""
-    return hashlib.sha256(code.encode()).hexdigest()
-
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -42,8 +37,7 @@ def create_app():
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
         VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
-        VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com"),
-        TEAM_ACCESS_CODE_HASH=hash_team_access_code(os.getenv("TEAM_ACCESS_CODE", "your_team_access_code"))
+        VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com")
     )
     
     if not app.config.get("VAPID_PUBLIC_KEY") or not app.config.get("VAPID_PRIVATE_KEY"):
@@ -139,8 +133,7 @@ def create_app():
     @app.before_request
     def check_team_access():
         """
-        Additional protection to restrict access to only approved team members.
-        This blocks IP addresses not associated with team members once they've registered.
+        Basic protection to restrict access to authenticated users.
         """
         # Skip for static assets, authentication, and public routes
         if request.path.startswith('/static') or \
@@ -152,9 +145,8 @@ def create_app():
             
         # Block access for non-authenticated users to protected routes
         if not current_user.is_authenticated:
-            flash("Access restricted to Team 334 members only.", "error")
             return redirect(url_for('auth.login'))
-        
+
     @app.after_request
     def after_request(response): 
         timestamp = strftime('[%Y-%b-%d %H:%M]')
