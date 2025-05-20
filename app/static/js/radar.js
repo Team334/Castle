@@ -40,10 +40,7 @@ function createRadarChart(canvasId, data, isCombo = false) {
     
     const chartData = {
         labels: [
-            'Auto Scoring',
-            'Teleop Scoring',
-            'Climb Success',
-            'Defense Rating',
+            // TODO: 2026
         ],
         datasets: isCombo ? [
             {
@@ -119,14 +116,7 @@ function updateRadarCharts(teamsData) {
         const radarData = {
             team: teamNum,
             values: [
-                // Auto scoring (combine coral and algae)
-                stats.auto_scoring || 0,
-                // Teleop scoring (combine coral and algae)
-                stats.teleop_scoring || 0,
-                // Climb success rate
-                stats.climb_rating || 0,
-                // Defense rating
-                stats.defense_rating || 0,
+                // TODO: 2026
             ]
         };
 

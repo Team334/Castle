@@ -91,46 +91,7 @@ function updateTeamCards(data) {
 
         const stats = teamData.stats || {};
 
-        // Update Auto Period stats
-        document.getElementById(`team${cardNum}-auto-l1`).textContent = (stats.avg_auto_coral_level1 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l2`).textContent = (stats.avg_auto_coral_level2 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l3`).textContent = (stats.avg_auto_coral_level3 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l4`).textContent = (stats.avg_auto_coral_level4 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-net`).textContent = (stats.avg_auto_algae_net || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-processor`).textContent = (stats.avg_auto_algae_processor || 0).toFixed(2);
-
-        // Update Teleop Period stats
-        document.getElementById(`team${cardNum}-teleop-l1`).textContent = (stats.avg_teleop_coral_level1 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l2`).textContent = (stats.avg_teleop_coral_level2 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l3`).textContent = (stats.avg_teleop_coral_level3 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l4`).textContent = (stats.avg_teleop_coral_level4 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-net`).textContent = (stats.avg_teleop_algae_net || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-processor`).textContent = (stats.avg_teleop_algae_processor || 0).toFixed(2);
-
-        // Update Endgame stats
-        document.getElementById(`team${cardNum}-climb-success`).textContent = ((stats.climb_success_rate || 0) * 100).toFixed(1);
-        document.getElementById(`team${cardNum}-preferred-climb`).textContent = stats.preferred_climb_type || '-';
-
-        // Update Defense stats
-        document.getElementById(`team${cardNum}-defense`).textContent = `${(stats.defense_rating || 0).toFixed(1)}/5`;
-        
-        // Update Defense Notes - Fixed to handle array properly
-        const defenseNotes = teamData.stats?.defense_notes?.[0] || 'No defense notes available';
-        document.getElementById(`team${cardNum}-defense-notes`).textContent = defenseNotes;
-
-        // Update Mobility stats
-        document.getElementById(`team${cardNum}-mobility`).textContent = `${(stats.mobility_rating || 0).toFixed(1)}/5`;
-        
-        // Update Mobility Notes
-        const mobilityNotes = teamData.stats?.mobility_notes?.[0] || 'No mobility notes available';
-        document.getElementById(`team${cardNum}-mobility-notes`).textContent = mobilityNotes;
-        
-        // Update Durability stats
-        document.getElementById(`team${cardNum}-durability`).textContent = `${(stats.durability_rating || 0).toFixed(1)}/5`;
-        
-        // Update Durability Notes
-        const durabilityNotes = teamData.stats?.durability_notes?.[0] || 'No durability notes available';
-        document.getElementById(`team${cardNum}-durability-notes`).textContent = durabilityNotes;
+        // TODO: 2026
     });
 
     // Hide team3 card if no third team
@@ -159,10 +120,10 @@ function updateRadarChart(data) {
         return {
             label: `Team ${teamData.team_number}`,
             data: [
-                normalized.auto_scoring || 0,
-                normalized.teleop_scoring || 0,
-                normalized.climb_rating || 0,
-                normalized.defense_rating || 0
+                // normalized.auto_scoring || 0,
+                // normalized.teleop_scoring || 0,
+                // normalized.climb_rating || 0,
+                // normalized.defense_rating || 0
             ],
             backgroundColor: `${color}33`,
             borderColor: color,
@@ -177,7 +138,8 @@ function updateRadarChart(data) {
     radarChart = new Chart(canvas.getContext('2d'), {
         type: 'radar',
         data: {
-            labels: ['Auto Scoring', 'Teleop Scoring', 'Climb Success', 'Defense Rating'],
+            labels: [// TODO: 2026
+            ],
             datasets: datasets
         },
         options: {
@@ -233,32 +195,7 @@ function updateRawDataTable(data) {
                 <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.match_number || '-'}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.auto_coral_level1 || 0}/${match.auto_coral_level2 || 0}/${match.auto_coral_level3 || 0}/${match.auto_coral_level4 || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.auto_algae_net || 0}/${match.auto_algae_processor || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.teleop_coral_level1 || 0}/${match.teleop_coral_level2 || 0}/${match.teleop_coral_level3 || 0}/${match.teleop_coral_level4 || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.teleop_algae_net || 0}/${match.teleop_algae_processor || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.climb_success ? `${match.climb_type || 'Yes'}` : 'No'}
-                </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.auto_path ? 
-                        `<button onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="text-blue-600 hover:text-blue-800">View</button>` 
-                        : 'None'}
-                </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.defense_rating || 0}/5
-                </td>
-                <td class="lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.notes || '-'}
-                </td>
+                // TODO: 2026
                 <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.scouter_name || '-'}
                 </td>
