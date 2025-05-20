@@ -73,58 +73,11 @@ class TeamData:
         self.match_number = data.get('match_number')
         self.event_code = data.get('event_code')
         self.alliance = data.get('alliance', '')
-        
-        # Algae scoring
-        self.algae_net = data.get('algae_net', 0)
-        self.algae_processor = data.get('algae_processor', 0)        
-        # Climb
-        self.climb_type = data.get('climb_type', '')  # 'shallow', 'deep', 'park', or ''
-        self.climb_success = data.get('climb_success', False)
-        
-        # Defense
-        self.defense_rating = data.get('defense_rating', 1)  # 1-5 scale
-        self.defense_notes = data.get('defense_notes', '')
-        
-        # Auto
-        self.auto_path = data.get('auto_path', '')  # Store coordinates of drawn path
+
+        self.auto_path = data.get('auto_path', '')
         self.auto_notes = data.get('auto_notes', '')
         
-        # Notes
-        self.notes = data.get('notes', '')
-        
-        # Scouter information
-        self.scouter_id = data.get('scouter_id')
-        self.scouter_name = data.get('scouter_name')
-        self.scouter_team = data.get('scouter_team')
-        self.is_owner = data.get('is_owner', True)
-        
-        # Auto Coral scoring
-        self.auto_coral_level1 = data.get('auto_coral_level1', 0)
-        self.auto_coral_level2 = data.get('auto_coral_level2', 0)
-        self.auto_coral_level3 = data.get('auto_coral_level3', 0)
-        self.auto_coral_level4 = data.get('auto_coral_level4', 0)
-        
-        # Teleop Coral scoring
-        self.teleop_coral_level1 = data.get('teleop_coral_level1', 0)
-        self.teleop_coral_level2 = data.get('teleop_coral_level2', 0)
-        self.teleop_coral_level3 = data.get('teleop_coral_level3', 0)
-        self.teleop_coral_level4 = data.get('teleop_coral_level4', 0)
-
-        # Auto Algae scoring
-        self.auto_algae_net = data.get('auto_algae_net', 0)
-        self.auto_algae_processor = data.get('auto_algae_processor', 0)
-        
-        # Teleop Algae scoring
-        self.teleop_algae_net = data.get('teleop_algae_net', 0)
-        self.teleop_algae_processor = data.get('teleop_algae_processor', 0)
-
-        # Mobility 
-        self.mobility_rating = data.get('mobility_rating', 1)  # 1-5 scale
-        self.mobility_notes = data.get('mobility_notes', '')
-
-        # Durability
-        self.durability_rating = data.get('durability_rating', 1)  # 1-5 scale
-        self.durability_notes = data.get('durability_notes', '')
+        # TODO: 2026
         
 
     @classmethod
@@ -138,29 +91,7 @@ class TeamData:
             'match_number': self.match_number,
             'event_code': self.event_code,
             'alliance': self.alliance,
-            'auto_coral_level1': self.auto_coral_level1,
-            'auto_coral_level2': self.auto_coral_level2,
-            'auto_coral_level3': self.auto_coral_level3,
-            'auto_coral_level4': self.auto_coral_level4,
-            'teleop_coral_level1': self.teleop_coral_level1,
-            'teleop_coral_level2': self.teleop_coral_level2,
-            'teleop_coral_level3': self.teleop_coral_level3,
-            'teleop_coral_level4': self.teleop_coral_level4,
-            'auto_algae_net': self.auto_algae_net,
-            'auto_algae_processor': self.auto_algae_processor,
-            'teleop_algae_net': self.teleop_algae_net,
-            'teleop_algae_processor': self.teleop_algae_processor,
-            'climb_type': self.climb_type,
-            'climb_success': self.climb_success,
-            'defense_rating': self.defense_rating,
-            'defense_notes': self.defense_notes,
-            'auto_path': self.auto_path,
-            'auto_notes': self.auto_notes,
-            'mobility_rating': self.mobility_rating,
-            'mobility_notes': self.mobility_notes,
-            'durability_rating': self.durability_rating,
-            'durability_notes': self.durability_notes,
-            'notes': self.notes,
+
             'scouter_id': self.scouter_id,
             'scouter_name': self.scouter_name,
             'scouter_team': self.scouter_team,
