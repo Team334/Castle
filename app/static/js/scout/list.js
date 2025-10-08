@@ -114,8 +114,7 @@ function exportToCSV() {
         'Teleop Algae (Net/Proc)',
         'Climb',
         'Defense Rating',
-        'Mobility Rating',
-        'Durability Rating',
+        'Robot Disabled',
         'Notes',
         'Scouter',
     ];
@@ -135,8 +134,7 @@ function exportToCSV() {
         const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
         const climb = row.querySelector('td:nth-child(8)').textContent.trim();
         const defense = row.querySelector('td:nth-child(10)').textContent.trim();
-        const mobility = row.querySelector('td:nth-child(11) span').textContent.trim();
-        const durability = row.querySelector('td:nth-child(12) span').textContent.trim();
+        const robotDisabled = row.querySelector('td:nth-child(11) span').textContent.trim();
         const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
         const {scouter} = row.dataset;
         const {eventCode} = row.closest('.event-section').dataset;
@@ -152,8 +150,7 @@ function exportToCSV() {
             teleopAlgae,
             climb,
             defense,
-            mobility,
-            durability,
+            robotDisabled,
             `"${notes}"`,
             scouter,
         ];
@@ -197,14 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Add tooltips or popovers for mobility and durability ratings
-    const mobilityRatings = document.querySelectorAll('.md\\:table-cell span[title]');
-    mobilityRatings.forEach(span => {
-        if (span.title && span.title.trim() !== '') {
-            span.classList.add('cursor-help');
-        }
-    });
 
     // Initialize Coloris
     Coloris.init();

@@ -493,59 +493,18 @@
                 <!-- Other Stats Tab -->
                 <div class="tab-content hidden" data-tab="other">
                     <div class="space-y-8">
-                        <!-- Mobility & Durability Section -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Mobility -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h2 class="text-lg font-semibold text-gray-700 mb-4">Mobility</h2>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
-                                        <div class="flex items-center space-x-2">
-                                            <input type="range" 
-                                                   name="mobility_rating" 
-                                                   min="0" 
-                                                   max="5" 
-                                                   value="0" 
-                                                   class="w-full"
-                                            >
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Mobility Notes</label>
-                                        <textarea name="mobility_notes" 
-                                                  rows="2" 
-                                                  class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                  placeholder="Enter any observations about mobility..." 
-                                                  autocomplete="off"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Durability -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h2 class="text-lg font-semibold text-gray-700 mb-4">Durability</h2>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
-                                        <div class="flex items-center space-x-2">
-                                            <input type="range" 
-                                                   name="durability_rating" 
-                                                   min="0" 
-                                                   max="5" 
-                                                   value="0" 
-                                                   class="w-full"
-                                            >
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Durability Notes</label>
-                                        <textarea name="durability_notes" 
-                                                  rows="2" 
-                                                  class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                  placeholder="Enter any observations about durability..." 
-                                                  autocomplete="off"></textarea>
-                                    </div>
+                        <!-- Robot Disabled Status Section -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Robot Disabled Status</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Was the robot disabled during the match?</label>
+                                    <select name="robot_disabled" 
+                                            class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="None">None - Robot was not disabled</option>
+                                        <option value="Partially">Partially - Robot was disabled for part of the match</option>
+                                        <option value="Full">Full - Robot was disabled for the entire match</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
