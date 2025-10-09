@@ -55,8 +55,6 @@
                 <option value="teleop_algae" {% if current_sort == 'teleop_algae' %}selected{% endif %}>Most Algae (Teleop)</option>
                 <option value="deep_climb" {% if current_sort == 'deep_climb' %}selected{% endif %}>Deep Climb %</option>
                 <option value="defense" {% if current_sort == 'defense' %}selected{% endif %}>Defense Rating</option>
-                <option value="mobility" {% if current_sort == 'mobility' %}selected{% endif %}>Mobility Rating</option>
-                <option value="durability" {% if current_sort == 'durability' %}selected{% endif %}>Durability Rating</option>
             </select>
         </div>
     </div>
@@ -91,12 +89,8 @@
                                 <span class="text-xs text-gray-400 block">avg rating</span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Mobility
-                                <span class="text-xs text-gray-400 block">avg rating</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Durability
-                                <span class="text-xs text-gray-400 block">avg rating</span>
+                                Robot Disabled
+                                <span class="text-xs text-gray-400 block">times disabled</span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Climb Stats
@@ -154,14 +148,19 @@
                                 <div class="text-sm text-gray-500">{{ "%.1f"|format(team.defense_rating) }}/5</div>
                             </td>
                             
-                            <!-- Mobility Rating -->
+                            <!-- Robot Disabled Status -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-500">{{ "%.1f"|format(team.mobility_rating) }}/5</div>
-                            </td>
-                            
-                            <!-- Durability Rating -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-500">{{ "%.1f"|format(team.durability_rating) }}/5</div>
+                                <div class="text-sm space-y-1">
+                                    {% set full_disabled = team.robot_disabled_list | selectattr("__eq__", "Full") | list | length %}
+                                    {% set partially_disabled = team.robot_disabled_list | selectattr("__eq__", "Partially") | list | length %}
+                                    {% set total_disabled = full_disabled + partially_disabled %}
+                                    {% if total_disabled > 0 %}
+                                        <div class="text-red-600">Full: {{ full_disabled }}</div>
+                                        <div class="text-yellow-600">Partial: {{ partially_disabled }}</div>
+                                    {% else %}
+                                        <div class="text-green-600">Never disabled</div>
+                                    {% endif %}
+                                </div>
                             </td>
                             
                             <!-- Climb Stats -->

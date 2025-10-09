@@ -300,10 +300,7 @@ def compare_teams():
                             "match_number": "$match_number"
                         }},
                         "defense_rating": {"$avg": {"$cond": [{"$gt": ["$defense_rating", 0]}, "$defense_rating", None]}},
-                        "mobility_rating": {"$avg": {"$cond": [{"$gt": ["$mobility_rating", 0]}, "$mobility_rating", None]}},
-                        "mobility_notes": {"$push": "$mobility_notes"},
-                        "durability_rating": {"$avg": {"$cond": [{"$gt": ["$durability_rating", 0]}, "$durability_rating", None]}},
-                        "durability_notes": {"$push": "$durability_notes"},
+                        "robot_disabled_list": {"$push": "$robot_disabled"},
                         "preferred_climb_type": {"$last": "$climb_type"},
                         "matches": {"$push": "$$ROOT"}
                     }},
@@ -557,10 +554,8 @@ def leaderboard():
                 
                 # Defense Rating
                 "defense_rating": {"$avg": {"$ifNull": ["$defense_rating", 0]}},
-                # Mobility Rating
-                "mobility_rating": {"$avg": {"$ifNull": ["$mobility_rating", 0]}},
-                # Durability Rating
-                "durability_rating": {"$avg": {"$ifNull": ["$durability_rating", 0]}},
+                # Robot Disabled
+                "robot_disabled_list": {"$push": "$robot_disabled"},
 
                 # Climb stats
                 "climb_attempts": {"$sum": 1},
@@ -661,8 +656,7 @@ def leaderboard():
                     ]
                 },
                 "defense_rating": {"$round": ["$defense_rating", 1]},
-                "mobility_rating": {"$round": ["$mobility_rating", 1]},
-                "durability_rating": {"$round": ["$durability_rating", 1]}
+                "robot_disabled_list": "$robot_disabled_list"
             }}
         ])
 
@@ -675,9 +669,7 @@ def leaderboard():
             'auto_algae': 'total_auto_algae',
             'teleop_algae': 'total_teleop_algae',
             'deep_climb': 'deep_climb_success_rate',
-            'defense': 'defense_rating',
-            'mobility': 'mobility_rating',
-            'durability': 'durability_rating'
+            'defense': 'defense_rating'
         }.get(sort_type, 'total_coral')
 
         if sort_type == 'deep_climb':

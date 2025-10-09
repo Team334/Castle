@@ -118,13 +118,8 @@ class TeamData:
         self.teleop_algae_net = data.get('teleop_algae_net', 0)
         self.teleop_algae_processor = data.get('teleop_algae_processor', 0)
 
-        # Mobility 
-        self.mobility_rating = data.get('mobility_rating', 1)  # 1-5 scale
-        self.mobility_notes = data.get('mobility_notes', '')
-
-        # Durability
-        self.durability_rating = data.get('durability_rating', 1)  # 1-5 scale
-        self.durability_notes = data.get('durability_notes', '')
+        # Robot Disabled Status
+        self.robot_disabled = data.get('robot_disabled', 'None')  # 'None', 'Partially', 'Full'
         
 
     @classmethod
@@ -156,10 +151,7 @@ class TeamData:
             'defense_notes': self.defense_notes,
             'auto_path': self.auto_path,
             'auto_notes': self.auto_notes,
-            'mobility_rating': self.mobility_rating,
-            'mobility_notes': self.mobility_notes,
-            'durability_rating': self.durability_rating,
-            'durability_notes': self.durability_notes,
+            'robot_disabled': self.robot_disabled,
             'notes': self.notes,
             'scouter_id': self.scouter_id,
             'scouter_name': self.scouter_name,
