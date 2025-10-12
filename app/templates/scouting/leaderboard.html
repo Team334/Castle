@@ -151,8 +151,8 @@
                             <!-- Robot Disabled Status -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm space-y-1">
-                                    {% set full_disabled = team.robot_disabled_list | selectattr("__eq__", "Full") | list | length %}
-                                    {% set partially_disabled = team.robot_disabled_list | selectattr("__eq__", "Partially") | list | length %}
+                                    {% set full_disabled = team.robot_disabled_list | select('equalto', 'Full') | list | length %}
+                                    {% set partially_disabled = team.robot_disabled_list | select('equalto', 'Partially') | list | length %}
                                     {% set total_disabled = full_disabled + partially_disabled %}
                                     {% if total_disabled > 0 %}
                                         <div class="text-red-600">Full: {{ full_disabled }}</div>

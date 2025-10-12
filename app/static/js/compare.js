@@ -119,7 +119,8 @@ function updateTeamCards(data) {
         document.getElementById(`team${cardNum}-defense-notes`).textContent = defenseNotes;
 
         // Update Robot Disabled stats
-        const robotDisabledList = teamData.stats?.robot_disabled_list || [];
+        const robotDisabled = teamData.stats?.robot_disabled || [];
+        const robotDisabledList = Array.isArray(robotDisabled) ? robotDisabled : [robotDisabled];
         const fullDisabled = robotDisabledList.filter(d => d === 'Full').length;
         const partiallyDisabled = robotDisabledList.filter(d => d === 'Partially').length;
         const totalDisabled = fullDisabled + partiallyDisabled;
