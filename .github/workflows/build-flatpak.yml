@@ -2,9 +2,9 @@ name: Build Flatpak
 
 on:
   push:
-    branches: [ main, master, flatpak-testing ]
+    branches: [ deploy ]
   pull_request:
-    branches: [ main, master, flatpak-testing ]
+    branches: [ deploy ]
   workflow_dispatch:
     
 permissions:

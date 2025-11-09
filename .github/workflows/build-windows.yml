@@ -2,9 +2,9 @@ name: Build Windows App
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ deploy ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ deploy ]
   workflow_dispatch:
 
 permissions:
