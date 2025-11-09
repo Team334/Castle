@@ -17,26 +17,8 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: The Problem
-      description: >
-        What problem is your feature trying to solve or help?
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: The Ideal Solution
-      description: >
-        What is your ideal solution to the problem?
-        What would you like this feature to do?
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: The Current Solution
-      description: >
-        What is the current solution to the problem, if any?
-    validations:
-      required: false
+      label: How should we approach this feature?
+      description: Describe how should it be implemented?
   - type: textarea
     attributes:
       label: Additional Context
