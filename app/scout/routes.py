@@ -1334,3 +1334,40 @@ def get_team_paths():
     except Exception as e:
         current_app.logger.error(f"Error fetching team paths: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch team path data."}), 500
+
+
+@scouting_bp.route("/scouting/mock-alliance-selection")
+@login_required
+# @limiter.limit("30 per minute")
+def mock_alliance_selection():
+    """Route for the mock alliance selection page"""
+    current_app.logger.info(f"Successfully loaded mock alliance selection for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    return render_template("scouting/mock-alliance-selection.html")
+
+
+@scouting_bp.route("/api/alliance-selection/rankings/<event_key>")
+@login_required
+# @limiter.limit("30 per minute")
+def get_alliance_rankings(event_key):
+    """Get team rankings for alliance selection"""
+    try:
+        tba = TBAInterface()
+        rankings = tba.get_event_rankings(event_key)
+        
+        if not rankings:
+            return jsonify({"error": "Failed to fetch rankings"}), 404
+        
+        # Fetch team details for each ranked team
+        for rank in rankings:
+            team_info = tba.get_team(rank['team_key'])
+            if team_info:
+                rank['nickname'] = team_info.get('nickname', '')
+                rank['city'] = team_info.get('city', '')
+                rank['state_prov'] = team_info.get('state_prov', '')
+        
+        current_app.logger.info(f"Successfully fetched alliance rankings for event {event_key}")
+        return jsonify(rankings)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching alliance rankings: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to fetch rankings"}), 500

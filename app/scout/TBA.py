@@ -241,3 +241,40 @@ class TBAInterface:
                 
         # If no current events, get the most recent event (events are already sorted by date, most recent first)
         return events[0]
+    
+    @lru_cache(maxsize=100)
+    def get_event_rankings(self, event_key):
+        """Get team rankings at an event including ranking points"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/event/{event_key}/rankings",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                return None
+            
+            data = response.json()
+            rankings = data.get('rankings', [])
+            
+            # Format rankings with team info and ranking points
+            formatted_rankings = []
+            for rank in rankings:
+                team_key = rank.get('team_key', '')
+                team_number = team_key.replace('frc', '') if team_key.startswith('frc') else team_key
+                
+                formatted_rankings.append({
+                    'rank': rank.get('rank'),
+                    'team_key': team_key,
+                    'team_number': int(team_number) if team_number.isdigit() else 0,
+                    'ranking_points': rank.get('sort_orders', [0])[0] if rank.get('sort_orders') else 0,
+                    'record': rank.get('record', {}),
+                    'matches_played': rank.get('matches_played', 0)
+                })
+            
+            return formatted_rankings
+            
+        except Exception as e:
+            logger.error(f"Error fetching event rankings from TBA: {e}")
+            return None
