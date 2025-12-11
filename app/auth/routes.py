@@ -140,6 +140,12 @@ async def login():
     return render_template("auth/login.html", form_data={})
 
 
+@auth_bp.route("/forgot-password")
+def forgot_password():
+    """Display forgot password page with instructions"""
+    return render_template("forgot-password.html")
+
+
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("8 per minute")
 @async_route

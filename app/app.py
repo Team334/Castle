@@ -140,7 +140,8 @@ def create_app():
            request.path == '/' or \
            request.path == '/service-worker.js' or \
            request.path.startswith('/auth/login') or \
-           request.path.startswith('/auth/register'):
+           request.path.startswith('/auth/register') or \
+           request.path.startswith('/auth/forgot-password'):
             return
             
         # Block access for non-authenticated users to protected routes
