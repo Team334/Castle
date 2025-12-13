@@ -4,7 +4,6 @@ import asyncio
 import os
 from functools import wraps
 from urllib.parse import urljoin, urlparse
-import hashlib
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,

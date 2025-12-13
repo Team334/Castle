@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from functools import lru_cache
+from functools import cached_property, lru_cache
 import requests
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class TBAInterface:
             logger.error(f"Error fetching team from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=5)
     def get_event_matches(self, event_key):
         """Get matches for an event and format them by match number"""
         try:
@@ -76,7 +76,7 @@ class TBAInterface:
             logger.error(f"Error fetching event matches from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=20)
     def get_current_events(self, year):
         """Get all events for the specified year"""
         try:
@@ -110,7 +110,6 @@ class TBAInterface:
             logger.error(f"Error fetching events from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=100)
     def get_team_status_at_event(self, team_key, event_key):
         """Get team status and ranking at a specific event"""
         try:
@@ -124,7 +123,7 @@ class TBAInterface:
             logger.error(f"Error fetching team status from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=20)
     def get_team_matches_at_event(self, team_key, event_key):
         """Get a team's matches at a specific event with previous and upcoming separation"""
         try:
@@ -133,22 +132,22 @@ class TBAInterface:
                 headers=self.headers,
                 timeout=self.timeout
             )
-            
+
             if response.status_code != 200:
                 return None
-                
+
             matches = response.json()
             current_time = datetime.now().timestamp()
-            
+
             previous_matches = []
             upcoming_matches = []
-            
+
             for match in matches:
                 # Get match details
                 comp_level = match.get('comp_level', 'qm')
                 match_number = match.get('match_number')
                 set_number = match.get('set_number')
-                
+
                 # Format match name
                 if comp_level == 'qm':
                     match_name = f"Qualification {match_number}"
@@ -158,14 +157,15 @@ class TBAInterface:
                     match_name = f"Final {match_number}"
                 else:
                     match_name = f"{comp_level.upper()} {match_number}"
-                
-                # Determine alliance
-                alliance = None
-                for color in ['red', 'blue']:
-                    if team_key in match['alliances'][color]['team_keys']:
-                        alliance = color
-                        break
-                
+
+                alliance = next(
+                    (
+                        color
+                        for color in ['red', 'blue']
+                        if team_key in match['alliances'][color]['team_keys']
+                    ),
+                    None,
+                )
                 match_info = {
                     'match_name': match_name,
                     'time': match.get('predicted_time') or match.get('time', 0) or 0,
@@ -175,28 +175,28 @@ class TBAInterface:
                         'blue': match['alliances']['blue']['score']
                     }
                 }
-                
+
                 # Sort into previous or upcoming
                 actual_time = match.get('actual_time')
                 if (actual_time is not None and actual_time > 0) or match_info['time'] < current_time:
                     previous_matches.append(match_info)
                 else:
                     upcoming_matches.append(match_info)
-            
+
             # Sort matches by time
             previous_matches.sort(key=lambda m: m['time'])
             upcoming_matches.sort(key=lambda m: m['time'])
-            
+
             return {
                 'previous': previous_matches,
                 'upcoming': upcoming_matches
             }
-            
+
         except Exception as e:
             logger.error(f"Error fetching team matches from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=20)
     def get_team_events(self, team_key, year=None):
         """Get all events a team is participating in for the given year"""
         if year is None:
@@ -242,9 +242,27 @@ class TBAInterface:
         # If no current events, get the most recent event (events are already sorted by date, most recent first)
         return events[0]
     
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=5)
     def get_event_rankings(self, event_key):
-        """Get team rankings at an event including ranking points"""
+        """
+        Retrieve the team rankings for a given event, including ranking points and match records.
+
+        Args:
+            event_key (str): The unique key identifying the event (e.g., '2023miket').
+
+        Returns:
+            list[dict] or None: A list of dictionaries containing team ranking information, or None if the request fails.
+                Each dictionary contains:
+                    - 'rank' (int): The team's rank at the event.
+                    - 'team_key' (str): The team's TBA key (e.g., 'frc254').
+                    - 'team_number' (int): The team's number.
+                    - 'ranking_points' (float|int): The team's ranking points.
+                    - 'record' (dict): The team's win/loss/tie record.
+                    - 'matches_played' (int): The number of matches played.
+
+        Exceptions:
+            Logs and returns None if an exception occurs during the request or response parsing.
+        """
         try:
             response = requests.get(
                 f"{self.base_url}/event/{event_key}/rankings",
