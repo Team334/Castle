@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
@@ -33,9 +33,9 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgirepository1.0-dev libcairo2-dev pkg-config python3.8 python3.8-dev
-        # Install WebKit dependencies for Ubuntu 20.04
-        sudo apt-get install -y gir1.2-webkit2-4.0 libwebkit2gtk-4.0-dev
+        sudo apt-get install -y libgirepository1.0-dev libgirepository-2.0-dev libcairo2-dev pkg-config python3-dev
+        # Install WebKit dependencies for Ubuntu 24.04
+        sudo apt-get install -y gir1.2-webkit2-4.1 libwebkit2gtk-4.1-dev
         # Install system PyGobject
         sudo apt-get install -y python3-gi python3-gi-cairo
         # Install GLib dev (needed for GTK applications)
@@ -45,28 +45,33 @@ jobs:
         sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     
     
-    - name: Set up Python virtual environment
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.3'
+    
+    - name: Install Python dependencies
       run: |
-        # Create a virtual environment with access to system packages
-        python3 -m venv --system-site-packages venv
-        source venv/bin/activate
-        # Upgrade pip within the virtual environment
-        pip install --upgrade pip setuptools wheel
-        # Install briefcase in the virtual environment
-        pip install briefcase
+        python -m pip install --upgrade pip
+        python -m pip install briefcase
     
     - name: Create Flatpak package
+      working-directory: ./standalone
       run: |
-        # Use the virtual environment
-        source venv/bin/activate
-        cd standalone
-        briefcase create linux flatpak --no-input
-        briefcase build linux flatpak --no-input --update-resources
-        briefcase package linux flatpak --no-input
+        python -m briefcase create linux flatpak --no-input -vv
+        python -m briefcase build linux flatpak --no-input --update-resources -vv
+        python -m briefcase package linux flatpak --no-input -vv
     
     - name: Upload Flatpak bundle
       uses: actions/upload-artifact@v4
       with:
         name: castle-flatpak-bundle
         path: standalone/dist/Castle-*.flatpak
-        if-no-files-found: warn 
+        if-no-files-found: warn
+    
+    - name: Upload build log on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: flatpak-build-logs
+        path: ./standalone/logs/ 
