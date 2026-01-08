@@ -61,16 +61,22 @@ def create_app():
         # Initialize collections
         if "users" not in db.list_collection_names():
             db.create_collection("users")
+            logger.info("Created 'users' collection in MongoDB.")
         if "teams" not in db.list_collection_names():
             db.create_collection("teams")
+            logger.info("Created 'teams' collection in MongoDB.")
         if "team_data" not in db.list_collection_names():
             db.create_collection("team_data")
+            logger.info("Created 'team_data' collection in MongoDB.")
         if "pit_scouting" not in db.list_collection_names():
             db.create_collection("pit_scouting")
+            logger.info("Created 'pit_scouting' collection in MongoDB.")
         if "assignments" not in db.list_collection_names():
             db.create_collection("assignments")
+            logger.info("Created 'assignments' collection in MongoDB.")
         if "assignment_subscriptions" not in db.list_collection_names():
             db.create_collection("assignment_subscriptions")
+            logger.info("Created 'assignment_subscriptions' collection in MongoDB.")
             
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
