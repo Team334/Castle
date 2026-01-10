@@ -108,10 +108,11 @@ function exportToCSV() {
         'Match',
         'Team Number',
         'Alliance',
-        'Auto Coral (L1/L2/L3/L4)',
-        'Auto Algae (Net/Proc)',
-        'Teleop Coral (L1/L2/L3/L4)',
-        'Teleop Algae (Net/Proc)',
+        // TOD
+        // 'Auto Coral (L1/L2/L3/L4)',
+        // 'Auto Algae (Net/Proc)',
+        // 'Teleop Coral (L1/L2/L3/L4)',
+        // 'Teleop Algae (Net/Proc)',
         'Climb',
         'Defense Rating',
         'Robot Disabled',
@@ -128,10 +129,11 @@ function exportToCSV() {
         const {teamNumber} = row.dataset;
         const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
         const match = row.querySelector('td:nth-child(3)').textContent.trim();
-        const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
-        const autoAlgae = row.querySelector('td:nth-child(5)').textContent.trim();
-        const teleopCoral = row.querySelector('td:nth-child(6)').textContent.trim();
-        const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
+        // TODO
+        // const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
+        // const autoAlgae = row.querySelector('td:nth-child(5)').textContent.trim();
+        // const teleopCoral = row.querySelector('td:nth-child(6)').textContent.trim();
+        // const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
         const climb = row.querySelector('td:nth-child(8)').textContent.trim();
         const defense = row.querySelector('td:nth-child(10)').textContent.trim();
         const robotDisabled = row.querySelector('td:nth-child(11) span').textContent.trim();
@@ -144,10 +146,11 @@ function exportToCSV() {
             match,
             teamNumber,
             alliance,
-            autoCoral,
-            autoAlgae,
-            teleopCoral,
-            teleopAlgae,
+            // TODO
+            // autoCoral,
+            // autoAlgae,
+            // teleopCoral,
+            // teleopAlgae,
             climb,
             defense,
             robotDisabled,

@@ -74,11 +74,13 @@ class TeamData:
         self.event_code = data.get('event_code')
         self.alliance = data.get('alliance', '')
         
-        # Algae scoring
-        self.algae_net = data.get('algae_net', 0)
-        self.algae_processor = data.get('algae_processor', 0)        
+        # # Algae scoring
+        # self.algae_net = data.get('algae_net', 0)
+        # self.algae_processor = data.get('algae_processor', 0)   
+
+
         # Climb
-        self.climb_type = data.get('climb_type', '')  # 'shallow', 'deep', 'park', or ''
+        self.climb_type = data.get('climb_type', '')  # 
         self.climb_success = data.get('climb_success', False)
         
         # Defense
@@ -98,25 +100,25 @@ class TeamData:
         self.scouter_team = data.get('scouter_team')
         self.is_owner = data.get('is_owner', True)
         
-        # Auto Coral scoring
-        self.auto_coral_level1 = data.get('auto_coral_level1', 0)
-        self.auto_coral_level2 = data.get('auto_coral_level2', 0)
-        self.auto_coral_level3 = data.get('auto_coral_level3', 0)
-        self.auto_coral_level4 = data.get('auto_coral_level4', 0)
+        # # Auto Coral scoring
+        # self.auto_coral_level1 = data.get('auto_coral_level1', 0)
+        # self.auto_coral_level2 = data.get('auto_coral_level2', 0)
+        # self.auto_coral_level3 = data.get('auto_coral_level3', 0)
+        # self.auto_coral_level4 = data.get('auto_coral_level4', 0)
         
-        # Teleop Coral scoring
-        self.teleop_coral_level1 = data.get('teleop_coral_level1', 0)
-        self.teleop_coral_level2 = data.get('teleop_coral_level2', 0)
-        self.teleop_coral_level3 = data.get('teleop_coral_level3', 0)
-        self.teleop_coral_level4 = data.get('teleop_coral_level4', 0)
+        # # Teleop Coral scoring
+        # self.teleop_coral_level1 = data.get('teleop_coral_level1', 0)
+        # self.teleop_coral_level2 = data.get('teleop_coral_level2', 0)
+        # self.teleop_coral_level3 = data.get('teleop_coral_level3', 0)
+        # self.teleop_coral_level4 = data.get('teleop_coral_level4', 0)
 
-        # Auto Algae scoring
-        self.auto_algae_net = data.get('auto_algae_net', 0)
-        self.auto_algae_processor = data.get('auto_algae_processor', 0)
+        # # Auto Algae scoring
+        # self.auto_algae_net = data.get('auto_algae_net', 0)
+        # self.auto_algae_processor = data.get('auto_algae_processor', 0)
         
-        # Teleop Algae scoring
-        self.teleop_algae_net = data.get('teleop_algae_net', 0)
-        self.teleop_algae_processor = data.get('teleop_algae_processor', 0)
+        # # Teleop Algae scoring
+        # self.teleop_algae_net = data.get('teleop_algae_net', 0)
+        # self.teleop_algae_processor = data.get('teleop_algae_processor', 0)
 
         # Robot Disabled Status
         self.robot_disabled = data.get('robot_disabled', 'None')  # 'None', 'Partially', 'Full'
@@ -133,18 +135,18 @@ class TeamData:
             'match_number': self.match_number,
             'event_code': self.event_code,
             'alliance': self.alliance,
-            'auto_coral_level1': self.auto_coral_level1,
-            'auto_coral_level2': self.auto_coral_level2,
-            'auto_coral_level3': self.auto_coral_level3,
-            'auto_coral_level4': self.auto_coral_level4,
-            'teleop_coral_level1': self.teleop_coral_level1,
-            'teleop_coral_level2': self.teleop_coral_level2,
-            'teleop_coral_level3': self.teleop_coral_level3,
-            'teleop_coral_level4': self.teleop_coral_level4,
-            'auto_algae_net': self.auto_algae_net,
-            'auto_algae_processor': self.auto_algae_processor,
-            'teleop_algae_net': self.teleop_algae_net,
-            'teleop_algae_processor': self.teleop_algae_processor,
+            # 'auto_': self.auto_coral_level1,
+            # 'auto_coral_level2': self.auto_coral_level2,
+            # 'auto_coral_level3': self.auto_coral_level3,
+            # 'auto_coral_level4': self.auto_coral_level4,
+            # 'teleop_coral_level1': self.teleop_coral_level1,
+            # 'teleop_coral_level2': self.teleop_coral_level2,
+            # 'teleop_coral_level3': self.teleop_coral_level3,
+            # 'teleop_coral_level4': self.teleop_coral_level4,
+            # 'auto_algae_net': self.auto_algae_net,
+            # 'auto_algae_processor': self.auto_algae_processor,
+            # 'teleop_algae_net': self.teleop_algae_net,
+            # 'teleop_algae_processor': self.teleop_algae_processor,
             'climb_type': self.climb_type,
             'climb_success': self.climb_success,
             'defense_rating': self.defense_rating,
@@ -167,7 +169,6 @@ class TeamData:
         return "N/A"
     
     
-
 
 class PitScouting:
     def __init__(self, data: Dict):
@@ -198,21 +199,6 @@ class PitScouting:
             "length": 0,
             "width": 0,
             "height": 0,
-        })
-        
-        # Mechanisms
-        self.mechanisms = data.get("mechanisms", {
-            "coral_scoring": {
-                "notes": ""
-            },
-            "algae_scoring": {
-                "notes": ""
-            },
-            "climber": {
-                "has_climber": False,
-                "type_climber": "", # deep, shallow, park
-                "notes": ""
-            }
         })
         
         # Programming and Autonomous

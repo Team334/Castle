@@ -91,21 +91,21 @@ function updateTeamCards(data) {
 
         const stats = teamData.stats || {};
 
-        // Update Auto Period stats
-        document.getElementById(`team${cardNum}-auto-l1`).textContent = (stats.avg_auto_coral_level1 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l2`).textContent = (stats.avg_auto_coral_level2 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l3`).textContent = (stats.avg_auto_coral_level3 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-l4`).textContent = (stats.avg_auto_coral_level4 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-net`).textContent = (stats.avg_auto_algae_net || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-auto-processor`).textContent = (stats.avg_auto_algae_processor || 0).toFixed(2);
+        // Update Auto Period stats TODO
+        // document.getElementById(`team${cardNum}-auto-l1`).textContent = (stats.avg_auto_coral_level1 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-auto-l2`).textContent = (stats.avg_auto_coral_level2 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-auto-l3`).textContent = (stats.avg_auto_coral_level3 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-auto-l4`).textContent = (stats.avg_auto_coral_level4 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-auto-net`).textContent = (stats.avg_auto_algae_net || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-auto-processor`).textContent = (stats.avg_auto_algae_processor || 0).toFixed(2);
 
-        // Update Teleop Period stats
-        document.getElementById(`team${cardNum}-teleop-l1`).textContent = (stats.avg_teleop_coral_level1 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l2`).textContent = (stats.avg_teleop_coral_level2 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l3`).textContent = (stats.avg_teleop_coral_level3 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-l4`).textContent = (stats.avg_teleop_coral_level4 || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-net`).textContent = (stats.avg_teleop_algae_net || 0).toFixed(2);
-        document.getElementById(`team${cardNum}-teleop-processor`).textContent = (stats.avg_teleop_algae_processor || 0).toFixed(2);
+        // // Update Teleop Period stats
+        // document.getElementById(`team${cardNum}-teleop-l1`).textContent = (stats.avg_teleop_coral_level1 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-teleop-l2`).textContent = (stats.avg_teleop_coral_level2 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-teleop-l3`).textContent = (stats.avg_teleop_coral_level3 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-teleop-l4`).textContent = (stats.avg_teleop_coral_level4 || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-teleop-net`).textContent = (stats.avg_teleop_algae_net || 0).toFixed(2);
+        // document.getElementById(`team${cardNum}-teleop-processor`).textContent = (stats.avg_teleop_algae_processor || 0).toFixed(2);
 
         // Update Endgame stats
         document.getElementById(`team${cardNum}-climb-success`).textContent = ((stats.climb_success_rate || 0) * 100).toFixed(1);
@@ -157,8 +157,9 @@ function updateRadarChart(data) {
         return {
             label: `Team ${teamData.team_number}`,
             data: [
-                normalized.auto_scoring || 0,
-                normalized.teleop_scoring || 0,
+                // TODO
+                // normalized.auto_scoring || 0,
+                // normalized.teleop_scoring || 0,
                 normalized.climb_rating || 0,
                 normalized.defense_rating || 0
             ],
@@ -175,7 +176,7 @@ function updateRadarChart(data) {
     radarChart = new Chart(canvas.getContext('2d'), {
         type: 'radar',
         data: {
-            labels: ['Auto Scoring', 'Teleop Scoring', 'Climb Success', 'Defense Rating'],
+            // labels: ['Auto Scoring', 'Teleop Scoring', 'Climb Success', 'Defense Rating'], # TODO
             datasets: datasets
         },
         options: {
@@ -231,18 +232,19 @@ function updateRawDataTable(data) {
                 <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.match_number || '-'}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.auto_coral_level1 || 0}/${match.auto_coral_level2 || 0}/${match.auto_coral_level3 || 0}/${match.auto_coral_level4 || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.auto_algae_net || 0}/${match.auto_algae_processor || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.teleop_coral_level1 || 0}/${match.teleop_coral_level2 || 0}/${match.teleop_coral_level3 || 0}/${match.teleop_coral_level4 || 0}
-                </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.teleop_algae_net || 0}/${match.teleop_algae_processor || 0}
-                </td>
+                # TODO
+                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                //     ${match.auto_coral_level1 || 0}/${match.auto_coral_level2 || 0}/${match.auto_coral_level3 || 0}/${match.auto_coral_level4 || 0}
+                // </td>
+                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                //     ${match.auto_algae_net || 0}/${match.auto_algae_processor || 0}
+                // </td>
+                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                //     ${match.teleop_coral_level1 || 0}/${match.teleop_coral_level2 || 0}/${match.teleop_coral_level3 || 0}/${match.teleop_coral_level4 || 0}
+                // </td>
+                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                //     ${match.teleop_algae_net || 0}/${match.teleop_algae_processor || 0}
+                // </td>
                 <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.climb_success ? `${match.climb_type || 'Yes'}` : 'No'}
                 </td>

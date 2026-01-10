@@ -43,18 +43,19 @@
                 </option>
                 {% endfor %}
             </select>
-            
+
+            <!-- TODO -->
             <select id="rankingSelect" 
                     onchange="changeRanking(this.value)" 
                     class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="coral" {% if current_sort == 'coral' %}selected{% endif %}>Most Coral (Total)</option>
+                <!-- <option value="coral" {% if current_sort == 'coral' %}selected{% endif %}>Most Coral (Total)</option>
                 <option value="auto_coral" {% if current_sort == 'auto_coral' %}selected{% endif %}>Most Coral (Auto)</option>
                 <option value="teleop_coral" {% if current_sort == 'teleop_coral' %}selected{% endif %}>Most Coral (Teleop)</option>
                 <option value="algae" {% if current_sort == 'algae' %}selected{% endif %}>Most Algae (Total)</option>
                 <option value="auto_algae" {% if current_sort == 'auto_algae' %}selected{% endif %}>Most Algae (Auto)</option>
                 <option value="teleop_algae" {% if current_sort == 'teleop_algae' %}selected{% endif %}>Most Algae (Teleop)</option>
                 <option value="deep_climb" {% if current_sort == 'deep_climb' %}selected{% endif %}>Deep Climb %</option>
-                <option value="defense" {% if current_sort == 'defense' %}selected{% endif %}>Defense Rating</option>
+                <option value="defense" {% if current_sort == 'defense' %}selected{% endif %}>Defense Rating</option> -->
             </select>
         </div>
     </div>
@@ -68,7 +69,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Auto Coral
                                 <span class="text-xs text-gray-400 block">avg per match</span>
                             </th>
@@ -83,7 +84,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Teleop Algae
                                 <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
+                            </th> --> <!-- TODO -->
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Defense
                                 <span class="text-xs text-gray-400 block">avg rating</span>
@@ -110,38 +111,26 @@
                             <!-- Auto Coral -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm space-y-1">
-                                    <div class="text-gray-500">L1: {{ "%.1f"|format(team.auto_coral_stats.level1) }}</div>
+                                    <!-- TODO -->
+                                    <!-- <div class="text-gray-500">L1: {{ "%.1f"|format(team.auto_coral_stats.level1) }}</div>
                                     <div class="text-gray-500">L2: {{ "%.1f"|format(team.auto_coral_stats.level2) }}</div>
                                     <div class="text-gray-500">L3: {{ "%.1f"|format(team.auto_coral_stats.level3) }}</div>
-                                    <div class="text-gray-500">L4: {{ "%.1f"|format(team.auto_coral_stats.level4) }}</div>
+                                    <div class="text-gray-500">L4: {{ "%.1f"|format(team.auto_coral_stats.level4) }}</div> -->
                                 </div>
                             </td>
-                            
-                            <!-- Auto Algae -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm space-y-1">
-                                    <div class="text-gray-500">Net: {{ "%.1f"|format(team.auto_algae_stats.net) }}</div>
-                                    <div class="text-gray-500">Proc: {{ "%.1f"|format(team.auto_algae_stats.processor) }}</div>
-                                </div>
-                            </td>
+                
                             
                             <!-- Teleop Coral -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm space-y-1">
-                                    <div class="text-gray-500">L1: {{ "%.1f"|format(team.teleop_coral_stats.level1) }}</div>
+                                    <!-- TODO -->
+                                    <!-- <div class="text-gray-500">L1: {{ "%.1f"|format(team.teleop_coral_stats.level1) }}</div>
                                     <div class="text-gray-500">L2: {{ "%.1f"|format(team.teleop_coral_stats.level2) }}</div>
                                     <div class="text-gray-500">L3: {{ "%.1f"|format(team.teleop_coral_stats.level3) }}</div>
-                                    <div class="text-gray-500">L4: {{ "%.1f"|format(team.teleop_coral_stats.level4) }}</div>
+                                    <div class="text-gray-500">L4: {{ "%.1f"|format(team.teleop_coral_stats.level4) }}</div> -->
                                 </div>
                             </td>
                             
-                            <!-- Teleop Algae -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm space-y-1">
-                                    <div class="text-gray-500">Net: {{ "%.1f"|format(team.teleop_algae_stats.net) }}</div>
-                                    <div class="text-gray-500">Proc: {{ "%.1f"|format(team.teleop_algae_stats.processor) }}</div>
-                                </div>
-                            </td>
                             
                             <!-- Defense Rating -->
                             <td class="px-6 py-4 whitespace-nowrap">
