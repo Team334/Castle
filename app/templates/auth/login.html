@@ -56,6 +56,11 @@
                                    {% if form_data.get('remember') %}checked{% endif %}>
                             <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
                         </div>
+                        <div class="text-sm">
+                            <a href="{{ url_for('auth.forgot_password') }}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                                Forgot password?
+                            </a>
+                        </div>
                     </div>
 
                     <div>
@@ -73,9 +78,9 @@
                             Register here
                         </a>
                     </p>
-                    <p class="mt-2 text-xs text-gray-500">
+                    <!-- <p class="mt-2 text-xs text-gray-500">
                         This is a private application for Team 334 members only.
-                    </p>
+                    </p> -->
                 </div>
             </div>
         </div>

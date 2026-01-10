@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
   '/static/css/global.css',
   '/static/css/index.css',
   '/static/js/Canvas.js',
-  '/static/images/field-2025.png',
+  '/static/images/field-2026.png',
   '/static/images/default_profile.png',
   '/static/js/notifications.js',
   '/static/logo.png',

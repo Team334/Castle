@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initialColor: '#2563eb',
         initialThickness: 3,
         maxPanDistance: 1000,
-        backgroundImage: '/static/images/field-2025.png',
+        backgroundImage: '/static/images/field-2026.png',
         readonly: false
     });
 
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Failed to load background image');
         CanvasField.showStatus('Error loading field image');
     };
-    testImage.src = '/static/images/field-2025.png';
+    testImage.src = '/static/images/field-2026.png';
 
     // Prevent page scrolling when using mouse wheel on canvas
     const canvas = document.getElementById('autoPath');

@@ -166,18 +166,20 @@
                             <th class="sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Match
                             </th>
+                            
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Coral (1-4)
+                                Auto Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Algae (Net/Proc)
+                                Transition Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Teleop Coral (1-4)
+                                Teleop Shifts (1-4)
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Teleop Algae (Net/Proc)
+                                Endgame Fuel
                             </th>
+
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Climb
                             </th>
@@ -228,23 +230,25 @@
                                 </div>
                             </td>
                             <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">{{ data.match_number }}</td>
+                            
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.auto_coral_level1 }}/{{ data.auto_coral_level2 }}/{{ data.auto_coral_level3 }}/{{ data.auto_coral_level4 }}
+                                {{ data.auto_fuel }}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.auto_algae_net }}/{{ data.auto_algae_processor }}
+                                {{ data.transition_fuel or 0 }}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.teleop_coral_level1 }}/{{ data.teleop_coral_level2 }}/{{ data.teleop_coral_level3 }}/{{ data.teleop_coral_level4 }}
+                                {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{ data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.teleop_algae_net }}/{{ data.teleop_algae_processor }}
+                                {{ data.endgame_fuel }}
                             </td>
+
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {% if data.climb_success %}
-                                <span class="text-green-600">✓ {{ data.climb_type }}</span>
+                                <span class="text-green-600">✓ L{{ data.climb_level }}</span>
                                 {% else %}
-                                <span class="text-red-600">✗ {{ data.climb_type }}</span>
+                                <span class="text-red-600">✗ L{{ data.climb_level }}</span>
                                 {% endif %}
                             </td>
                             <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
