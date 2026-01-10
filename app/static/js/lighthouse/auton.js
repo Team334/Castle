@@ -81,7 +81,7 @@ function initCanvas() {
             canvasField = new Canvas({
                 canvas: canvas,
                 container: container,
-                backgroundImage: '/static/images/field-2025.png',
+                backgroundImage: '/static/images/field-2026.png',
                 maxPanDistance: 1000,
                 // Add a simple status display function
                 showStatus: (message) => {

@@ -56,7 +56,7 @@ function showAutoPath(pathData, autoNotes) {
     const CanvasField = new Canvas({
         canvas: canvas,
         container: container,
-        backgroundImage: '/static/images/field-2025.png',
+        backgroundImage: '/static/images/field-2026.png',
         maxPanDistance: 1000
     });
 
@@ -108,10 +108,10 @@ function exportToCSV() {
         'Match',
         'Team Number',
         'Alliance',
-        'Auto Coral (L1/L2/L3/L4)',
-        'Auto Algae (Net/Proc)',
-        'Teleop Coral (L1/L2/L3/L4)',
-        'Teleop Algae (Net/Proc)',
+        'Auto Fuel',
+        'Transition Fuel',
+        'Teleop Shifts (1-4)',
+        'Endgame Fuel',
         'Climb',
         'Defense Rating',
         'Robot Disabled',
@@ -128,10 +128,11 @@ function exportToCSV() {
         const {teamNumber} = row.dataset;
         const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
         const match = row.querySelector('td:nth-child(3)').textContent.trim();
-        const autoCoral = row.querySelector('td:nth-child(4)').textContent.trim();
-        const autoAlgae = row.querySelector('td:nth-child(5)').textContent.trim();
-        const teleopCoral = row.querySelector('td:nth-child(6)').textContent.trim();
-        const teleopAlgae = row.querySelector('td:nth-child(7)').textContent.trim();
+        
+        const autoFuel = row.querySelector('td:nth-child(4)').textContent.trim();
+        const transitionFuel = row.querySelector('td:nth-child(5)').textContent.trim();
+        const teleopFuel = row.querySelector('td:nth-child(6)').textContent.trim();
+        const endgameFuel = row.querySelector('td:nth-child(7)').textContent.trim();
         const climb = row.querySelector('td:nth-child(8)').textContent.trim();
         const defense = row.querySelector('td:nth-child(10)').textContent.trim();
         const robotDisabled = row.querySelector('td:nth-child(11) span').textContent.trim();
@@ -144,10 +145,10 @@ function exportToCSV() {
             match,
             teamNumber,
             alliance,
-            autoCoral,
-            autoAlgae,
-            teleopCoral,
-            teleopAlgae,
+            autoFuel,
+            transitionFuel,
+            teleopFuel,
+            endgameFuel,
             climb,
             defense,
             robotDisabled,

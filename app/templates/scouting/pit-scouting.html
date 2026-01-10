@@ -87,9 +87,6 @@
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Drive Type</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Motors</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Dimensions</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Coral Scoring</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Algae Scoring</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Climber</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Programming</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Driver</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Scouter</th>
@@ -129,21 +126,6 @@
                         <td class="px-4 py-4 text-sm text-gray-500">
                             {{ data.dimensions.length }} in x {{ data.dimensions.width }} in x {{ data.dimensions.height }} in
                         </td>
-                        <td class="px-4 py-4 text-sm text-gray-500">
-                            {{ data.mechanisms.coral_scoring.notes }}
-                        </td>
-                        <td class="px-4 py-4 text-sm text-gray-500">
-                            {{ data.mechanisms.algae_scoring.notes }}
-                        </td>
-                        {% if data.mechanisms.climber.has_climber %}
-                        <td class="px-4 py-4 text-sm text-gray-500">
-                            {{ data.mechanisms.climber.type_climber }} - {{ data.mechanisms.climber.notes }}
-                        </td>
-                        {% else %}
-                        <td class="px-4 py-4 text-sm text-gray-500">
-                            🗙
-                        </td>
-                        {% endif %}
                         <td class="px-4 py-4 text-sm text-gray-500">
                             <b>Programming Language</b>: {{ data.programming_language }}
                             <br />

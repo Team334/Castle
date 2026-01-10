@@ -6,11 +6,6 @@ function exportToCSV() {
         'Motor Count',
         'Motor Types',
         'Dimensions (L x W x H)',
-        'Coral Scoring',
-        'Algae Scoring',
-        'Has Climber',
-        'Climber Type',
-        'Climber Notes',
         'Programming Language',
         'Has Auto',
         'Auto Routes',
@@ -48,13 +43,6 @@ function exportToCSV() {
 
             // Dimensions
             const dimensions = row.querySelector('td:nth-child(4)').textContent.trim();
-
-            // Scoring Mechanisms
-            const coralScoring = row.querySelector('td:nth-child(5)').textContent.trim();
-            const algaeScoring = row.querySelector('td:nth-child(6)').textContent.trim();
-
-            // Climber
-            const climberCell = row.querySelector('td:nth-child(7)');
             const hasClimber = !climberCell.textContent.includes('🗙');
             let climberType = '', climberNotes = '';
             if (hasClimber) {
@@ -109,11 +97,7 @@ function exportToCSV() {
                 escapeField(motorCount),
                 escapeField(motorTypes),
                 escapeField(dimensions),
-                escapeField(coralScoring),
-                escapeField(algaeScoring),
                 hasClimber ? 'Yes' : 'No',
-                escapeField(climberType),
-                escapeField(climberNotes),
                 escapeField(programmingLang),
                 hasAuto ? 'Yes' : 'No',
                 escapeField(autoRoutes),
