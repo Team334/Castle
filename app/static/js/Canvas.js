@@ -104,9 +104,9 @@ class Canvas {
       };
       
       // Initialize LocalForage
-      // this.storage = localforage.createInstance({
-      //   name: 'CanvasField'
-      // });
+      this.storage = localforage.createInstance({
+        name: 'CanvasField'
+      });
   
       // Perfect freehand settings
       this.pressure = 0.5;
@@ -122,8 +122,8 @@ class Canvas {
       this.lastWidth = 0;
       this.velocityFilterWeight = 0.7;
       
-      // // Auto-save interval (every 30 seconds)
-      // this.autoSaveInterval = setInterval(() => this.autoSave(), 30000);
+      // Auto-save interval (every 30 seconds)
+      this.autoSaveInterval = setInterval(() => this.autoSave(), 30000);
   
       // Initialize
       this.resizeCanvas();
@@ -1727,15 +1727,15 @@ class Canvas {
       }
     }
   
-    // // LocalForage methods
-    // async autoSave() {
-    //   try {
-    //     await this.storage.setItem('lastSession', this.saveToJSON());
-    //     this.showStatus('Auto-saved');
-    //   } catch (error) {
-    //     console.error('Auto-save failed:', error);
-    //   }
-    // }
+    // LocalForage methods
+    async autoSave() {
+      try {
+        await this.storage.setItem('lastSession', this.saveToJSON());
+        this.showStatus('Auto-saved');
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    }
   
     // Selection methods
     isPointInStroke(point, stroke) {

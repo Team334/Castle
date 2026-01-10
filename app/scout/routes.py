@@ -219,29 +219,20 @@ def auton():
 
 def format_team_stats(stats):
     """Format team stats with calculated totals"""
+    avg_teleop_fuel = (
+            stats.get("avg_transition_fuel", 0) +
+            stats.get("avg_teleop_shift_1_fuel", 0) +
+            stats.get("avg_teleop_shift_2_fuel", 0) +
+            stats.get("avg_teleop_shift_3_fuel", 0) +
+            stats.get("avg_teleop_shift_4_fuel", 0)
+        )
+
     return {
         "matches_played": stats.get("matches_played", 0),
-        # TODO
-        # "auto_coral_total": sum([
-        #     stats.get("avg_auto_coral_level1", 0),
-        #     stats.get("avg_auto_coral_level2", 0),
-        #     stats.get("avg_auto_coral_level3", 0),
-        #     stats.get("avg_auto_coral_level4", 0)
-        # ]),
-        # "teleop_coral_total": sum([
-        #     stats.get("avg_teleop_coral_level1", 0),
-        #     stats.get("avg_teleop_coral_level2", 0),
-        #     stats.get("avg_teleop_coral_level3", 0),
-        #     stats.get("avg_teleop_coral_level4", 0)
-        # ]),
-        # "auto_algae_total": sum([
-        #     stats.get("avg_auto_algae_net", 0),
-        #     stats.get("avg_auto_algae_processor", 0)
-        # ]),
-        # "teleop_algae_total": sum([
-        #     stats.get("avg_teleop_algae_net", 0),
-        #     stats.get("avg_teleop_algae_processor", 0)
-        # ]),
+        "auto_fuel_avg": stats.get("avg_auto_fuel", 0),
+        "teleop_fuel_avg": avg_teleop_fuel,
+        "endgame_fuel_avg": stats.get("avg_endgame_fuel", 0),
+        "climb_level_avg": stats.get("avg_climb_level", 0),
         "climb_success_rate": stats.get("climb_success_rate", 0) * 100
     }
 
@@ -280,21 +271,23 @@ def compare_teams():
                     {"$group": {
                         "_id": "$team_number",
                         "matches_played": {"$sum": 1},
-                        #TODO
-                        # "avg_auto_coral_level1": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level1", 0]}, "$auto_coral_level1", None]}},
-                        # "avg_auto_coral_level2": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level2", 0]}, "$auto_coral_level2", None]}},
-                        # "avg_auto_coral_level3": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level3", 0]}, "$auto_coral_level3", None]}},
-                        # "avg_auto_coral_level4": {"$avg": {"$cond": [{"$gt": ["$auto_coral_level4", 0]}, "$auto_coral_level4", None]}},
-                        # "avg_auto_algae_net": {"$avg": {"$cond": [{"$gt": ["$auto_algae_net", 0]}, "$auto_algae_net", None]}},
-                        # "avg_auto_algae_processor": {"$avg": {"$cond": [{"$gt": ["$auto_algae_processor", 0]}, "$auto_algae_processor", None]}},
-                        # "avg_teleop_coral_level1": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level1", 0]}, "$teleop_coral_level1", None]}},
-                        # "avg_teleop_coral_level2": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level2", 0]}, "$teleop_coral_level2", None]}},
-                        # "avg_teleop_coral_level3": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level3", 0]}, "$teleop_coral_level3", None]}},
-                        # "avg_teleop_coral_level4": {"$avg": {"$cond": [{"$gt": ["$teleop_coral_level4", 0]}, "$teleop_coral_level4", None]}},
-                        # "avg_teleop_algae_net": {"$avg": {"$cond": [{"$gt": ["$teleop_algae_net", 0]}, "$teleop_algae_net", None]}},
-                        # "avg_teleop_algae_processor": {"$avg": {"$cond": [{"$gt": ["$teleop_algae_processor", 0]}, "$teleop_algae_processor", None]}},
-                        # Only count successful climbs in the rate
+                        
+                        # Fuel Stats
+                        "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
+                        "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                        "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
+                        "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
+                        "avg_teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
+                        "avg_teleop_shift_4_fuel": {"$avg": {"$ifNull": ["$teleop_shift_4_fuel", 0]}},
+                        "avg_endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
+                        
+                        # Climb Stats
                         "climb_success_rate": {"$avg": {"$cond": ["$climb_success", 1, 0]}},
+                        "climb_level_1_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 1]}, 1, 0]}},
+                        "climb_level_2_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 2]}, 1, 0]}},
+                        "climb_level_3_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 3]}, 1, 0]}},
+                        "avg_climb_level": {"$avg": {"$ifNull": ["$climb_level", 0]}},
+
                         "defense_notes": {"$push": "$defense_notes"},
                         "auto_paths": {"$push": {
                             "path": "$auto_path",
@@ -312,24 +305,22 @@ def compare_teams():
                 if stats := list(
                     scouting_manager.db.team_data.aggregate(pipeline)
                 ):
+                    
+                    # Calculate total teleop average
+                    avg_teleop_total = (
+                        (stats[0].get("avg_transition_fuel") or 0) +
+                        (stats[0]["avg_teleop_shift_1_fuel"] or 0) +
+                        (stats[0]["avg_teleop_shift_2_fuel"] or 0) +
+                        (stats[0]["avg_teleop_shift_3_fuel"] or 0) +
+                        (stats[0]["avg_teleop_shift_4_fuel"] or 0)
+                    )
+
                     normalized_stats = {
                         # TODO
-                        # "auto_scoring": (
-                        #     (stats[0]["avg_auto_coral_level1"] or 0) + 
-                        #     (stats[0]["avg_auto_coral_level2"] or 0) * 2 +
-                        #     (stats[0]["avg_auto_coral_level3"] or 0) * 3 +
-                        #     (stats[0]["avg_auto_coral_level4"] or 0) * 4 +
-                        #     (stats[0]["avg_auto_algae_net"] or 0) * 2 +
-                        #     (stats[0]["avg_auto_algae_processor"] or 0) * 3
-                        # ) / 20,
-                        # "teleop_scoring": (
-                        #     (stats[0]["avg_teleop_coral_level1"] or 0) + 
-                        #     (stats[0]["avg_teleop_coral_level2"] or 0) * 2 +
-                        #     (stats[0]["avg_teleop_coral_level3"] or 0) * 3 +
-                        #     (stats[0]["avg_teleop_coral_level4"] or 0) * 4 +
-                        #     (stats[0]["avg_teleop_algae_net"] or 0) * 2 +
-                        #     (stats[0]["avg_teleop_algae_processor"] or 0) * 3
-                        # ) / 20,
+                        "auto_scoring": min((stats[0]["avg_auto_fuel"] or 0) / 10, 1), # Assumes ~10 max auto fuel
+                        "teleop_scoring": min(avg_teleop_total / 30, 1), # Assumes ~30 max teleop fuel
+                        "endgame_scoring": min((stats[0]["avg_endgame_fuel"] or 0) / 10, 1), # Assumes ~10 max endgame fuel
+                        "climb_level": min((stats[0]["avg_climb_level"] or 0) / 3, 1), # Max level 3
                         "climb_rating": stats[0]["climb_success_rate"],
                         "defense_rating": (stats[0]["defense_rating"] or 0) / 5 if stats[0].get("defense_rating") is not None else 0
                     }
@@ -423,21 +414,20 @@ async def search_teams():
                     "_id": {"$toString": "$_id"},  # Convert ObjectId to string
                     "event_code": 1,
                     "match_number": 1,
-                    # TODO
-                    # "auto_coral_level1": {"$ifNull": ["$auto_coral_level1", 0]},
-                    # "auto_coral_level2": {"$ifNull": ["$auto_coral_level2", 0]},
-                    # "auto_coral_level3": {"$ifNull": ["$auto_coral_level3", 0]},
-                    # "auto_coral_level4": {"$ifNull": ["$auto_coral_level4", 0]},
-                    # "teleop_coral_level1": {"$ifNull": ["$teleop_coral_level1", 0]},
-                    # "teleop_coral_level2": {"$ifNull": ["$teleop_coral_level2", 0]},
-                    # "teleop_coral_level3": {"$ifNull": ["$teleop_coral_level3", 0]},
-                    # "teleop_coral_level4": {"$ifNull": ["$teleop_coral_level4", 0]},
-                    # "auto_algae_net": {"$ifNull": ["$auto_algae_net", 0]},
-                    # "auto_algae_processor": {"$ifNull": ["$auto_algae_processor", 0]},
-                    # "teleop_algae_net": {"$ifNull": ["$teleop_algae_net", 0]},
-                    # "teleop_algae_processor": {"$ifNull": ["$teleop_algae_processor", 0]},
+                    # Fuel Stats
+                    "aransition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                    "tuto_fuel": {"$ifNull": ["$auto_fuel", 0]},
+                    "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
+                    "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
+                    "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
+                    "teleop_shift_4_fuel": {"$ifNull": ["$teleop_shift_4_fuel", 0]},
+                    "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
+                    
+                    # Climb Stats
+                    "climb_level": {"$ifNull": ["$climb_level", 0]},
                     "climb_type": 1,
                     "climb_success": 1,
+                    
                     "auto_path": 1,
                     "auto_notes": 1,
                     "defense_rating": {"$ifNull": ["$defense_rating", 0]},
@@ -539,23 +529,22 @@ def leaderboard():
             {"$group": {
                 "_id": "$team_number",
                 "matches_played": {"$sum": 1},
-                # TODO
-                # Auto Coral
-                # "auto_coral_level1": {"$avg": {"$ifNull": ["$auto_coral_level1", 0]}},
-                # "auto_coral_level2": {"$avg": {"$ifNull": ["$auto_coral_level2", 0]}},
-                # "auto_coral_level3": {"$avg": {"$ifNull": ["$auto_coral_level3", 0]}},
-                # "auto_coral_level4": {"$avg": {"$ifNull": ["$auto_coral_level4", 0]}},
-                # # Teleop Coral
-                # "teleop_coral_level1": {"$avg": {"$ifNull": ["$teleop_coral_level1", 0]}},
-                # "teleop_coral_level2": {"$avg": {"$ifNull": ["$teleop_coral_level2", 0]}},
-                # "teleop_coral_level3": {"$avg": {"$ifNull": ["$teleop_coral_level3", 0]}},
-                # "teleop_coral_level4": {"$avg": {"$ifNull": ["$teleop_coral_level4", 0]}},
-                # # Auto Algae
-                # "auto_algae_net": {"$avg": {"$ifNull": ["$auto_algae_net", 0]}},
-                # "auto_algae_processor": {"$avg": {"$ifNull": ["$auto_algae_processor", 0]}},
-                # # Teleop Algae
-                # "teleop_algae_net": {"$avg": {"$ifNull": ["$teleop_algae_net", 0]}},
-                # "teleop_algae_processor": {"$avg": {"$ifNull": ["$teleop_algae_processor", 0]}},
+                
+                # Auto Fuel
+                "auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
+                "transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                
+                # Teleop Fuel
+                "teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
+                "teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
+                "teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
+                "teleop_shift_4_fuel": {"$avg": {"$ifNull": ["$teleop_shift_4_fuel", 0]}},
+
+                # Endgame Fuel
+                "endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
+
+                # Climb Level
+                "climb_level": {"$avg": {"$ifNull": ["$climb_level", 0]}},
                 
                 # Defense Rating
                 "defense_rating": {"$avg": {"$ifNull": ["$defense_rating", 0]}},
@@ -563,90 +552,65 @@ def leaderboard():
                 "robot_disabled_list": {"$push": "$robot_disabled"},
 
                 # Climb stats
+                "climb_level_1_success": {"$sum": {"$cond": [{"$and": [{"$eq": ["$climb_level", 1]}, {"$eq": ["$climb_success", True]}]}, 1, 0]}},
+                "climb_level_2_success": {"$sum": {"$cond": [{"$and": [{"$eq": ["$climb_level", 2]}, {"$eq": ["$climb_success", True]}]}, 1, 0]}},
+                "climb_level_3_success": {"$sum": {"$cond": [{"$and": [{"$eq": ["$climb_level", 3]}, {"$eq": ["$climb_success", True]}]}, 1, 0]}},
                 "climb_attempts": {"$sum": 1},
                 "climb_successes": {
                     "$sum": {"$cond": [{"$eq": ["$climb_success", True]}, 1, 0]}
                 },
-                "deep_climb_attempts": {
-                    "$sum": {"$cond": [{"$eq": ["$climb_type", "deep"]}, 1, 0]}
-                },
-                "deep_climb_successes": {
-                    "$sum": {
-                        "$cond": [
-                            {"$and": [
-                                {"$eq": ["$climb_type", "deep"]},
-                                {"$eq": ["$climb_success", True]}
-                            ]},
-                            1,
-                            0
-                        ]
-                    }
-                }
             }},
             {"$match": {"matches_played": {"$gte": MIN_MATCHES}}},
             {"$project": {
                 "team_number": "$_id",
                 "matches_played": 1,
-                # TODO
-                # "auto_coral_stats": {
-                #     "level1": "$auto_coral_level1",
-                #     "level2": "$auto_coral_level2",
-                #     "level3": "$auto_coral_level3",
-                #     "level4": "$auto_coral_level4"
-                # },
-                # "teleop_coral_stats": {
-                #     "level1": "$teleop_coral_level1",
-                #     "level2": "$teleop_coral_level2",
-                #     "level3": "$teleop_coral_level3",
-                #     "level4": "$teleop_coral_level4"
-                # },
-                # "auto_algae_stats": {
-                #     "net": "$auto_algae_net",
-                #     "processor": "$auto_algae_processor"
-                # },
-                # "teleop_algae_stats": {
-                #     "net": "$teleop_algae_net",
-                #     "processor": "$teleop_algae_processor"
-                # },
+                
+                "auto_fuel": {"$round": ["$auto_fuel", 1]},
+                "transition_fuel": {"$round": ["$transition_fuel", 1]},
+                "teleop_fuel_total": {
+                    "$add": [
+                        "$transition_fuel",
+                        "$teleop_shift_1_fuel", 
+                        "$teleop_shift_2_fuel", 
+                        "$teleop_shift_3_fuel", 
+                        "$teleop_shift_4_fuel"
+                    ]
+                },
+                "endgame_fuel": {"$round": ["$endgame_fuel", 1]},
+                
                 # Calculate totals for each category
-                # "total_coral": {
-                #     "$add": [
-                #         # TODO
-                #         # "$auto_coral_level1", "$auto_coral_level2", 
-                #         # "$auto_coral_level3", "$auto_coral_level4",
-                #         # "$teleop_coral_level1", "$teleop_coral_level2", 
-                #         # "$teleop_coral_level3", "$teleop_coral_level4"
-                #     ]
-                # },
-                # "total_auto_coral": {
-                #     "$add": [
-                #         # TODO
-                #         # "$auto_coral_level1", "$auto_coral_level2", 
-                #         # "$auto_coral_level3", "$auto_coral_level4"
-                #     ]
-                # },
-                # "total_teleop_coral": {
-                #     "$add": [
-                #         # TODO
-                #         # "$teleop_coral_level1", "$teleop_coral_level2", 
-                #         # "$teleop_coral_level3", "$teleop_coral_level4"
-                #     ]
-                # },
-                # "total_algae": {
-                #     "$add": [
-                #         # TODO
-                #         # "$auto_algae_net", "$auto_algae_processor",
-                #         # "$teleop_algae_net", "$teleop_algae_processor"
-                #     ]
-                # },
-                # "total_auto_algae": {
-                #     # TODO
-                #     # "$add": ["$auto_algae_net", "$auto_algae_processor"]
-                # },
-                # "total_teleop_algae": {
-                #     # TODO
-                #     # "$add": ["$teleop_algae_net", "$teleop_algae_processor"]
-                # },
+                "total_fuel": {
+                    "$add": [
+                        "$auto_fuel",
+                        "$transition_fuel", 
+                        "$teleop_shift_1_fuel", 
+                        "$teleop_shift_2_fuel", 
+                        "$teleop_shift_3_fuel", 
+                        "$teleop_shift_4_fuel",
+                        "$endgame_fuel"
+                    ]
+                },
+                
+                "climb_level_avg": {"$round": ["$climb_level", 1]},
+
+                "climb_l1_pct": {
+                    "$multiply": [
+                        {"$divide": ["$climb_level_1_success", "$matches_played"]},
+                        100
+                    ]
+                },
+                "climb_l2_pct": {
+                    "$multiply": [
+                        {"$divide": ["$climb_level_2_success", "$matches_played"]},
+                        100
+                    ]
+                },
+                "climb_l3_pct": {
+                    "$multiply": [
+                        {"$divide": ["$climb_level_3_success", "$matches_played"]},
+                        100
+                    ]
+                },
                 "climb_success_rate": {
                     "$multiply": [
                         {"$cond": [
@@ -657,33 +621,21 @@ def leaderboard():
                         100
                     ]
                 },
-                # "deep_climb_success_rate": {
-                #     "$multiply": [
-                #         {"$cond": [
-                #             {"$gt": ["$deep_climb_attempts", 0]},
-                #             {"$divide": ["$deep_climb_successes", "$deep_climb_attempts"]},
-                #             0
-                #         ]},
-                #         100
-                #     ]
-                # },
                 "defense_rating": {"$round": ["$defense_rating", 1]},
                 "robot_disabled_list": "$robot_disabled_list"
             }}
         ])
 
         # Add sorting based on selected type
-        # TODO
         sort_field = {
-            # 'coral': 'total_coral',
-            # 'auto_coral': 'total_auto_coral',
-            # 'teleop_coral': 'total_teleop_coral',
-            # 'algae': 'total_algae',
-            # 'auto_algae': 'total_auto_algae',
-            # 'teleop_algae': 'total_teleop_algae',
-            # 'deep_climb': 'deep_climb_success_rate',
+            'fuel': 'total_fuel',
+            'auto_fuel': 'auto_fuel',
+            'climb': 'climb_success_rate',
+            'climb_l1': 'climb_l1_pct',
+            'climb_l2': 'climb_l2_pct',
+            'climb_l3': 'climb_l3_pct',
             'defense': 'defense_rating'
-        }.get(sort_type, 'total_coral')
+        }.get(sort_type, 'total_fuel')
 
         # if sort_type == 'deep_climb':
         #     pipeline.insert(-1, {
@@ -840,20 +792,17 @@ def matches():
                     "$push": {
                         "number": "$team_number",
                         "alliance": "$alliance",
-                        # Auto period TODO
-                        # "auto_coral_level1": {"$ifNull": ["$auto_coral_level1", 0]},
-                        # "auto_coral_level2": {"$ifNull": ["$auto_coral_level2", 0]},
-                        # "auto_coral_level3": {"$ifNull": ["$auto_coral_level3", 0]},
-                        # "auto_coral_level4": {"$ifNull": ["$auto_coral_level4", 0]},
-                        # "auto_algae_net": {"$ifNull": ["$auto_algae_net", 0]},
-                        # "auto_algae_processor": {"$ifNull": ["$auto_algae_processor", 0]},
-                        # # Teleop period
-                        # "teleop_coral_level1": {"$ifNull": ["$teleop_coral_level1", 0]},
-                        # "teleop_coral_level2": {"$ifNull": ["$teleop_coral_level2", 0]},
-                        # "teleop_coral_level3": {"$ifNull": ["$teleop_coral_level3", 0]},
-                        # "teleop_coral_level4": {"$ifNull": ["$teleop_coral_level4", 0]},
-                        # "teleop_algae_net": {"$ifNull": ["$teleop_algae_net", 0]},
-                        # "teleop_algae_processor": {"$ifNull": ["$teleop_algae_processor", 0]},
+                        
+                        # Fuel stats
+                        "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
+                        "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                        "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
+                        "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
+                        "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
+                        "teleop_shift_4_fuel": {"$ifNull": ["$teleop_shift_4_fuel", 0]},
+                        "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
+                        
+                        "climb_level": {"$ifNull": ["$climb_level", 0]},
                         "climb_type": "$climb_type",
                         "climb_success": "$climb_success"
                     }
@@ -868,57 +817,39 @@ def matches():
             red_teams = [t for t in match["teams"] if t["alliance"] == "red"]
             blue_teams = [t for t in match["teams"] if t["alliance"] == "blue"]
             
-            # Calculate alliance totals
-            # red_coral = {
-            #     # TODO
-            #     # "level1": sum(t["auto_coral_level1"] + t["teleop_coral_level1"] for t in red_teams),
-            #     # "level2": sum(t["auto_coral_level2"] + t["teleop_coral_level2"] for t in red_teams),
-            #     # "level3": sum(t["auto_coral_level3"] + t["teleop_coral_level3"] for t in red_teams),
-            #     # "level4": sum(t["auto_coral_level4"] + t["teleop_coral_level4"] for t in red_teams)
-            # }
+            # Calculate alliance totals for Fuel
+            red_fuel = {
+                "auto": sum(t["auto_fuel"] for t in red_teams),
+                "transition": sum(t["transition_fuel"] for t in red_teams),
+                "teleop": sum(t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + 
+                            t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] for t in red_teams),
+                "endgame": sum(t["endgame_fuel"] for t in red_teams),
+                "total": sum(t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + 
+                            t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"] for t in red_teams)
+            }
             
-            # TODO
-            # red_algae = {
-            #     "net": sum(t["auto_algae_net"] + t["teleop_algae_net"] for t in red_teams),
-            #     "processor": sum(t["auto_algae_processor"] + t["teleop_algae_processor"] for t in red_teams)
-            # }
-            
-            # blue_coral = {
-            #     "level1": sum(t["auto_coral_level1"] + t["teleop_coral_level1"] for t in blue_teams),
-            #     "level2": sum(t["auto_coral_level2"] + t["teleop_coral_level2"] for t in blue_teams),
-            #     "level3": sum(t["auto_coral_level3"] + t["teleop_coral_level3"] for t in blue_teams),
-            #     "level4": sum(t["auto_coral_level4"] + t["teleop_coral_level4"] for t in blue_teams)
-            # }
-            
-            # blue_algae = {
-            #     "net": sum(t["auto_algae_net"] + t["teleop_algae_net"] for t in blue_teams),
-            #     "processor": sum(t["auto_algae_processor"] + t["teleop_algae_processor"] for t in blue_teams)
-            # }
+            blue_fuel = {
+                 "auto": sum(t["auto_fuel"] for t in blue_teams),
+                "transition": sum(t["transition_fuel"] for t in blue_teams),
+                "teleop": sum(t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + 
+                            t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] for t in blue_teams),
+                "endgame": sum(t["endgame_fuel"] for t in blue_teams),
+                "total": sum(t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + 
+                            t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"] for t in blue_teams)
+            }
             
             # Prepare team data for template
             red_team_data = [{
                 "number": t["number"],
-                # TODO
-                # "coral_level1": t["auto_coral_level1"] + t["teleop_coral_level1"],
-                # "coral_level2": t["auto_coral_level2"] + t["teleop_coral_level2"],
-                # "coral_level3": t["auto_coral_level3"] + t["teleop_coral_level3"],
-                # "coral_level4": t["auto_coral_level4"] + t["teleop_coral_level4"],
-                # "algae_net": t["auto_algae_net"] + t["teleop_algae_net"],
-                # "algae_processor": t["auto_algae_processor"] + t["teleop_algae_processor"],
-                "climb_type": t["climb_type"],
+                "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
+                "climb_level": t["climb_level"],
                 "climb_success": t["climb_success"]
             } for t in red_teams]
 
             blue_team_data = [{
                 "number": t["number"],
-                # TODO
-                # "coral_level1": t["auto_coral_level1"] + t["teleop_coral_level1"],
-                # "coral_level2": t["auto_coral_level2"] + t["teleop_coral_level2"],
-                # "coral_level3": t["auto_coral_level3"] + t["teleop_coral_level3"],
-                # "coral_level4": t["auto_coral_level4"] + t["teleop_coral_level4"],
-                # "algae_net": t["auto_algae_net"] + t["teleop_algae_net"],
-                # "algae_processor": t["auto_algae_processor"] + t["teleop_algae_processor"],
-                "climb_type": t["climb_type"],
+                "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
+                "climb_level": t["climb_level"],
                 "climb_success": t["climb_success"]
             } for t in blue_teams]
 
@@ -927,11 +858,8 @@ def matches():
                 "match_number": match["_id"]["match"],
                 "red_teams": red_team_data,
                 "blue_teams": blue_team_data,
-                # TODO
-                # "red_coral": red_coral,
-                # "red_algae": red_algae,
-                # "blue_coral": blue_coral,
-                # "blue_algae": blue_algae
+                "red_fuel": red_fuel,
+                "blue_fuel": blue_fuel
             })
         current_app.logger.info(f"Successfully fetched matches {matches} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return render_template("scouting/matches.html", matches=matches)

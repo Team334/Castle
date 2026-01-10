@@ -260,7 +260,6 @@ def handle_route_errors(f):
 
 limiter = Limiter(
     key_func=get_remote_address,
-    storage_uri=os.getenv("MONGO_URI"),
     default_limits=["50000 per day", "10000 per hour"],
     strategy="moving-window"
 )

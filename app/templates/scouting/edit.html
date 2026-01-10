@@ -253,135 +253,97 @@
                 <!-- Auto Period Tab -->
                 <div class="tab-content active" data-tab="auto">
                     <div class="space-y-8">
-                        <!-- Auto Coral -->
+                        <!-- Auto Fuel -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Auto </h2> <!-- TODO -->
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Auto Fuel</h2>
                             <div class="space-y-4">
-                                <!-- <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 1</label>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
                                     <div class="flex">
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" 
-                                               name="auto_coral_level1" 
-                                               value="{{ team_data.auto_coral_level1 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
-                                        <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
-                                                onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
-                                    </div>
-                                </div> -->
-                                <!-- Repeat for levels 2-4 -->
-                                <!-- <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 2</label>
-                                    <div class="flex">
-                                        <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
-                                                onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="auto_coral_level2" 
-                                               value="{{ team_data.auto_coral_level2 }}"
+                                               name="auto_fuel" 
+                                               value="{{ team_data.auto_fuel }}"
                                                min="0" 
                                                class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 3</label>
-                                    <div class="flex">
-                                        <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
-                                                onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="auto_coral_level3" 
-                                               value="{{ team_data.auto_coral_level3 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
-                                        <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
-                                                onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 4</label>
-                                    <div class="flex">
-                                        <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
-                                                onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="auto_coral_level4" 
-                                               value="{{ team_data.auto_coral_level4 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
-                                        <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
-                                                onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
-                                    </div>
-                                </div> -->
                             </div>
-                        </div>                       
+                        </div>
                     </div>
                 </div>
-
+                
                 <!-- Teleop Period Tab -->
                 <div class="tab-content hidden" data-tab="teleop">
                     <div class="space-y-8">
-                        <!-- Teleop Coral -->
+                        <!-- Transition Shift Fuel -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Teleop </h2> <!-- TODO -->
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Transition Shift Fuel</h2>
                             <div class="space-y-4">
-                                <!-- <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 1</label>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
                                     <div class="flex">
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" 
-                                               name="teleop_coral_level1" 
-                                               value="{{ team_data.teleop_coral_level1 }}"
+                                               name="transition_fuel" 
+                                               value="{{ team_data.transition_fuel or 0 }}"
                                                min="0" 
                                                class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Teleop Fuel -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Teleop Shifts Fuel</h2>
+                            <div class="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 2</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 1 Fuel</label>
                                     <div class="flex">
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="teleop_coral_level2" 
-                                               value="{{ team_data.teleop_coral_level2 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                        <input type="number" name="teleop_shift_1_fuel" value="{{ team_data.teleop_shift_1_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 3</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 2 Fuel</label>
                                     <div class="flex">
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="teleop_coral_level3" 
-                                               value="{{ team_data.teleop_coral_level3 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                        <input type="number" name="teleop_shift_2_fuel" value="{{ team_data.teleop_shift_2_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Level 4</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 3 Fuel</label>
                                     <div class="flex">
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
-                                        <input type="number" 
-                                               name="teleop_coral_level4" 
-                                               value="{{ team_data.teleop_coral_level4 }}"
-                                               min="0" 
-                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                        <input type="number" name="teleop_shift_3_fuel" value="{{ team_data.teleop_shift_3_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
                                     </div>
-                                </div> -->
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 4 Fuel</label>
+                                    <div class="flex">
+                                        <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
+                                                onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
+                                        <input type="number" name="teleop_shift_4_fuel" value="{{ team_data.teleop_shift_4_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                        <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
+                                                onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -390,19 +352,35 @@
                 <!-- Endgame Tab -->
                 <div class="tab-content hidden" data-tab="endgame">
                     <div class="space-y-8">
+                        <!-- Endgame Fuel -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Endgame Fuel</h2>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
+                                <div class="flex">
+                                    <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
+                                            onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
+                                    <input type="number" name="endgame_fuel" value="{{ team_data.endgame_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                    <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
+                                            onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Climb Section -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Climb</h2> <!-- TODO -->
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Climb</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                    <select name="climb_type" class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <!-- <option value="" {% if not team_data.climb_type %}selected{% endif %}>None</option>
-                                        <option value="shallow" {% if team_data.climb_type == 'shallow' %}selected{% endif %}>Shallow</option>
-                                        <option value="deep" {% if team_data.climb_type == 'deep' %}selected{% endif %}>Deep</option>
-                                        <option value="park" {% if team_data.climb_type == 'park' %}selected{% endif %}>Park</option> -->
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Climb Level</label>
+                                    <select name="climb_level" class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="0" {% if team_data.climb_level == 0 %}selected{% endif %}>None</option>
+                                        <option value="1" {% if team_data.climb_level == 1 %}selected{% endif %}>Level 1</option>
+                                        <option value="2" {% if team_data.climb_level == 2 %}selected{% endif %}>Level 2</option>
+                                        <option value="3" {% if team_data.climb_level == 3 %}selected{% endif %}>Level 3</option>
                                     </select>
                                 </div>
+
                                 <div class="flex items-center">
                                     <input type="checkbox" 
                                            name="climb_success" 

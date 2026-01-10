@@ -119,15 +119,14 @@ function updateRadarCharts(teamsData) {
         const radarData = {
             team: teamNum,
             values: [
-                // TODO
-                // // Auto scoring (combine coral and algae)
-                // stats.auto_scoring || 0,
-                // // Teleop scoring (combine coral and algae)
-                // stats.teleop_scoring || 0,
-                // // Climb success rate
-                // stats.climb_rating || 0,
-                // // Defense rating
-                // stats.defense_rating || 0,
+                // Auto scoring (Fuel)
+                stats.auto_scoring || 0,
+                // Teleop scoring (Fuel)
+                stats.teleop_scoring || 0,
+                // Climb success rate
+                (stats.climb_rating || 0) * 10,
+                // Defense rating
+                (stats.defense_rating || 0) * 2
             ]
         };
 

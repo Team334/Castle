@@ -91,25 +91,25 @@ function updateTeamCards(data) {
 
         const stats = teamData.stats || {};
 
-        // Update Auto Period stats TODO
-        // document.getElementById(`team${cardNum}-auto-l1`).textContent = (stats.avg_auto_coral_level1 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-auto-l2`).textContent = (stats.avg_auto_coral_level2 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-auto-l3`).textContent = (stats.avg_auto_coral_level3 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-auto-l4`).textContent = (stats.avg_auto_coral_level4 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-auto-net`).textContent = (stats.avg_auto_algae_net || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-auto-processor`).textContent = (stats.avg_auto_algae_processor || 0).toFixed(2);
+        // Update Auto Period stats
+        document.getElementById(`team${cardNum}-auto-fuel`).textContent = (stats.avg_auto_fuel || 0).toFixed(2);
 
-        // // Update Teleop Period stats
-        // document.getElementById(`team${cardNum}-teleop-l1`).textContent = (stats.avg_teleop_coral_level1 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-teleop-l2`).textContent = (stats.avg_teleop_coral_level2 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-teleop-l3`).textContent = (stats.avg_teleop_coral_level3 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-teleop-l4`).textContent = (stats.avg_teleop_coral_level4 || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-teleop-net`).textContent = (stats.avg_teleop_algae_net || 0).toFixed(2);
-        // document.getElementById(`team${cardNum}-teleop-processor`).textContent = (stats.avg_teleop_algae_processor || 0).toFixed(2);
+        // Update Teleop Period stats
+        document.getElementById(`team${cardNum}-transition-fuel`).textContent = (stats.avg_transition_fuel || 0).toFixed(2);
+        document.getElementById(`team${cardNum}-teleop-s1`).textContent = (stats.avg_teleop_shift_1_fuel || 0).toFixed(2);
+        document.getElementById(`team${cardNum}-teleop-s2`).textContent = (stats.avg_teleop_shift_2_fuel || 0).toFixed(2);
+        document.getElementById(`team${cardNum}-teleop-s3`).textContent = (stats.avg_teleop_shift_3_fuel || 0).toFixed(2);
+        document.getElementById(`team${cardNum}-teleop-s4`).textContent = (stats.avg_teleop_shift_4_fuel || 0).toFixed(2);
 
         // Update Endgame stats
+        document.getElementById(`team${cardNum}-endgame-fuel`).textContent = (stats.avg_endgame_fuel || 0).toFixed(2);
         document.getElementById(`team${cardNum}-climb-success`).textContent = ((stats.climb_success_rate || 0) * 100).toFixed(1);
-        document.getElementById(`team${cardNum}-preferred-climb`).textContent = stats.preferred_climb_type || '-';
+        
+        const matches = stats.matches_played || 1;
+        const l1 = ((stats.climb_level_1_count || 0) / matches * 100).toFixed(0);
+        const l2 = ((stats.climb_level_2_count || 0) / matches * 100).toFixed(0);
+        const l3 = ((stats.climb_level_3_count || 0) / matches * 100).toFixed(0);
+        document.getElementById(`team${cardNum}-preferred-climb`).textContent = `L1: ${l1}% | L2: ${l2}% | L3: ${l3}%`;
 
         // Update Defense stats
         document.getElementById(`team${cardNum}-defense`).textContent = `${(stats.defense_rating || 0).toFixed(1)}/5`;
@@ -157,9 +157,10 @@ function updateRadarChart(data) {
         return {
             label: `Team ${teamData.team_number}`,
             data: [
-                // TODO
-                // normalized.auto_scoring || 0,
-                // normalized.teleop_scoring || 0,
+                normalized.auto_scoring || 0,
+                normalized.teleop_scoring || 0,
+                normalized.endgame_scoring || 0,
+                normalized.climb_level || 0,
                 normalized.climb_rating || 0,
                 normalized.defense_rating || 0
             ],
@@ -176,7 +177,7 @@ function updateRadarChart(data) {
     radarChart = new Chart(canvas.getContext('2d'), {
         type: 'radar',
         data: {
-            // labels: ['Auto Scoring', 'Teleop Scoring', 'Climb Success', 'Defense Rating'], # TODO
+            labels: ['Auto Fuel', 'Teleop Fuel', 'Endgame Fuel', 'Climb Level', 'Climb Success', 'Defense Rating'],
             datasets: datasets
         },
         options: {
@@ -232,21 +233,20 @@ function updateRawDataTable(data) {
                 <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.match_number || '-'}
                 </td>
-                # TODO
-                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                //     ${match.auto_coral_level1 || 0}/${match.auto_coral_level2 || 0}/${match.auto_coral_level3 || 0}/${match.auto_coral_level4 || 0}
-                // </td>
-                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                //     ${match.auto_algae_net || 0}/${match.auto_algae_processor || 0}
-                // </td>
-                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                //     ${match.teleop_coral_level1 || 0}/${match.teleop_coral_level2 || 0}/${match.teleop_coral_level3 || 0}/${match.teleop_coral_level4 || 0}
-                // </td>
-                // <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                //     ${match.teleop_algae_net || 0}/${match.teleop_algae_processor || 0}
-                // </td>
                 <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.climb_success ? `${match.climb_type || 'Yes'}` : 'No'}
+                   ${match.auto_fuel || 0}
+                </td>
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                   ${match.transition_fuel || 0}
+                </td>
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${match.teleop_shift_1_fuel || 0} / ${match.teleop_shift_2_fuel || 0} / ${match.teleop_shift_3_fuel || 0} / ${match.teleop_shift_4_fuel || 0}
+                </td>
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${match.endgame_fuel || 0}
+                </td>
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    Level ${match.climb_level || 0}
                 </td>
                 <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.auto_path ? 
@@ -260,7 +260,7 @@ function updateRawDataTable(data) {
                     ${match.notes || '-'}
                 </td>
                 <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${match.scouter_name || '-'}
+                    ${match.scouter?.username || match.scouter_name || '-'}
                 </td>
             `;
             tbody.appendChild(row);
@@ -289,7 +289,7 @@ function showAutoPath(pathData, autoNotes, deviceType) {
     const CanvasField = new Canvas({
         canvas: document.getElementById('modalAutoPathCanvas'),
         container: container,
-        backgroundImage: '/static/images/field-2025.png',
+        backgroundImage: '/static/images/field-2026.png',
         maxPanDistance: 1000
     });
 

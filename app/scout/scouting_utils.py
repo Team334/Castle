@@ -101,27 +101,17 @@ class ScoutingManager(DatabaseManager):
                 "match_number": data["match_number"],
                 "alliance": alliance,
 
-                # # Auto Coral scoring
-                # "auto_coral_level1": int(data.get("auto_coral_level1", 0)),
-                # "auto_coral_level2": int(data.get("auto_coral_level2", 0)),
-                # "auto_coral_level3": int(data.get("auto_coral_level3", 0)),
-                # "auto_coral_level4": int(data.get("auto_coral_level4", 0)),
-
-                # # Teleop Coral scoring
-                # "teleop_coral_level1": int(data.get("teleop_coral_level1", 0)),
-                # "teleop_coral_level2": int(data.get("teleop_coral_level2", 0)),
-                # "teleop_coral_level3": int(data.get("teleop_coral_level3", 0)),
-                # "teleop_coral_level4": int(data.get("teleop_coral_level4", 0)),
-
-                # # Auto Algae scoring
-                # "auto_algae_net": int(data.get("auto_algae_net", 0)),
-                # "auto_algae_processor": int(data.get("auto_algae_processor", 0)),
-
-                # # Teleop Algae scoring
-                # "teleop_algae_net": int(data.get("teleop_algae_net", 0)),
-                # "teleop_algae_processor": int(data.get("teleop_algae_processor", 0)),
-
+                # Fuel
+                "auto_fuel": int(data.get('auto_fuel', 0)),
+                "transition_fuel": int(data.get("transition_fuel", 0)),
+                "teleop_shift_1_fuel": int(data.get('teleop_shift_1_fuel', 0)),
+                "teleop_shift_2_fuel": int(data.get('teleop_shift_2_fuel', 0)),
+                "teleop_shift_3_fuel": int(data.get('teleop_shift_3_fuel', 0)),
+                "teleop_shift_4_fuel": int(data.get('teleop_shift_4_fuel', 0)),
+                "endgame_fuel": int(data.get('endgame_fuel', 0)),
+                
                 # Climb
+                "climb_level": int(data.get('climb_level', 0)),
                 "climb_type": data.get("climb_type", ""),
                 "climb_success": bool(data.get("climb_success", False)),
 
@@ -194,18 +184,18 @@ class ScoutingManager(DatabaseManager):
                     "team_number": 1,
                     "match_number": 1,
                     "event_code": 1,
-                    # "auto_coral_level1": 1,
-                    # "auto_coral_level2": 1,
-                    # "auto_coral_level3": 1,
-                    # "auto_coral_level4": 1,
-                    # "teleop_coral_level1": 1,
-                    # "teleop_coral_level2": 1,
-                    # "teleop_coral_level3": 1,
-                    # "teleop_coral_level4": 1,
-                    # "auto_algae_net": 1,
-                    # "auto_algae_processor": 1,
-                    # "teleop_algae_net": 1,
-                    # "teleop_algae_processor": 1,
+                    
+                    # Fuel Stats
+                    "auto_fuel": 1,
+                    "transition_fuel": 1,
+                    "teleop_shift_1_fuel": 1,
+                    "teleop_shift_2_fuel": 1,
+                    "teleop_shift_3_fuel": 1,
+                    "teleop_shift_4_fuel": 1,
+                    "endgame_fuel": 1,
+
+                    # Climb Stats
+                    "climb_level": 1,
                     "climb_type": 1,
                     "climb_success": 1,
                     "defense_rating": 1,
@@ -321,17 +311,17 @@ class ScoutingManager(DatabaseManager):
                 "match_number": data["match_number"],
                 "alliance": alliance,
                 
-                # # Coral scoring
-                # "coral_level1": int(data.get("coral_level1", 0)),
-                # "coral_level2": int(data.get("coral_level2", 0)),
-                # "coral_level3": int(data.get("coral_level3", 0)),
-                # "coral_level4": int(data.get("coral_level4", 0)),
+                # Fuel Stats
+                "auto_fuel": int(data.get("auto_fuel", 0)),
+                "transition_fuel": int(data.get("transition_fuel", 0)),
+                "teleop_shift_1_fuel": int(data.get("teleop_shift_1_fuel", 0)),
+                "teleop_shift_2_fuel": int(data.get("teleop_shift_2_fuel", 0)),
+                "teleop_shift_3_fuel": int(data.get("teleop_shift_3_fuel", 0)),
+                "teleop_shift_4_fuel": int(data.get("teleop_shift_4_fuel", 0)),
+                "endgame_fuel": int(data.get("endgame_fuel", 0)),
                 
-                # # Algae scoring
-                # "algae_net": int(data.get("algae_net", 0)),
-                # "algae_processor": int(data.get("algae_processor", 0)),
-
-                # Climb
+                # Climb Stats
+                "climb_level": int(data.get("climb_level", 0)),
                 "climb_type": data.get("climb_type", ""),
                 "climb_success": bool(data.get("climb_success", False)),
                 
@@ -374,7 +364,7 @@ class ScoutingManager(DatabaseManager):
                 {"_id": ObjectId(team_id)},
                 {"$set": updated_data},
             )
-            return result.modified_count > 0
+            return result.matched_count > 0
         except Exception as e:
             logger.error(f"Error updating team data: {str(e)}")
             return False
@@ -450,18 +440,20 @@ class ScoutingManager(DatabaseManager):
                     "$group": {
                         "_id": "$team_number",
                         "matches_played": {"$sum": 1},
-                        "total_coral": {
+                        "total_fuel": {
                             "$sum": {
                                 "$add": [
-                                    # "$coral_level1",
-                                    # "$coral_level2",
-                                    # "$coral_level3",
-                                    # "$coral_level4"
+                                    {"$ifNull": ["$auto_fuel", 0]},
+                                    {"$ifNull": ["$teleop_shift_1_fuel", 0]},
+                                    {"$ifNull": ["$teleop_shift_2_fuel", 0]},
+                                    {"$ifNull": ["$teleop_shift_3_fuel", 0]},
+                                    {"$ifNull": ["$teleop_shift_4_fuel", 0]},
+                                    {"$ifNull": ["$endgame_fuel", 0]}
                                 ]
                             }
                         },
-                        "total_algae": {
-                            "$sum": {"$add": ["$algae_net", "$algae_processor"]}
+                        "avg_climb_level": {
+                            "$avg": {"$ifNull": ["$climb_level", 0]}
                         },
                         "successful_climbs": {
                             "$sum": {"$cond": ["$climb_success", 1, 0]}
@@ -476,8 +468,8 @@ class ScoutingManager(DatabaseManager):
             if not result:
                 return {
                     "matches_played": 0,
-                    # "total_coral": 0,
-                    # "total_algae": 0,
+                    "total_fuel": 0,
+                    "avg_climb_level": 0,
                     "successful_climbs": 0,
                     "total_defense": 0,
                     "total_points": 0
