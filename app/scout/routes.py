@@ -415,8 +415,8 @@ async def search_teams():
                     "event_code": 1,
                     "match_number": 1,
                     # Fuel Stats
-                    "aransition_fuel": {"$ifNull": ["$transition_fuel", 0]},
-                    "tuto_fuel": {"$ifNull": ["$auto_fuel", 0]},
+                    "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                    "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
                     "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                     "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
                     "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
@@ -465,7 +465,7 @@ async def search_teams():
 def leaderboard():
     try:
         MIN_MATCHES = 1
-        sort_type = request.args.get('sort', 'coral')
+        sort_type = request.args.get('sort', 'fuel')
         selected_event = request.args.get('event', 'all')
         
         # Get available events from scouting data
@@ -651,7 +651,7 @@ def leaderboard():
                               events=events, selected_event=selected_event)
     except Exception as e:
         current_app.logger.error(f"Error in leaderboard: {str(e)}", exc_info=True)
-        return render_template("scouting/leaderboard.html", teams=[], current_sort='coral', 
+        return render_template("scouting/leaderboard.html", teams=[], current_sort='fuel', 
                               events=[], selected_event='all')
 
 @scouting_bp.route("/scouter-leaderboard")

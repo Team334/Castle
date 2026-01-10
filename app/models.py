@@ -103,26 +103,6 @@ class TeamData:
         self.scouter_name = data.get('scouter_name')
         self.scouter_team = data.get('scouter_team')
         self.is_owner = data.get('is_owner', True)
-        
-        # # Auto Coral scoring
-        # self.auto_coral_level1 = data.get('auto_coral_level1', 0)
-        # self.auto_coral_level2 = data.get('auto_coral_level2', 0)
-        # self.auto_coral_level3 = data.get('auto_coral_level3', 0)
-        # self.auto_coral_level4 = data.get('auto_coral_level4', 0)
-        
-        # # Teleop Coral scoring
-        # self.teleop_coral_level1 = data.get('teleop_coral_level1', 0)
-        # self.teleop_coral_level2 = data.get('teleop_coral_level2', 0)
-        # self.teleop_coral_level3 = data.get('teleop_coral_level3', 0)
-        # self.teleop_coral_level4 = data.get('teleop_coral_level4', 0)
-
-        # # Auto Algae scoring
-        # self.auto_algae_net = data.get('auto_algae_net', 0)
-        # self.auto_algae_processor = data.get('auto_algae_processor', 0)
-        
-        # # Teleop Algae scoring
-        # self.teleop_algae_net = data.get('teleop_algae_net', 0)
-        # self.teleop_algae_processor = data.get('teleop_algae_processor', 0)
 
         # Robot Disabled Status
         self.robot_disabled = data.get('robot_disabled', 'None')  # 'None', 'Partially', 'Full'

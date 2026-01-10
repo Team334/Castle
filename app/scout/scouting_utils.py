@@ -338,26 +338,6 @@ class ScoutingManager(DatabaseManager):
                 
                 # Notes
                 "notes": data.get("notes", ""),
-                
-            #     # Auto Coral scoring
-            #     "auto_coral_level1": int(data.get("auto_coral_level1", 0)),
-            #     "auto_coral_level2": int(data.get("auto_coral_level2", 0)),
-            #     "auto_coral_level3": int(data.get("auto_coral_level3", 0)),
-            #     "auto_coral_level4": int(data.get("auto_coral_level4", 0)),
-                
-            #     # Teleop Coral scoring
-            #     "teleop_coral_level1": int(data.get("teleop_coral_level1", 0)),
-            #     "teleop_coral_level2": int(data.get("teleop_coral_level2", 0)),
-            #     "teleop_coral_level3": int(data.get("teleop_coral_level3", 0)),
-            #     "teleop_coral_level4": int(data.get("teleop_coral_level4", 0)),
-                
-            #     # Auto Algae scoring
-            #     "auto_algae_net": int(data.get("auto_algae_net", 0)),
-            #     "auto_algae_processor": int(data.get("auto_algae_processor", 0)),
-                
-            #     # Teleop Algae scoring
-            #     "teleop_algae_net": int(data.get("teleop_algae_net", 0)),
-            #     "teleop_algae_processor": int(data.get("teleop_algae_processor", 0)),
             }
 
             result = self.db.team_data.update_one(
