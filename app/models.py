@@ -84,6 +84,7 @@ class TeamData:
         self.endgame_fuel = data.get('endgame_fuel', 0)
 
         # Climb
+        self.auto_climb = data.get('auto_climb', False)
         self.climb_level = data.get('climb_level', 0)  # 0=None, 1-3
         self.climb_success = data.get('climb_success', False)
         
@@ -128,6 +129,7 @@ class TeamData:
             'teleop_shift_3_fuel': self.teleop_shift_3_fuel,
             'teleop_shift_4_fuel': self.teleop_shift_4_fuel,
             'endgame_fuel': self.endgame_fuel,
+            'auto_climb': self.auto_climb,
             'climb_level': self.climb_level,
             
             'climb_success': self.climb_success,

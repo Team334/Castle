@@ -171,6 +171,9 @@
                                 Auto Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Auto Climb
+                            </th>
+                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Transition Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -233,6 +236,13 @@
                             
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.auto_fuel }}
+                            </td>
+                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                                {% if data.auto_climb %}
+                                <span class="text-green-600">✓</span>
+                                {% else %}
+                                <span class="text-gray-400">-</span>
+                                {% endif %}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.transition_fuel or 0 }}

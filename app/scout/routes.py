@@ -274,6 +274,7 @@ def compare_teams():
                         
                         # Fuel Stats
                         "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
+                        "avg_auto_climb": {"$avg": {"$cond": ["$auto_climb", 1, 0]}},
                         "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
                         "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
                         "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
@@ -424,6 +425,7 @@ async def search_teams():
                     "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
                     
                     # Climb Stats
+                    "auto_climb": 1,
                     "climb_level": {"$ifNull": ["$climb_level", 0]},
                     "climb_type": 1,
                     "climb_success": 1,
@@ -544,6 +546,7 @@ def leaderboard():
                 "endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
 
                 # Climb Level
+                "auto_climb_sum": {"$sum": {"$cond": [{"$eq": ["$auto_climb", True]}, 1, 0]}},
                 "climb_level": {"$avg": {"$ifNull": ["$climb_level", 0]}},
                 
                 # Defense Rating
@@ -593,6 +596,12 @@ def leaderboard():
                 
                 "climb_level_avg": {"$round": ["$climb_level", 1]},
 
+                "auto_climb_pct": {
+                    "$multiply": [
+                        {"$divide": ["$auto_climb_sum", "$matches_played"]},
+                        100
+                    ]
+                },
                 "climb_l1_pct": {
                     "$multiply": [
                         {"$divide": ["$climb_level_1_success", "$matches_played"]},
@@ -630,6 +639,7 @@ def leaderboard():
         sort_field = {
             'fuel': 'total_fuel',
             'auto_fuel': 'auto_fuel',
+            'auto_climb': 'auto_climb_pct',
             'climb': 'climb_success_rate',
             'climb_l1': 'climb_l1_pct',
             'climb_l2': 'climb_l2_pct',
@@ -795,6 +805,7 @@ def matches():
                         
                         # Fuel stats
                         "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
+                        "auto_climb": {"$ifNull": ["$auto_climb", False]},
                         "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
                         "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                         "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
@@ -843,14 +854,16 @@ def matches():
                 "number": t["number"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
-                "climb_success": t["climb_success"]
+                "climb_success": t["climb_success"],
+                "auto_climb": t["auto_climb"]
             } for t in red_teams]
 
             blue_team_data = [{
                 "number": t["number"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
-                "climb_success": t["climb_success"]
+                "climb_success": t["climb_success"],
+                "auto_climb": t["auto_climb"]
             } for t in blue_teams]
 
             matches.append({

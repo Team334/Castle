@@ -111,6 +111,7 @@ class ScoutingManager(DatabaseManager):
                 "endgame_fuel": int(data.get('endgame_fuel', 0)),
                 
                 # Climb
+                "auto_climb": bool(data.get("auto_climb", False)),
                 "climb_level": int(data.get('climb_level', 0)),
                 "climb_type": data.get("climb_type", ""),
                 "climb_success": bool(data.get("climb_success", False)),
@@ -195,6 +196,7 @@ class ScoutingManager(DatabaseManager):
                     "endgame_fuel": 1,
 
                     # Climb Stats
+                    "auto_climb": 1,
                     "climb_level": 1,
                     "climb_type": 1,
                     "climb_success": 1,
