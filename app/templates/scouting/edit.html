@@ -259,6 +259,10 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" 
@@ -268,6 +272,10 @@
                                                class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                             </div>
@@ -296,6 +304,10 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" 
@@ -305,7 +317,32 @@
                                                class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ferried Fuel -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Ferried Fuel</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Count</label>
+                                    <div class="flex">
+                                       <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
+                                                onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
+                                        <input type="number" 
+                                               name="ferried_fuel" 
+                                               value="{{ team_data.ferried_fuel or 0 }}"
+                                               min="0" 
+                                               class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
+                                        <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
+                                                onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        </div>
                                 </div>
                             </div>
                         </div>
@@ -317,41 +354,73 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Shift 1 Fuel</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" name="teleop_shift_1_fuel" value="{{ team_data.teleop_shift_1_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Shift 2 Fuel</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" name="teleop_shift_2_fuel" value="{{ team_data.teleop_shift_2_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Shift 3 Fuel</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" name="teleop_shift_3_fuel" value="{{ team_data.teleop_shift_3_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Shift 4 Fuel</label>
                                     <div class="flex">
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                         <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                                 onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                         <input type="number" name="teleop_shift_4_fuel" value="{{ team_data.teleop_shift_4_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                         <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                                 onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                                onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                             </div>
@@ -368,11 +437,19 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
                                 <div class="flex">
+                                    <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                            onclick="let input = this.parentNode.querySelector('input'); input.stepDown(10); input.dispatchEvent(new Event('change'));">-10</button>
+                                    <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 mr-2 rounded text-sm font-medium" 
+                                            onclick="let input = this.parentNode.querySelector('input'); input.stepDown(5); input.dispatchEvent(new Event('change'));">-5</button>
                                     <button type="button" class="decrement-btn px-3 py-2 bg-gray-200 rounded-l-md border border-gray-300 hover:bg-gray-300" 
                                             onclick="this.nextElementSibling.stepDown(); this.nextElementSibling.dispatchEvent(new Event('change'));">-</button>
                                     <input type="number" name="endgame_fuel" value="{{ team_data.endgame_fuel }}" min="0" class="w-full px-4 py-2 border-y border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center">
                                     <button type="button" class="increment-btn px-3 py-2 bg-gray-200 rounded-r-md border border-gray-300 hover:bg-gray-300"
                                             onclick="this.previousElementSibling.stepUp(); this.previousElementSibling.dispatchEvent(new Event('change'));">+</button>
+                                    <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                            onclick="let input = this.parentNode.querySelector('input'); input.stepUp(5); input.dispatchEvent(new Event('change'));">+5</button>
+                                    <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 px-3 ml-2 rounded text-sm font-medium" 
+                                            onclick="let input = this.parentNode.querySelector('input'); input.stepUp(10); input.dispatchEvent(new Event('change'));">+10</button>
                                 </div>
                             </div>
                         </div>

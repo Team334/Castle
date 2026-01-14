@@ -109,6 +109,7 @@ class ScoutingManager(DatabaseManager):
                 "teleop_shift_3_fuel": int(data.get('teleop_shift_3_fuel', 0)),
                 "teleop_shift_4_fuel": int(data.get('teleop_shift_4_fuel', 0)),
                 "endgame_fuel": int(data.get('endgame_fuel', 0)),
+                "ferried_fuel": int(data.get('ferried_fuel', 0)),
                 
                 # Climb
                 "auto_climb": bool(data.get("auto_climb", False)),
@@ -194,6 +195,7 @@ class ScoutingManager(DatabaseManager):
                     "teleop_shift_3_fuel": 1,
                     "teleop_shift_4_fuel": 1,
                     "endgame_fuel": 1,
+                    "ferried_fuel": 1,
 
                     # Climb Stats
                     "auto_climb": 1,
@@ -321,6 +323,7 @@ class ScoutingManager(DatabaseManager):
                 "teleop_shift_3_fuel": int(data.get("teleop_shift_3_fuel", 0)),
                 "teleop_shift_4_fuel": int(data.get("teleop_shift_4_fuel", 0)),
                 "endgame_fuel": int(data.get("endgame_fuel", 0)),
+                "ferried_fuel": int(data.get("ferried_fuel", 0)),
                 
                 # Climb Stats
                 "climb_level": int(data.get("climb_level", 0)),

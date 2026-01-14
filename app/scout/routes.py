@@ -231,6 +231,7 @@ def format_team_stats(stats):
         "matches_played": stats.get("matches_played", 0),
         "auto_fuel_avg": stats.get("avg_auto_fuel", 0),
         "teleop_fuel_avg": avg_teleop_fuel,
+        "ferried_fuel_avg": stats.get("avg_ferried_fuel", 0),
         "endgame_fuel_avg": stats.get("avg_endgame_fuel", 0),
         "climb_level_avg": stats.get("avg_climb_level", 0),
         "climb_success_rate": stats.get("climb_success_rate", 0) * 100
@@ -276,6 +277,7 @@ def compare_teams():
                         "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
                         "avg_auto_climb": {"$avg": {"$cond": ["$auto_climb", 1, 0]}},
                         "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                        "avg_ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
                         "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
                         "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
                         "avg_teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
@@ -310,6 +312,7 @@ def compare_teams():
                     # Calculate total teleop average
                     avg_teleop_total = (
                         (stats[0].get("avg_transition_fuel") or 0) +
+                        (stats[0].get("avg_ferried_fuel") or 0) +
                         (stats[0]["avg_teleop_shift_1_fuel"] or 0) +
                         (stats[0]["avg_teleop_shift_2_fuel"] or 0) +
                         (stats[0]["avg_teleop_shift_3_fuel"] or 0) +
@@ -417,6 +420,7 @@ async def search_teams():
                     "match_number": 1,
                     # Fuel Stats
                     "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                    "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
                     "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
                     "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                     "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
@@ -535,6 +539,7 @@ def leaderboard():
                 # Auto Fuel
                 "auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
                 "transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                "ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
                 
                 # Teleop Fuel
                 "teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
@@ -570,6 +575,7 @@ def leaderboard():
                 
                 "auto_fuel": {"$round": ["$auto_fuel", 1]},
                 "transition_fuel": {"$round": ["$transition_fuel", 1]},
+                "ferried_fuel": {"$round": ["$ferried_fuel", 1]},
                 "teleop_fuel_total": {
                     "$add": [
                         "$transition_fuel",
@@ -639,6 +645,7 @@ def leaderboard():
         sort_field = {
             'fuel': 'total_fuel',
             'auto_fuel': 'auto_fuel',
+            'ferried_fuel': 'ferried_fuel',
             'auto_climb': 'auto_climb_pct',
             'climb': 'climb_success_rate',
             'climb_l1': 'climb_l1_pct',
@@ -807,6 +814,7 @@ def matches():
                         "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
                         "auto_climb": {"$ifNull": ["$auto_climb", False]},
                         "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                        "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
                         "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                         "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
                         "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
@@ -852,6 +860,7 @@ def matches():
             # Prepare team data for template
             red_team_data = [{
                 "number": t["number"],
+                "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
                 "climb_success": t["climb_success"],
@@ -860,6 +869,7 @@ def matches():
 
             blue_team_data = [{
                 "number": t["number"],
+                "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
                 "climb_success": t["climb_success"],

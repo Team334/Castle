@@ -49,6 +49,7 @@
                     class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                 <option value="fuel" {% if current_sort == 'fuel' %}selected{% endif %}>Most Fuel (Total)</option>
                 <option value="auto_fuel" {% if current_sort == 'auto_fuel' %}selected{% endif %}>Most Fuel (Auto)</option>
+                <option value="ferried_fuel" {% if current_sort == 'ferried_fuel' %}selected{% endif %}>Most Fuel (Ferried)</option>
                 <option value="auto_climb" {% if current_sort == 'auto_climb' %}selected{% endif %}>Auto Climb %</option>
                 <option value="climb" {% if current_sort == 'climb' %}selected{% endif %}>Highest Climb %</option>
                 <option value="climb_l1" {% if current_sort == 'climb_l1' %}selected{% endif %}>Climb Level 1 %</option>
@@ -78,6 +79,10 @@
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Transition Fuel
+                                <span class="text-xs text-gray-400 block">avg per match</span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ferried Fuel
                                 <span class="text-xs text-gray-400 block">avg per match</span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -128,6 +133,11 @@
                             <!-- Transition Fuel -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-bold">{{ "%.1f"|format(team.transition_fuel) }}</div>
+                            </td>
+
+                            <!-- Ferried Fuel -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-bold">{{ "%.1f"|format(team.ferried_fuel) }}</div>
                             </td>
                 
                             <!-- Teleop Fuel -->

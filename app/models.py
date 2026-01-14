@@ -82,6 +82,7 @@ class TeamData:
         self.teleop_shift_3_fuel = data.get('teleop_shift_3_fuel', 0)
         self.teleop_shift_4_fuel = data.get('teleop_shift_4_fuel', 0)
         self.endgame_fuel = data.get('endgame_fuel', 0)
+        self.ferried_fuel = data.get('ferried_fuel', 0)
 
         # Climb
         self.auto_climb = data.get('auto_climb', False)
@@ -129,6 +130,7 @@ class TeamData:
             'teleop_shift_3_fuel': self.teleop_shift_3_fuel,
             'teleop_shift_4_fuel': self.teleop_shift_4_fuel,
             'endgame_fuel': self.endgame_fuel,
+            'ferried_fuel': self.ferried_fuel,
             'auto_climb': self.auto_climb,
             'climb_level': self.climb_level,
             

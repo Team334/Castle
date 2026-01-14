@@ -177,6 +177,9 @@
                                 Transition Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ferried Fuel
+                            </th>
+                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Teleop Shifts (1-4)
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -246,6 +249,9 @@
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.transition_fuel or 0 }}
+                            </td>
+                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                                {{ data.ferried_fuel or 0 }}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{ data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
