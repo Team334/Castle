@@ -1,13 +1,39 @@
 let alliances = [];
 let availableTeams = [];
-let declinedTeams = new Set();
 let selectedTeams = new Set();
+const MAX_ALLIANCES = 8;
+const MAX_PICKS_PER_ALLIANCE = 2;
+let isSelectionComplete = false;
 let currentPick = { alliance: 0, round: 1, phase: 'captain' }; // phase: 'captain' or 'pick'
 let eventKey = '';
 let allRankings = [];
 let selectedTeamForPick = null; // For mobile: track which team is selected to pick
+let allEventsList = []; // Store fetched events for searchable dropdown
 
 // Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    const yearSelect = document.getElementById('year-select');
+    if (yearSelect) {
+        const currentYear = new Date().getFullYear();
+        yearSelect.max = currentYear;
+        yearSelect.value = currentYear;
+    }
+    setupEventDropdown();
+    loadEvents();
+    
+    const startBracketBtn = document.getElementById('start-bracket-btn');
+    if (startBracketBtn) {
+        startBracketBtn.addEventListener('click', () => {
+            if (typeof startPlayoffBracket === 'function') {
+                startPlayoffBracket();
+            } else {
+                console.error('startPlayoffBracket function not found');
+                showNotification('Error: Bracket script not loaded properly.', 'error');
+            }
+        });
+    }
+});
+
 document.getElementById('year-select').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         loadEvents();
@@ -17,6 +43,7 @@ document.getElementById('search-events-btn').addEventListener('click', loadEvent
 document.getElementById('load-rankings-btn').addEventListener('click', loadRankings);
 document.getElementById('reset-btn').addEventListener('click', resetSelection);
 document.getElementById('export-btn').addEventListener('click', exportResults);
+
 document.getElementById('team-search').addEventListener('input', filterTeams);
 
 // Load events when page loads with default year
@@ -89,49 +116,146 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-async function loadEvents() {
-    const year = document.getElementById('year-select').value;
-    const eventSelect = document.getElementById('event-select');
-    const searchBtn = document.getElementById('search-events-btn');
+function setupEventDropdown() {
+    const searchInput = document.getElementById('event-search-input');
+    const dropdownList = document.getElementById('event-dropdown-list');
+    const dropdownArrow = document.getElementById('event-dropdown_arrow');
+    const hiddenInput = document.getElementById('event-select');
+
+    if (!searchInput || !dropdownList) return;
+
+    // Filter list on input
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        
+        // Clear selection when user types to force them to re-select
+        if (hiddenInput) hiddenInput.value = "";
+        
+        const filtered = allEventsList.filter(evt => evt.name.toLowerCase().includes(query));
+        renderEventDropdown(filtered);
+        dropdownList.classList.remove('hidden');
+    });
+
+    // Show list on focus
+    searchInput.addEventListener('focus', () => {
+        if (allEventsList.length > 0) {
+            const query = searchInput.value.toLowerCase();
+            const filtered = query ? allEventsList.filter(evt => evt.name.toLowerCase().includes(query)) : allEventsList;
+            renderEventDropdown(filtered);
+            dropdownList.classList.remove('hidden');
+        }
+    });
+
+    // Hide list when clicking outside
+    document.addEventListener('click', (e) => {
+        // If clicking inside the search component, do nothing
+        if (searchInput.contains(e.target) || dropdownList.contains(e.target) || (dropdownArrow && dropdownArrow.contains(e.target))) {
+            return;
+        }
+        // Otherwise hide
+        dropdownList.classList.add('hidden');
+    });
     
-    if (!year || year < 1992 || year > 2025) {
-        showNotification('Please enter a valid year between 1992 and 2025.', 'warning');
-        eventSelect.innerHTML = '<option value="">Search for events first...</option>';
-        eventSelect.disabled = true;
+    // Toggle list on arrow click
+    if (dropdownArrow) {
+        dropdownArrow.addEventListener('click', (e) => {
+           e.stopPropagation(); // Prevent document click from immediately hiding it
+           if (dropdownList.classList.contains('hidden')) {
+               // If about to show, render full list if input is empty
+               if (allEventsList.length > 0 && !searchInput.value) {
+                   renderEventDropdown(allEventsList);
+               }
+               dropdownList.classList.remove('hidden');
+               searchInput.focus();
+           } else {
+               dropdownList.classList.add('hidden');
+           }
+        });
+    }
+}
+
+function renderEventDropdown(events) {
+    const list = document.getElementById('event-dropdown-list');
+    list.innerHTML = '';
+
+    if (events.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'px-4 py-2 text-sm text-gray-500';
+        div.textContent = 'No events found';
+        list.appendChild(div);
         return;
     }
+
+    events.forEach(evt => {
+        const li = document.createElement('li');
+        li.className = 'px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm text-gray-700';
+        li.textContent = evt.name;
+        li.addEventListener('click', () => {
+            document.getElementById('event-select').value = evt.key; 
+            document.getElementById('event-search-input').value = evt.name; 
+            list.classList.add('hidden');
+        });
+        list.appendChild(li);
+    });
+}
+
+async function loadEvents() {
+    const year = document.getElementById('year-select').value;
+    // Elements
+    const searchInput = document.getElementById('event-search-input');
+    const hiddenInput = document.getElementById('event-select');
+    const searchBtn = document.getElementById('search-events-btn');
     
+    const currentYear = new Date().getFullYear();
+    // Allow up to current year + 1 just in case
+    if (!year || year < 1992 || year > currentYear + 1) {
+        showNotification(`Please enter a valid year between 1992 and ${currentYear}.`, 'warning');
+        return;
+    }
+
     // Disable controls and show loading state
     searchBtn.disabled = true;
     searchBtn.textContent = 'Searching...';
-    eventSelect.disabled = true;
-    eventSelect.innerHTML = '<option value="">Loading events...</option>';
+    
+    if (searchInput) {
+        searchInput.disabled = true;
+        searchInput.placeholder = "Loading events...";
+        searchInput.value = "";
+    }
+    if (hiddenInput) hiddenInput.value = "";
     
     try {
-        const response = await fetch(`/api/tba/events?year=${year}`);
+        const response = await fetch(`/api/tba/events?year=${year}&_=${new Date().getTime()}`);
         const events = await response.json();
         
-        eventSelect.innerHTML = '<option value="">Select an event / regional...</option>';
+        if (!response.ok || events.error) {
+            throw new Error(events.error || 'Failed to fetch events');
+        }
+        
+        allEventsList = []; // Clear current list
         
         if (Object.keys(events).length === 0) {
-            eventSelect.innerHTML = '<option value="">No events found for this year</option>';
+            if (searchInput) searchInput.placeholder = "No events found";
             showNotification(`No events found for year ${year}. Try a different year.`, 'info');
             return;
         }
         
         for (const [name, data] of Object.entries(events)) {
-            const option = document.createElement('option');
-            option.value = data.key;
-            option.textContent = name;
-            eventSelect.appendChild(option);
+            allEventsList.push({ name: name, key: data.key });
         }
         
-        // Enable event select after loading
-        eventSelect.disabled = false;
-        showNotification(`Found ${Object.keys(events).length} events for ${year}`, 'success');
+        // Sort events alphabetically
+        allEventsList.sort((a, b) => a.name.localeCompare(b.name));
+        
+        if (searchInput) {
+            searchInput.disabled = false;
+            searchInput.placeholder = "Type to search events...";
+        }
+        
+        showNotification(`Found ${allEventsList.length} events for ${year}`, 'success');
     } catch (error) {
         console.error('Error loading events:', error);
-        eventSelect.innerHTML = '<option value="">Failed to load events</option>';
+        if (searchInput) searchInput.placeholder = "Failed to load events";
         showNotification('Failed to load events. Please try again.', 'error');
     } finally {
         searchBtn.disabled = false;
@@ -182,7 +306,7 @@ function initializeAlliances(rankings) {
     // Start fresh - only seed 1 is the first captain
     alliances = [];
     availableTeams = [...rankings];
-    declinedTeams.clear();
+    isSelectionComplete = false;
     selectedTeams.clear();
     
     // Alliance 1 with seed 1 as captain
@@ -206,13 +330,38 @@ let touchStartPos = null;
 
 function handleTeamClick(team) {
     // For mobile/tablet - select team first, then click on slot
+    const prevSelected = selectedTeamForPick;
+    
     if (selectedTeamForPick && selectedTeamForPick.team_number === team.team_number) {
         // Deselect if clicking the same team
         selectedTeamForPick = null;
     } else {
         selectedTeamForPick = team;
     }
-    renderAvailableTeams();
+
+    // Visual Updates
+    if (prevSelected) {
+        const prevCard = document.getElementById(`team-card-${prevSelected.team_number}`);
+        if (prevCard) {
+            prevCard.classList.remove('selected-for-pick');
+            const indicator = prevCard.querySelector('.selection-indicator');
+            if (indicator) indicator.remove();
+        }
+    }
+
+    if (selectedTeamForPick) {
+        const newCard = document.getElementById(`team-card-${selectedTeamForPick.team_number}`);
+        if (newCard) {
+            newCard.classList.add('selected-for-pick');
+            if (!newCard.querySelector('.selection-indicator')) {
+                const ind = document.createElement('div');
+                ind.className = 'selection-indicator text-xs text-blue-600 font-medium mt-1';
+                ind.textContent = 'SELECTED - Tap slot to place';
+                newCard.appendChild(ind);
+            }
+        }
+    }
+    
     renderAlliances();
 }
 
@@ -314,10 +463,10 @@ function renderAlliances() {
     alliances.forEach(alliance => {
         totalPicks += alliance.picks.length;
     });
-    const allPicksComplete = alliances.length >= 8 && totalPicks >= 16;
+    const allPicksComplete = isSelectionComplete || (alliances.length >= MAX_ALLIANCES && totalPicks >= MAX_ALLIANCES * MAX_PICKS_PER_ALLIANCE);
 
-    // Always render 8 alliance slots
-    for (let i = 0; i < 8; i++) {
+    // Always render MAX_ALLIANCES alliance slots
+    for (let i = 0; i < MAX_ALLIANCES; i++) {
         const alliance = alliances[i];
         const isActive = !allPicksComplete && alliance && i === currentPick.alliance;
         const card = document.createElement('div');
@@ -325,6 +474,14 @@ function renderAlliances() {
         
         if (!alliance) {
             // Empty alliance slot waiting for captain
+            let picksPlaceholders = '';
+            for (let j = 0; j < MAX_PICKS_PER_ALLIANCE; j++) {
+                picksPlaceholders += `
+                <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400">
+                    Pick ${j + 1}
+                </div>`;
+            }
+            
             card.innerHTML = `
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-lg font-bold text-gray-400">Alliance ${i + 1}</h3>
@@ -332,18 +489,12 @@ function renderAlliances() {
                 <div class="team-slot empty p-3 rounded mb-3 text-center text-gray-400">
                     Waiting for captain...
                 </div>
-                <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400">
-                    Pick 1
-                </div>
-                <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400">
-                    Pick 2
-                </div>
+                ${picksPlaceholders}
             `;
         } else {
             let picksHtml = '';
-            const maxPicks = 2; // Each alliance gets 2 picks after captain
             
-            for (let j = 0; j < maxPicks; j++) {
+            for (let j = 0; j < MAX_PICKS_PER_ALLIANCE; j++) {
                 const pick = alliance.picks[j];
                 if (pick) {
                     picksHtml += `
@@ -399,10 +550,10 @@ function renderAvailableTeams() {
     const list = document.getElementById('available-teams-list');
     const searchTerm = document.getElementById('team-search').value.toLowerCase();
     
-    list.innerHTML = '';
+    // Optimization: Use DocumentFragment to batch DOM updates
+    const fragment = document.createDocumentFragment();
 
     availableTeams.forEach(team => {
-        const isDeclined = declinedTeams.has(team.team_number);
         const isSelected = selectedTeams.has(team.team_number);
         const isSelectedForPick = selectedTeamForPick && selectedTeamForPick.team_number === team.team_number;
 
@@ -416,137 +567,37 @@ function renderAvailableTeams() {
         if (!matchesSearch) return;
 
         const card = document.createElement('div');
+        card.id = `team-card-${team.team_number}`;
         card.className = `team-card bg-white border border-gray-200 rounded-lg p-3 ${
-            isDeclined ? 'declined' : isSelectedForPick ? 'selected-for-pick' : ''
+            isSelectedForPick ? 'selected-for-pick' : ''
         }`;
-        card.draggable = !isDeclined;
+        card.draggable = true;
         
-        if (!isDeclined) {
-            card.setAttribute('data-team', JSON.stringify(team));
-            card.addEventListener('dragstart', handleDragStart);
-            card.addEventListener('dragend', handleDragEnd);
-            card.addEventListener('click', () => handleTeamClick(team));
-            
-            // Touch events for mobile
-            card.addEventListener('touchstart', handleTouchStart, { passive: false });
-            card.addEventListener('touchmove', handleTouchMove, { passive: false });
-            card.addEventListener('touchend', handleTouchEnd, { passive: false });
-        }
+        card.setAttribute('data-team', JSON.stringify(team));
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+        card.addEventListener('click', () => handleTeamClick(team));
+        card.addEventListener('dblclick', () => {
+            if (!isSelectionComplete) selectTeam(team);
+        });
+        
+        // Touch events for mobile
+        card.addEventListener('touchstart', handleTouchStart, { passive: false });
+        card.addEventListener('touchmove', handleTouchMove, { passive: false });
+        card.addEventListener('touchend', handleTouchEnd, { passive: false });
 
         card.innerHTML = `
             <div class="font-semibold text-lg">${team.team_number}</div>
             <div class="text-sm text-gray-600 truncate">${team.nickname || 'No name'}</div>
             <div class="text-xs text-gray-500 mt-1">Rank: ${team.rank}</div>
-            ${isDeclined ? '<div class="text-xs text-red-600 font-medium mt-1">DECLINED</div>' : ''}
-            ${isSelectedForPick ? '<div class="text-xs text-blue-600 font-medium mt-1">SELECTED - Tap slot to place</div>' : ''}
+            ${isSelectedForPick ? '<div class="selection-indicator text-xs text-blue-600 font-medium mt-1">SELECTED - Tap slot to place</div>' : ''}
         `;
 
-        list.appendChild(card);
+        fragment.appendChild(card);
     });
-}
-
-let draggedTeam = null;
-let touchStartPos = null;
-
-function handleTeamClick(team) {
-    // For mobile/tablet - select team first, then click on slot
-    if (selectedTeamForPick && selectedTeamForPick.team_number === team.team_number) {
-        // Deselect if clicking the same team
-        selectedTeamForPick = null;
-    } else {
-        selectedTeamForPick = team;
-    }
-    renderAvailableTeams();
-    renderAlliances();
-}
-
-function handleSlotClick(allianceIndex, pickIndex) {
-    if (!selectedTeamForPick) return;
     
-    const alliance = alliances[allianceIndex];
-    if (!alliance || alliance.picks[pickIndex]) return; // Alliance doesn't exist or slot filled
-    
-    // Place the selected team
-    selectTeam(selectedTeamForPick);
-    selectedTeamForPick = null;
-    renderAvailableTeams();
-}
-
-function handleTouchStart(e) {
-    const team = JSON.parse(e.currentTarget.getAttribute('data-team'));
-    touchStartPos = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-    };
-    draggedTeam = team;
-    e.currentTarget.classList.add('dragging');
-}
-
-function handleTouchMove(e) {
-    if (!draggedTeam) return;
-    e.preventDefault(); // Prevent scrolling while dragging
-}
-
-function handleTouchEnd(e) {
-    if (!draggedTeam) return;
-    
-    e.currentTarget.classList.remove('dragging');
-    
-    const touch = e.changedTouches[0];
-    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-    
-    if (dropTarget && dropTarget.classList.contains('team-slot') && dropTarget.classList.contains('empty')) {
-        const allianceIndex = parseInt(dropTarget.getAttribute('data-alliance'));
-        const pickIndex = parseInt(dropTarget.getAttribute('data-pick'));
-        
-        const alliance = alliances[allianceIndex];
-        if (alliance && !alliance.picks[pickIndex]) {
-            selectTeam(draggedTeam);
-        }
-    }
-    
-    draggedTeam = null;
-    touchStartPos = null;
-}
-
-function handleDragStart(e) {
-    draggedTeam = JSON.parse(e.target.getAttribute('data-team'));
-    e.target.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragEnd(e) {
-    e.target.classList.remove('dragging');
-    draggedTeam = null;
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    e.currentTarget.classList.add('drag-over');
-}
-
-function handleDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
-    
-    if (!draggedTeam) return;
-    
-    const allianceIndex = parseInt(e.currentTarget.getAttribute('data-alliance'));
-    const pickIndex = parseInt(e.currentTarget.getAttribute('data-pick'));
-    
-    // Check if this slot is already filled
-    const alliance = alliances[allianceIndex];
-    if (alliance && alliance.picks[pickIndex]) {
-        return; // Slot already filled
-    }
-    
-    // Add team to the alliance
-    selectTeam(draggedTeam);
+    list.innerHTML = '';
+    list.appendChild(fragment);
 }
 
 function selectTeam(team) {
@@ -563,176 +614,172 @@ function selectTeam(team) {
 
 function removeTeamFromAlliance(allianceIndex, pickIndex) {
     const alliance = alliances[allianceIndex];
-    const removedTeam = alliance.picks[pickIndex];
-    
-    if (!removedTeam) return;
-    
-    // Remove from alliance
-    alliance.picks.splice(pickIndex, 1);
-    
-    // Remove from selected teams
-    selectedTeams.delete(removedTeam.team_number);
-    
-    // Remove from declined teams if it was there
-    declinedTeams.delete(removedTeam.team_number);
-    
-    // Recalculate current pick position based on how many picks have been made
-    recalculatePickPosition();
-    
-    renderAlliances();
-    renderAvailableTeams();
-    updateStatus();
+    if (alliance && alliance.picks[pickIndex]) {
+        const removedTeam = alliance.picks[pickIndex];
+        
+        alliance.picks.splice(pickIndex, 1);
+        selectedTeams.delete(removedTeam.team_number);
+        
+        // If we remove a 1st round pick (index 0), and subsequent alliances exist,
+        // we must destroy them because the captain selection chain is invalidated.
+        // This resets proper flow where picking -> creates next alliance.
+        if (pickIndex === 0 && allianceIndex < alliances.length - 1) {
+             for (let i = allianceIndex + 1; i < alliances.length; i++) {
+                 const a = alliances[i];
+                 // Remove captain from selected
+                 if (a.captain) {
+                    selectedTeams.delete(a.captain.team_number);
+                 }
+                 // Remove picks from selected
+                 if (a.picks) {
+                     a.picks.forEach(p => {
+                         if (p) {
+                             selectedTeams.delete(p.team_number);
+                         }
+                     });
+                 }
+             }
+             // Truncate alliances array to remove destroyed alliances
+             alliances.splice(allianceIndex + 1);
+        }
+
+        // Recalculate using state-based logic
+        recalculatePickPosition();
+        
+        renderAlliances();
+        renderAvailableTeams();
+        updateStatus();
+    }
 }
 
 function recalculatePickPosition() {
-    // Count total picks made across all alliances
-    let totalPicks = 0;
-    alliances.forEach(alliance => {
-        totalPicks += alliance.picks.length;
-    });
-    
-    // If we haven't formed 8 alliances yet
-    if (alliances.length < 8) {
-        currentPick.alliance = alliances.length - 1;
-        currentPick.round = 1;
-        currentPick.phase = 'pick';
-        return;
+    isSelectionComplete = false;
+
+    // Check Round 1 (Picks 1)
+    for (let i = 0; i < alliances.length; i++) {
+        // Safe check for alliance existence
+        if (alliances[i] && !alliances[i].picks[0]) {
+            currentPick.alliance = i;
+            currentPick.round = 1;
+            currentPick.phase = 'pick';
+            return;
+        }
     }
     
-    // Otherwise, figure out which alliance should be picking based on snake draft
-    // Round 1: alliances 0-7 (forward)
-    // Round 2: alliances 7-0 (backward)
-    
-    if (totalPicks < 8) {
-        // Round 1 picks
-        currentPick.round = 1;
-        currentPick.alliance = totalPicks;
-    } else {
-        // Round 2 picks
-        currentPick.round = 2;
-        const round2Picks = totalPicks - 8;
-        currentPick.alliance = 7 - round2Picks;
+    if (alliances.length < MAX_ALLIANCES) {
+        return; // Waiting for next captain creation
+    }
+
+    // Check Round 2 (Picks 2) - Reverse order
+    for (let i = alliances.length - 1; i >= 0; i--) {
+        if (alliances[i] && !alliances[i].picks[1]) {
+            currentPick.alliance = i;
+            currentPick.round = 2;
+            currentPick.phase = 'pick';
+            return;
+        }
     }
     
-    // If all picks are done, mark as complete
-    if (totalPicks >= 16) {
-        currentPick.round = 3; // Signals completion
-    }
+    // Complete
+    currentPick.round = MAX_PICKS_PER_ALLIANCE + 1;
 }
 
 function advancePick() {
-    // Check if we're still forming alliances (need 8 captains total)
-    if (alliances.length < 8) {
-        // Find next captain - highest ranked team that hasn't been selected or declined
-        const nextCaptain = availableTeams.find(team => 
-            !selectedTeams.has(team.team_number) && 
-            !declinedTeams.has(team.team_number)
-        );
-        
-        if (nextCaptain) {
-            // Create new alliance with this captain
-            alliances.push({
-                number: alliances.length + 1,
-                captain: nextCaptain,
-                picks: []
-            });
-            selectedTeams.add(nextCaptain.team_number);
-            currentPick.alliance = alliances.length - 1;
-            currentPick.phase = 'pick';
-            
-            // Re-render to remove captain from available teams
-            renderAvailableTeams();
-        } else {
-            showNotification('Not enough teams available to form 8 alliances. Some teams may have declined.', 'error');
-            completeSelection();
-            return;
-        }
+    if (alliances.length < MAX_ALLIANCES) {
+        handleCaptainSelection();
     } else {
-        // All 8 alliances formed, now do the snake draft picks
-        const maxPicks = 2; // Each alliance gets 2 picks after captain
-        
-        // Check if current alliance has completed their picks for this round
-        const currentAlliance = alliances[currentPick.alliance];
-        const picksInRound = currentAlliance.picks.filter((_, idx) => {
-            if (currentPick.round === 1) return idx === 0;
-            if (currentPick.round === 2) return idx === 1;
-            return false;
-        }).length;
-        
-        // Move to next alliance if current one has made their pick
-        if (picksInRound > 0) {
-            // Snake draft order
-            if (currentPick.round % 2 === 1) {
-                // Odd rounds: go forward (1, 2, 3, ... 8)
-                if (currentPick.alliance < 7) {
-                    currentPick.alliance++;
-                } else {
-                    // Reached alliance 8, move to next round
-                    currentPick.round++;
-                    // Don't increment alliance - stay at 7 (8th alliance) for reverse order
-                }
-            } else {
-                // Even rounds: go backward (8, 7, 6, ... 1)
-                if (currentPick.alliance > 0) {
-                    currentPick.alliance--;
-                } else {
-                    // Reached alliance 1, move to next round
-                    currentPick.round++;
-                    // Don't increment alliance - stay at 0 (1st alliance) for forward order
-                }
-            }
-        }
-
-        // Check if selection is complete
-        if (currentPick.round > maxPicks) {
-            completeSelection();
-            return;
-        }
+        handleSnakeDraft();
     }
-
     updateStatus();
     renderAlliances();
+}
+
+function handleCaptainSelection() {
+    const nextCaptain = availableTeams.find(team => 
+        !selectedTeams.has(team.team_number)
+    );
+    
+    if (nextCaptain) {
+        alliances.push({
+            number: alliances.length + 1,
+            captain: nextCaptain,
+            picks: []
+        });
+        selectedTeams.add(nextCaptain.team_number);
+        currentPick.alliance = alliances.length - 1;
+        currentPick.phase = 'pick';
+        renderAvailableTeams();
+    } else {
+        showNotification('No more teams available. Selection complete.', 'info');
+        completeSelection();
+    }
+}
+
+function handleSnakeDraft() {
+    // Check if we have teams left
+    const available = availableTeams.some(t => !selectedTeams.has(t.team_number));
+    if (!available) {
+        completeSelection();
+        return;
+    }
+    recalculatePickPosition();
+    if (currentPick.round > MAX_PICKS_PER_ALLIANCE) {
+        completeSelection();
+    }
 }
 
 function updateStatus() {
     const statusText = document.getElementById('status-text');
     const statusBox = statusText.parentElement.parentElement;
+    const startBracketBtn = document.getElementById('start-bracket-btn');
     
-    // Count total picks to determine completion
     let totalPicks = 0;
     alliances.forEach(alliance => {
         totalPicks += alliance.picks.length;
     });
     
-    const allAlliancesFormed = alliances.length >= 8;
-    const allPicksComplete = allAlliancesFormed && totalPicks >= 16;
+    const allAlliancesFormed = alliances.length >= MAX_ALLIANCES;
+    const allPicksComplete = allAlliancesFormed && totalPicks >= MAX_ALLIANCES * MAX_PICKS_PER_ALLIANCE;
     
-    if (allPicksComplete || currentPick.round > 2) {
+    if (isSelectionComplete || allPicksComplete || currentPick.round > MAX_PICKS_PER_ALLIANCE) {
         statusText.textContent = 'Alliance selection complete!';
         statusBox.classList.remove('bg-blue-50', 'border-blue-500');
         statusBox.classList.add('bg-green-50', 'border-green-500');
         statusText.classList.remove('text-blue-800');
         statusText.classList.add('text-green-800');
-    } else if (alliances.length < 8) {
+        
+        if (startBracketBtn) startBracketBtn.classList.remove('hidden');
+    } else if (alliances.length < MAX_ALLIANCES) {
         const currentAlliance = alliances[currentPick.alliance];
-        statusText.textContent = `Forming alliances (${alliances.length}/8) - Alliance ${currentAlliance.number} (Captain: ${currentAlliance.captain.team_number}) is picking...`;
+        if (currentAlliance) {
+             statusText.textContent = `Forming alliances (${alliances.length}/${MAX_ALLIANCES}) - Alliance ${currentAlliance.number} (Captain: ${currentAlliance.captain.team_number}) is picking...`;
+        } else {
+             statusText.textContent = `Processing...`;
+        }
         statusBox.classList.remove('bg-green-50', 'border-green-500');
         statusBox.classList.add('bg-blue-50', 'border-blue-500');
         statusText.classList.remove('text-green-800');
         statusText.classList.add('text-blue-800');
+        if (startBracketBtn) startBracketBtn.classList.add('hidden');
     } else {
         const currentAlliance = alliances[currentPick.alliance];
-        const pickNumber = currentAlliance.picks.length + 1;
-        statusText.textContent = `Round ${currentPick.round}, Pick ${pickNumber} - Alliance ${currentAlliance.number} (Captain: ${currentAlliance.captain.team_number}) is picking...`;
+        if (currentAlliance) {
+            const pickNumber = currentAlliance.picks.length + 1;
+            statusText.textContent = `Round ${currentPick.round}, Pick ${pickNumber} - Alliance ${currentAlliance.number} (Captain: ${currentAlliance.captain.team_number}) is picking...`;
+        }
         statusBox.classList.remove('bg-green-50', 'border-green-500');
         statusBox.classList.add('bg-blue-50', 'border-blue-500');
         statusText.classList.remove('text-green-800');
         statusText.classList.add('text-blue-800');
+        if (startBracketBtn) startBracketBtn.classList.add('hidden');
     }
 }
 
 function completeSelection() {
+    isSelectionComplete = true;
+    currentPick.round = 99;
     updateStatus();
+    renderAlliances();
 }
 
 function resetSelection() {
@@ -767,7 +814,6 @@ function exportResults() {
                 rank: p.rank
             }))
         })),
-        declined_teams: Array.from(declinedTeams)
     };
 
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });

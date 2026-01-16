@@ -34,9 +34,7 @@
                 <div class="flex gap-2">
                     <input type="number" 
                            id="year-select" 
-                           value="2025" 
                            min="1992" 
-                           max="2025"
                            placeholder="Enter year (e.g., 2025)"
                            class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button id="search-events-btn" 
@@ -45,13 +43,27 @@
                     </button>
                 </div>
             </div>
-            <div class="flex-1">
-                <label for="event-select" class="block text-sm font-medium text-gray-700 mb-2">Event / Regional</label>
-                <select id="event-select" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled>
-                    <option value="">Search for events first...</option>
-                </select>
+            <div class="flex-1 relative group">
+                <label for="event-search-input" class="block text-sm font-medium text-gray-700 mb-2">Event / Regional</label>
+                <div class="relative">
+                    <input type="text" 
+                           id="event-search-input" 
+                           placeholder="Search for events first..." 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           disabled
+                           autocomplete="off">
+                    <div id="event-dropdown_arrow" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 cursor-pointer hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    <input type="hidden" id="event-select" value="">
+                    
+                    <ul id="event-dropdown-list" 
+                        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden">
+                        <!-- Options will be populated via JS -->
+                    </ul>
+                </div>
             </div>
             <div class="flex items-end">
                 <button id="load-rankings-btn" 
@@ -112,11 +124,97 @@
                 class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
             Reset Selection
         </button>
+        <button id="start-bracket-btn" 
+                class="hidden px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Start Bracket
+        </button>
         <button id="export-btn" 
                 class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
             Export Results
         </button>
     </div>
+
+    <!-- Bracket View -->
+    <div id="bracket-view" class="hidden mt-8">
+        <h2 class="text-2xl font-bold mb-6 text-center">Double Elimination Playoff Bracket</h2>
+        
+        <div class="overflow-x-auto pb-8">
+            <div class="min-w-[1200px] flex flex-col gap-12">
+                <!-- Upper Bracket -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 ml-4 text-blue-800">Upper Bracket</h3>
+                    <div class="flex justify-around items-center">
+                        <!-- Round 1 -->
+                        <div class="flex flex-col gap-8" id="upper-round-1"></div>
+                        <!-- Round 2 -->
+                        <div class="flex flex-col gap-16" id="upper-round-2"></div>
+                        <!-- Round 3 (Semis) -->
+                        <div class="flex flex-col gap-32" id="upper-round-3"></div>
+                        <!-- Finals -->
+                        <div class="flex flex-col gap-32" id="finals-round"></div>
+                    </div>
+                </div>
+
+                <!-- Lower Bracket -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 ml-4 text-red-800">Lower Bracket</h3>
+                    <div class="flex justify-around items-center">
+                        <!-- Round 1 -->
+                        <div class="flex flex-col gap-8" id="lower-round-1"></div>
+                        <!-- Round 2 -->
+                        <div class="flex flex-col gap-8" id="lower-round-2"></div>
+                        <!-- Round 3 -->
+                        <div class="flex flex-col gap-8" id="lower-round-3"></div>
+                         <!-- Round 4 (Lower Final) -->
+                        <div class="flex flex-col gap-8" id="lower-round-4"></div>
+                         <!-- Spacer for alignment with Finals -->
+                        <div class="w-64"></div> 
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Card Template -->
+    <template id="match-card-template">
+        <div class="match-card relative bg-white rounded-xl shadow-lg border border-gray-200 w-64 md:w-72 overflow-hidden mb-6 transition-all duration-300 hover:shadow-xl">
+            <div class="match-header flex justify-between items-center bg-gray-50 px-3 py-2 border-b border-gray-100">
+                <span class="match-label text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wider">Match Title</span>
+                <span class="match-id text-[10px] md:text-xs text-gray-400 font-mono bg-gray-200 px-1 rounded">ID</span>
+            </div>
+            
+            <div class="p-2 space-y-1">
+                <!-- Red Alliance -->
+                <div class="alliance-option red cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-red-50 group">
+                    <div class="w-1.5 h-8 absolute left-0 bg-red-500 rounded-r-sm"></div>
+                    <div class="seed-badge flex items-center justify-center w-6 h-6 bg-red-100 text-red-600 text-[10px] md:text-xs font-bold rounded-full mr-2 ml-2 border border-red-200 shadow-sm">
+                        ?
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center">
+                        <span class="team-number text-base md:text-lg font-black text-gray-800 leading-none">---</span>
+                        
+                    </div>
+                     <div class="winner-icon opacity-0 transform scale-0 transition-all duration-300 text-green-500 mr-1">
+                        <svg class="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    </div>
+                </div>
+
+                <!-- Blue Alliance -->
+                <div class="alliance-option blue cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-blue-50 group">
+                    <div class="w-1.5 h-8 absolute left-0 bg-blue-500 rounded-r-sm"></div>
+                    <div class="seed-badge flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 text-[10px] md:text-xs font-bold rounded-full mr-2 ml-2 border border-blue-200 shadow-sm">
+                        ?
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center">
+                        <span class="team-number text-base md:text-lg font-black text-gray-800 leading-none">---</span>
+                    </div>
+                    <div class="winner-icon opacity-0 transform scale-0 transition-all duration-300 text-green-500 mr-1">
+                        <svg class="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 
 <style>
@@ -226,4 +324,5 @@
     }
 </style>
 <script src="{{url_for('static', filename='js/mock-alliance-selection.js')}}"></script>
+<script src="{{url_for('static', filename='js/playoff-bracket.js')}}"></script>
 {% endblock %}

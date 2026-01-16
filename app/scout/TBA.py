@@ -243,6 +243,32 @@ class TBAInterface:
         return events[0]
     
     @lru_cache(maxsize=5)
+    def get_event_teams(self, event_key):
+        """
+        Retrieve a list of teams attending a specific event.
+
+        Args:
+            event_key (str): The unique key identifying the event.
+
+        Returns:
+            list[dict] or None: A list of team objects, or None if the request fails.
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/event/{event_key}/teams",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                return None
+                
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error fetching event teams from TBA: {e}")
+            return None
+
+    @lru_cache(maxsize=5)
     def get_event_rankings(self, event_key):
         """
         Retrieve the team rankings for a given event, including ranking points and match records.
@@ -274,6 +300,9 @@ class TBAInterface:
                 return None
             
             data = response.json()
+            if not data:
+                return []
+
             rankings = data.get('rankings', [])
             
             # Format rankings with team info and ranking points

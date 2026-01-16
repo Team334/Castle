@@ -1175,10 +1175,11 @@ def pit_scouting_delete(team_number):
 # @limiter.limit("30 per minute")
 def get_tba_events():
     try:
-        year = datetime.now().year
+        year = request.args.get('year', default=datetime.now().year, type=int)
         tba = TBAInterface()
         events = tba.get_current_events(year)
-        current_app.logger.info(f"Successfully fetched TBA events {events} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        event_count = len(events) if events else 0
+        current_app.logger.info(f"Successfully fetched {event_count} TBA events for year {year} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(events)
     except Exception as e:
         current_app.logger.error(f"Error getting TBA events: {e}")
@@ -1352,6 +1353,10 @@ def mock_alliance_selection():
 @login_required
 def get_alliance_rankings(event_key):
     """Get team rankings for alliance selection"""
+    # basic validation for event_key (year + event code)
+    if not event_key or not event_key.isalnum():
+         return jsonify({"error": "Invalid event key format"}), 400
+
     try:
         tba = TBAInterface()
         rankings = tba.get_event_rankings(event_key)
@@ -1359,9 +1364,13 @@ def get_alliance_rankings(event_key):
         if not rankings:
             return jsonify({"error": "Failed to fetch rankings"}), 204
 
-        # Fetch team details for each ranked team
+        # Fetch all team details in bulk for the event
+        teams = tba.get_event_teams(event_key)
+        team_info_map = {team['key']: team for team in teams} if teams else {}
+        
         for rank in rankings:
-            if team_info := tba.get_team(rank['team_key']):
+            team_info = team_info_map.get(rank['team_key'])
+            if team_info:
                 rank['nickname'] = team_info.get('nickname', '')
                 rank['city'] = team_info.get('city', '')
                 rank['state_prov'] = team_info.get('state_prov', '')
