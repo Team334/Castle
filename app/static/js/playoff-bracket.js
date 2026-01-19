@@ -53,7 +53,7 @@ function initializeBracketMatches(alliancesData) {
     createMatch('m4', safeAlliances[2], safeAlliances[5], 'Upper Round 1'); // 3 vs 6
     
     // Initialize others
-    ['m5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12', 'm13'].forEach(id => {
+    ['m5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12', 'm13', 'm14', 'm15', 'm16'].forEach(id => {
         bracketMatches[id] = {
             id: id,
             red: null,
@@ -81,7 +81,10 @@ function getMatchLabel(id) {
         m9: 'Lower Round 2', m10: 'Lower Round 2',
         m11: 'Upper Semi-Final',
         m12: 'Lower Round 3',
-        m13: 'Lower Final'
+        m13: 'Lower Final',
+        m14: 'Finals 1',
+        m15: 'Finals 2',
+        m16: 'Finals 3'
     };
     return labels[id] || 'Match ' + id.replace('m', '');
 }
@@ -115,13 +118,52 @@ function renderBracket() {
     renderMatch('m13', 'lower-round-4');
     
     // Finals
-    if (!bracketMatches['m14']) {
-        bracketMatches['m14'] = { id: 'm14', red: null, blue: null, winner: null, label: 'Finals 1' };
+    const finalsStatus = getFinalsStatus();
+    
+    renderMatch('m14', 'finals-round', finalsStatus);
+    renderMatch('m15', 'finals-round', finalsStatus);
+    renderMatch('m16', 'finals-round', finalsStatus);
+
+    // M16 Visibility Logic
+    const m16El = document.getElementById('match-m16');
+    if (m16El) {
+        if (!finalsStatus.needsTiebreaker) {
+            m16El.classList.add('opacity-50', 'pointer-events-none', 'grayscale');
+            if (bracketMatches['m16'].winner) {
+                bracketMatches['m16'].winner = null;
+                // Force re-render of this specific element to clear selection
+                renderMatch('m16', 'finals-round', finalsStatus);
+            }
+        } else {
+            m16El.classList.remove('opacity-50', 'pointer-events-none', 'grayscale');
+        }
     }
-    renderMatch('m14', 'finals-round');
 }
 
-function renderMatch(matchId, containerId) {
+function getFinalsStatus() {
+    const m14 = bracketMatches['m14']?.winner;
+    const m15 = bracketMatches['m15']?.winner;
+    const m16 = bracketMatches['m16']?.winner;
+    
+    let champion = null;
+    let needsTiebreaker = false;
+
+    if (m14 && m15) {
+        if (m14 === m15) {
+            // Sweep (2-0)
+            champion = m14;
+        } else {
+            // Split (1-1)
+            needsTiebreaker = true;
+            if (m16) {
+                champion = m16;
+            }
+        }
+    }
+    return { champion, needsTiebreaker };
+}
+
+function renderMatch(matchId, containerId, finalsStatus = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
@@ -153,27 +195,50 @@ function renderMatch(matchId, containerId) {
     const redEl = matchEl.querySelector('.alliance-option.red');
     const blueEl = matchEl.querySelector('.alliance-option.blue');
     
-    updateAllianceOption(redEl, match.red, match.winner === 'red', match.winner === 'blue');
-    updateAllianceOption(blueEl, match.blue, match.winner === 'blue', match.winner === 'red');
+    const isFinals = ['m14', 'm15', 'm16'].includes(matchId);
+    const isRedChamp = isFinals && finalsStatus?.champion === 'red';
+    const isBlueChamp = isFinals && finalsStatus?.champion === 'blue';
+
+    updateAllianceOption(redEl, match.red, match.winner === 'red', match.winner === 'blue', isRedChamp);
+    updateAllianceOption(blueEl, match.blue, match.winner === 'blue', match.winner === 'red', isBlueChamp);
 }
 
-function updateAllianceOption(el, allianceData, isWinner, isLoser) {
+function updateAllianceOption(el, allianceData, isWinner, isLoser, isChampion) {
     const teamEl = el.querySelector('.team-number');
+    const teamsListEl = el.querySelector('.alliance-teams');
     const seedEl = el.querySelector('.seed-badge');
     const winnerIcon = el.querySelector('.winner-icon');
 
     el.classList.remove('bg-green-50', 'bg-gray-100', 'opacity-50', 'grayscale', 'border-green-500', 'cursor-not-allowed', 'bg-gray-50');
     el.classList.add('cursor-pointer'); // Default back to pointer
 
-    // Reset icon
+    // Reset icon & crown
     if (winnerIcon) {
         winnerIcon.classList.remove('opacity-100', 'scale-100');
         winnerIcon.classList.add('opacity-0', 'scale-0');
     }
+    
+    let crown = el.querySelector('.champion-crown');
+    if (!crown) {
+        crown = document.createElement('div');
+        crown.className = 'champion-crown absolute -top-2 -right-2 text-yellow-500 transform scale-0 transition-transform duration-300 pointer-events-none z-20 filter drop-shadow-md';
+        crown.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>';
+        el.appendChild(crown);
+    }
+    crown.classList.remove('scale-100');
+    crown.classList.add('scale-0');
 
     if (allianceData) {
-        teamEl.textContent = allianceData.captain.team_number;
+        teamEl.textContent = 'Alliance ' + allianceData.seed;
         seedEl.textContent = allianceData.seed;
+        
+        if (teamsListEl) {
+            const allTeams = [
+               allianceData.captain.team_number, 
+               ...allianceData.picks.map(p => p.team_number)
+           ];
+           teamsListEl.textContent = allTeams.join(', ');
+       }
 
         if (isWinner) {
             el.classList.add('bg-green-50', 'border-green-500');
@@ -184,6 +249,16 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser) {
         } else if (isLoser) {
             el.classList.add('bg-gray-100', 'opacity-50', 'grayscale');
         }
+        
+        if (isChampion) {
+             crown.classList.remove('scale-0');
+             crown.classList.add('scale-100');
+        if (teamsListEl) teamsListEl.textContent = '';
+             el.classList.add('ring-2', 'ring-yellow-400', 'ring-offset-2');
+        } else {
+             el.classList.remove('ring-2', 'ring-yellow-400', 'ring-offset-2');
+        }
+
     } else {
         teamEl.textContent = 'TBD';
         seedEl.textContent = '?';
@@ -195,6 +270,11 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser) {
 function setMatchWinner(matchId, winnerColor) {
     const match = bracketMatches[matchId];
     if (!match.red || !match.blue) return; 
+    
+    if (matchId === 'm16') {
+        const finalsStatus = getFinalsStatus();
+        if (!finalsStatus.needsTiebreaker) return;
+    }
     
     // If BYE, we can't really "click" it typically, but if we do, logic handles it.
     // In strict auto-mode, BYEs advance immediately. Here user clicks.
@@ -217,10 +297,10 @@ function propagateBracket(sourceMatchId) {
     // Double Elimination Bracket Mapping (2023+ FRC)
     const flow = {
         // Round 1 Upper
-        'm1': { win: { to: 'm8', role: 'red' }, lose: { to: 'm5', role: 'red' } },
-        'm2': { win: { to: 'm8', role: 'blue' }, lose: { to: 'm5', role: 'blue' } },
-        'm3': { win: { to: 'm7', role: 'red' }, lose: { to: 'm6', role: 'red' } },
-        'm4': { win: { to: 'm7', role: 'blue' }, lose: { to: 'm6', role: 'blue' } },
+        'm1': { win: { to: 'm7', role: 'red' }, lose: { to: 'm5', role: 'red' } },
+        'm2': { win: { to: 'm7', role: 'blue' }, lose: { to: 'm5', role: 'blue' } },
+        'm3': { win: { to: 'm8', role: 'red' }, lose: { to: 'm6', role: 'red' } },
+        'm4': { win: { to: 'm8', role: 'blue' }, lose: { to: 'm6', role: 'blue' } },
         
         // Round 1 Lower
         'm5': { win: { to: 'm10', role: 'blue' } }, // W5 plays L8
@@ -235,20 +315,26 @@ function propagateBracket(sourceMatchId) {
         'm10': { win: { to: 'm12', role: 'blue' } },
         
         // Round 3 Upper (Semis)
-        'm11': { win: { to: 'm14', role: 'red' }, lose: { to: 'm13', role: 'red' } }, 
+        'm11': { win: { to: ['m14', 'm15', 'm16'], role: 'red' }, lose: { to: 'm13', role: 'red' } }, 
         
         // Round 3 Lower
         'm12': { win: { to: 'm13', role: 'blue' } },
         
         // Lower Final
-        'm13': { win: { to: 'm14', role: 'blue' } } 
+        'm13': { win: { to: ['m14', 'm15', 'm16'], role: 'blue' } } 
     };
     
     const next = flow[sourceMatchId];
     if (!next) return;
     
-    if (next.win) updateMatchSlot(next.win.to, next.win.role, winner);
-    if (next.lose) updateMatchSlot(next.lose.to, next.lose.role, loser);
+    if (next.win) {
+        const targets = Array.isArray(next.win.to) ? next.win.to : [next.win.to];
+        targets.forEach(t => updateMatchSlot(t, next.win.role, winner));
+    }
+    if (next.lose) {
+        const targets = Array.isArray(next.lose.to) ? next.lose.to : [next.lose.to];
+        targets.forEach(t => updateMatchSlot(t, next.lose.role, loser));
+    }
 }
 
 function updateMatchSlot(matchId, role, teamData) {
