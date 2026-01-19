@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 
 import logging
 from app.scout.scouting_utils import ScoutingManager
-from app.utils import async_route, handle_route_errors
+from app.utils import async_route, handle_route_errors, limiter
 
 from .TBA import TBAInterface
 
@@ -1112,10 +1112,11 @@ def pit_scouting_delete(team_number):
 # @limiter.limit("30 per minute")
 def get_tba_events():
     try:
-        year = datetime.now().year
+        year = request.args.get('year', default=datetime.now().year, type=int)
         tba = TBAInterface()
         events = tba.get_current_events(year)
-        current_app.logger.info(f"Successfully fetched TBA events {events} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        event_count = len(events) if events else 0
+        current_app.logger.info(f"Successfully fetched {event_count} TBA events for year {year} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(events)
     except Exception as e:
         current_app.logger.error(f"Error getting TBA events: {e}")
@@ -1152,35 +1153,33 @@ def live_match_status():
 
 @scouting_bp.route("/api/tba/team-status")
 @login_required
-# @limiter.limit("30 per minute")
 def get_team_status():
     """Get team status at an event including ranking and matches"""
     team_number = request.args.get('team')
     event_code = request.args.get('event')
-    
+
     if not team_number:
         return jsonify({"error": "Team number is required"}), 400
-    
+
     try:
         # Format TBA team key
         team_key = f"frc{team_number}"
-        
+
         # Initialize TBA interface
         tba = TBAInterface()
-        
+
         # If event code not provided, find the most recent event
         if not event_code:
             most_recent_event = tba.get_most_recent_active_event(team_key)
-            if most_recent_event:
-                event_code = most_recent_event.get('key')
-                # Also return event details for the UI
-                event_name = most_recent_event.get('name', 'Unknown Event')
-            else:
+            if not most_recent_event:
                 return jsonify({"error": "No events found for this team"}), 404
-        
+
+            event_code = most_recent_event.get('key')
+            # Also return event details for the UI
+            event_name = most_recent_event.get('name', 'Unknown Event')
         # Get team status at event (ranking)
         status = tba.get_team_status_at_event(team_key, event_code)
-        
+
         # Get team matches at event
         matches = tba.get_team_matches_at_event(team_key, event_code)
         current_app.logger.info(f"Successfully fetched team status {status} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -1271,3 +1270,51 @@ def get_team_paths():
     except Exception as e:
         current_app.logger.error(f"Error fetching team paths: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch team path data."}), 500
+
+
+@scouting_bp.route("/scouting/mock-alliance-selection")
+@login_required
+@limiter.limit("30 per minute")
+def mock_alliance_selection():
+    """
+    Render the mock alliance selection page.
+
+    Returns:
+        Rendered HTML template for the mock alliance selection page.
+    """
+    current_app.logger.info(f"Successfully loaded mock alliance selection for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    return render_template("scouting/mock-alliance-selection.html")
+
+
+@scouting_bp.route("/api/alliance-selection/rankings/<event_key>")
+@login_required
+def get_alliance_rankings(event_key):
+    """Get team rankings for alliance selection"""
+    # basic validation for event_key (year + event code)
+    if not event_key or not event_key.isalnum():
+         return jsonify({"error": "Invalid event key format"}), 400
+
+    try:
+        tba = TBAInterface()
+        rankings = tba.get_event_rankings(event_key)
+
+        if not rankings:
+            return jsonify({"error": "Failed to fetch rankings"}), 404
+
+        # Fetch all team details in bulk for the event
+        teams = tba.get_event_teams(event_key)
+        team_info_map = {team['key']: team for team in teams} if teams else {}
+        
+        for rank in rankings:
+            team_info = team_info_map.get(rank['team_key'])
+            if team_info:
+                rank['nickname'] = team_info.get('nickname', '')
+                rank['city'] = team_info.get('city', '')
+                rank['state_prov'] = team_info.get('state_prov', '')
+
+        current_app.logger.info(f"Successfully fetched alliance rankings for event {event_key}")
+        return jsonify(rankings)
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching alliance rankings: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to fetch rankings"}), 500
