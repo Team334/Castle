@@ -1,18 +1,19 @@
-// Depends on global 'alliances' array (from mock-alliance-selection.js)
+// Depends on mock-alliance-selection.js state
 
 let bracketMatches = {};
 
 function startPlayoffBracket() {
-    // If not all alliances are filled, ask if user wants to proceed
-    // But per requirements, we proceed if teams are exhausted anyway
+    // Get alliances from main script
+    const alliances = window.getAlliances ? window.getAlliances() : [];
     
-    // Hide controls except reset
-    const controlButtons = document.getElementById('control-buttons');
-    if (controlButtons) {
-        // We might want to keep Reset/Export potentially, but for now hide
-        // or just hide the Start Bracket button itself (which triggers this)
-        document.getElementById('start-bracket-btn').classList.add('hidden');
+    if (alliances.length === 0) {
+        console.error('No alliances available');
+        return;
     }
+    
+    // Hide start button
+    const startBtn = document.getElementById('start-bracket-btn');
+    if (startBtn) startBtn.classList.add('hidden');
 
     const bracketView = document.getElementById('bracket-view');
     if (bracketView) {
@@ -20,18 +21,18 @@ function startPlayoffBracket() {
         bracketView.scrollIntoView({ behavior: 'smooth' });
     }
     
-    initializeBracketMatches();
+    initializeBracketMatches(alliances);
     renderBracket();
 }
 
-function initializeBracketMatches() {
+function initializeBracketMatches(alliancesData) {
     const safeAlliances = [];
     for(let i=0; i<8; i++) {
-        if(alliances[i]) {
+        if(alliancesData[i]) {
             safeAlliances.push({
                 seed: i+1,
-                captain: alliances[i].captain,
-                picks: alliances[i].picks
+                captain: alliancesData[i].captain,
+                picks: alliancesData[i].picks
             });
         } else {
             // Bye team
@@ -113,9 +114,9 @@ function renderBracket() {
     // Lower Final
     renderMatch('m13', 'lower-round-4');
     
-    // Grand Finals
+    // Finals
     if (!bracketMatches['m14']) {
-        bracketMatches['m14'] = { id: 'm14', red: null, blue: null, winner: null, label: 'Grand Finals 1' };
+        bracketMatches['m14'] = { id: 'm14', red: null, blue: null, winner: null, label: 'Finals 1' };
     }
     renderMatch('m14', 'finals-round');
 }
@@ -261,5 +262,60 @@ function updateMatchSlot(matchId, role, teamData) {
         match[role] = teamData;
         match.winner = null; // Reset result if input changes
         propagateBracket(matchId); // Clear downstream
+    }
+}
+
+// Allow bracket matches for export functionality
+window.getBracketMatches = () => bracketMatches;
+
+function exportPlayoffResults() {
+    if (!bracketMatches || Object.keys(bracketMatches).length === 0) {
+        alert('No playoff matches to export. Please start the playoffs first.');
+        return;
+    }
+
+    // Get event key and alliances from main script
+    const eventKey = window.getAlliances ? (window.getAlliances()[0]?.captain ? 
+        document.getElementById('event-select')?.value || 'unknown' : 'unknown') : 'unknown';
+    
+    const results = {
+        event: eventKey,
+        timestamp: new Date().toISOString(),
+        playoff_matches: Object.entries(bracketMatches).map(([matchId, match]) => ({
+            match_id: matchId,
+            label: match.label,
+            red_alliance: match.red ? {
+                seed: match.red.seed,
+                captain: match.red.captain.team_number,
+                picks: match.red.picks.map(p => p.team_number)
+            } : null,
+            blue_alliance: match.blue ? {
+                seed: match.blue.seed,
+                captain: match.blue.captain.team_number,
+                picks: match.blue.picks.map(p => p.team_number)
+            } : null,
+            winner: match.winner,
+            winner_alliance: match.winner && match[match.winner] ? {
+                seed: match[match.winner].seed,
+                captain: match[match.winner].captain.team_number
+            } : null
+        }))
+    };
+
+    const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `playoff-results-${eventKey}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Show notification if available
+    if (typeof showNotification === 'function') {
+        showNotification('Playoff results exported successfully!', 'success');
+    } else {
+        alert('Playoff results exported successfully!');
     }
 }
