@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 
 import logging
 from app.scout.scouting_utils import ScoutingManager
-from app.utils import async_route, handle_route_errors
+from app.utils import async_route, handle_route_errors, limiter
 
 from .TBA import TBAInterface
 
@@ -231,6 +231,7 @@ def format_team_stats(stats):
         "matches_played": stats.get("matches_played", 0),
         "auto_fuel_avg": stats.get("avg_auto_fuel", 0),
         "teleop_fuel_avg": avg_teleop_fuel,
+        "ferried_fuel_avg": stats.get("avg_ferried_fuel", 0),
         "endgame_fuel_avg": stats.get("avg_endgame_fuel", 0),
         "climb_level_avg": stats.get("avg_climb_level", 0),
         "climb_success_rate": stats.get("climb_success_rate", 0) * 100
@@ -274,7 +275,9 @@ def compare_teams():
                         
                         # Fuel Stats
                         "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
+                        "avg_auto_climb": {"$avg": {"$cond": ["$auto_climb", 1, 0]}},
                         "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                        "avg_ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
                         "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
                         "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
                         "avg_teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
@@ -309,6 +312,7 @@ def compare_teams():
                     # Calculate total teleop average
                     avg_teleop_total = (
                         (stats[0].get("avg_transition_fuel") or 0) +
+                        (stats[0].get("avg_ferried_fuel") or 0) +
                         (stats[0]["avg_teleop_shift_1_fuel"] or 0) +
                         (stats[0]["avg_teleop_shift_2_fuel"] or 0) +
                         (stats[0]["avg_teleop_shift_3_fuel"] or 0) +
@@ -416,6 +420,7 @@ async def search_teams():
                     "match_number": 1,
                     # Fuel Stats
                     "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                    "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
                     "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
                     "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                     "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
@@ -424,6 +429,7 @@ async def search_teams():
                     "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
                     
                     # Climb Stats
+                    "auto_climb": 1,
                     "climb_level": {"$ifNull": ["$climb_level", 0]},
                     "climb_type": 1,
                     "climb_success": 1,
@@ -533,6 +539,7 @@ def leaderboard():
                 # Auto Fuel
                 "auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
                 "transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
+                "ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
                 
                 # Teleop Fuel
                 "teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
@@ -544,6 +551,7 @@ def leaderboard():
                 "endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
 
                 # Climb Level
+                "auto_climb_sum": {"$sum": {"$cond": [{"$eq": ["$auto_climb", True]}, 1, 0]}},
                 "climb_level": {"$avg": {"$ifNull": ["$climb_level", 0]}},
                 
                 # Defense Rating
@@ -567,6 +575,7 @@ def leaderboard():
                 
                 "auto_fuel": {"$round": ["$auto_fuel", 1]},
                 "transition_fuel": {"$round": ["$transition_fuel", 1]},
+                "ferried_fuel": {"$round": ["$ferried_fuel", 1]},
                 "teleop_fuel_total": {
                     "$add": [
                         "$transition_fuel",
@@ -593,6 +602,12 @@ def leaderboard():
                 
                 "climb_level_avg": {"$round": ["$climb_level", 1]},
 
+                "auto_climb_pct": {
+                    "$multiply": [
+                        {"$divide": ["$auto_climb_sum", "$matches_played"]},
+                        100
+                    ]
+                },
                 "climb_l1_pct": {
                     "$multiply": [
                         {"$divide": ["$climb_level_1_success", "$matches_played"]},
@@ -630,6 +645,8 @@ def leaderboard():
         sort_field = {
             'fuel': 'total_fuel',
             'auto_fuel': 'auto_fuel',
+            'ferried_fuel': 'ferried_fuel',
+            'auto_climb': 'auto_climb_pct',
             'climb': 'climb_success_rate',
             'climb_l1': 'climb_l1_pct',
             'climb_l2': 'climb_l2_pct',
@@ -795,7 +812,9 @@ def matches():
                         
                         # Fuel stats
                         "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
+                        "auto_climb": {"$ifNull": ["$auto_climb", False]},
                         "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
+                        "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
                         "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
                         "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
                         "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
@@ -841,16 +860,20 @@ def matches():
             # Prepare team data for template
             red_team_data = [{
                 "number": t["number"],
+                "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
-                "climb_success": t["climb_success"]
+                "climb_success": t["climb_success"],
+                "auto_climb": t["auto_climb"]
             } for t in red_teams]
 
             blue_team_data = [{
                 "number": t["number"],
+                "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
-                "climb_success": t["climb_success"]
+                "climb_success": t["climb_success"],
+                "auto_climb": t["auto_climb"]
             } for t in blue_teams]
 
             matches.append({
@@ -1089,10 +1112,11 @@ def pit_scouting_delete(team_number):
 # @limiter.limit("30 per minute")
 def get_tba_events():
     try:
-        year = datetime.now().year
+        year = request.args.get('year', default=datetime.now().year, type=int)
         tba = TBAInterface()
         events = tba.get_current_events(year)
-        current_app.logger.info(f"Successfully fetched TBA events {events} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        event_count = len(events) if events else 0
+        current_app.logger.info(f"Successfully fetched {event_count} TBA events for year {year} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(events)
     except Exception as e:
         current_app.logger.error(f"Error getting TBA events: {e}")
@@ -1129,35 +1153,33 @@ def live_match_status():
 
 @scouting_bp.route("/api/tba/team-status")
 @login_required
-# @limiter.limit("30 per minute")
 def get_team_status():
     """Get team status at an event including ranking and matches"""
     team_number = request.args.get('team')
     event_code = request.args.get('event')
-    
+
     if not team_number:
         return jsonify({"error": "Team number is required"}), 400
-    
+
     try:
         # Format TBA team key
         team_key = f"frc{team_number}"
-        
+
         # Initialize TBA interface
         tba = TBAInterface()
-        
+
         # If event code not provided, find the most recent event
         if not event_code:
             most_recent_event = tba.get_most_recent_active_event(team_key)
-            if most_recent_event:
-                event_code = most_recent_event.get('key')
-                # Also return event details for the UI
-                event_name = most_recent_event.get('name', 'Unknown Event')
-            else:
+            if not most_recent_event:
                 return jsonify({"error": "No events found for this team"}), 404
-        
+
+            event_code = most_recent_event.get('key')
+            # Also return event details for the UI
+            event_name = most_recent_event.get('name', 'Unknown Event')
         # Get team status at event (ranking)
         status = tba.get_team_status_at_event(team_key, event_code)
-        
+
         # Get team matches at event
         matches = tba.get_team_matches_at_event(team_key, event_code)
         current_app.logger.info(f"Successfully fetched team status {status} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -1248,3 +1270,51 @@ def get_team_paths():
     except Exception as e:
         current_app.logger.error(f"Error fetching team paths: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch team path data."}), 500
+
+
+@scouting_bp.route("/scouting/mock-alliance-selection")
+@login_required
+@limiter.limit("30 per minute")
+def mock_alliance_selection():
+    """
+    Render the mock alliance selection page.
+
+    Returns:
+        Rendered HTML template for the mock alliance selection page.
+    """
+    current_app.logger.info(f"Successfully loaded mock alliance selection for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+    return render_template("scouting/mock-alliance-selection.html")
+
+
+@scouting_bp.route("/api/alliance-selection/rankings/<event_key>")
+@login_required
+def get_alliance_rankings(event_key):
+    """Get team rankings for alliance selection"""
+    # basic validation for event_key (year + event code)
+    if not event_key or not event_key.isalnum():
+         return jsonify({"error": "Invalid event key format"}), 400
+
+    try:
+        tba = TBAInterface()
+        rankings = tba.get_event_rankings(event_key)
+
+        if not rankings:
+            return jsonify({"error": "Failed to fetch rankings"}), 404
+
+        # Fetch all team details in bulk for the event
+        teams = tba.get_event_teams(event_key)
+        team_info_map = {team['key']: team for team in teams} if teams else {}
+        
+        for rank in rankings:
+            team_info = team_info_map.get(rank['team_key'])
+            if team_info:
+                rank['nickname'] = team_info.get('nickname', '')
+                rank['city'] = team_info.get('city', '')
+                rank['state_prov'] = team_info.get('state_prov', '')
+
+        current_app.logger.info(f"Successfully fetched alliance rankings for event {event_key}")
+        return jsonify(rankings)
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching alliance rankings: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to fetch rankings"}), 500

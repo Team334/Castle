@@ -96,6 +96,7 @@ function updateTeamCards(data) {
 
         // Update Teleop Period stats
         document.getElementById(`team${cardNum}-transition-fuel`).textContent = (stats.avg_transition_fuel || 0).toFixed(2);
+        document.getElementById(`team${cardNum}-ferried-fuel`).textContent = (stats.avg_ferried_fuel || 0).toFixed(2);
         document.getElementById(`team${cardNum}-teleop-s1`).textContent = (stats.avg_teleop_shift_1_fuel || 0).toFixed(2);
         document.getElementById(`team${cardNum}-teleop-s2`).textContent = (stats.avg_teleop_shift_2_fuel || 0).toFixed(2);
         document.getElementById(`team${cardNum}-teleop-s3`).textContent = (stats.avg_teleop_shift_3_fuel || 0).toFixed(2);
@@ -238,6 +239,9 @@ function updateRawDataTable(data) {
                 </td>
                 <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                    ${match.transition_fuel || 0}
+                </td>
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                   ${match.ferried_fuel || 0}
                 </td>
                 <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${match.teleop_shift_1_fuel || 0} / ${match.teleop_shift_2_fuel || 0} / ${match.teleop_shift_3_fuel || 0} / ${match.teleop_shift_4_fuel || 0}
