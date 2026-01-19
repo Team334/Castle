@@ -253,7 +253,6 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser, isChampion) {
         if (isChampion) {
              crown.classList.remove('scale-0');
              crown.classList.add('scale-100');
-        if (teamsListEl) teamsListEl.textContent = '';
              el.classList.add('ring-2', 'ring-yellow-400', 'ring-offset-2');
         } else {
              el.classList.remove('ring-2', 'ring-yellow-400', 'ring-offset-2');
@@ -275,9 +274,6 @@ function setMatchWinner(matchId, winnerColor) {
         const finalsStatus = getFinalsStatus();
         if (!finalsStatus.needsTiebreaker) return;
     }
-    
-    // If BYE, we can't really "click" it typically, but if we do, logic handles it.
-    // In strict auto-mode, BYEs advance immediately. Here user clicks.
     
     if (match.winner === winnerColor) {
         match.winner = null; // Toggle off

@@ -115,6 +115,27 @@ function setupEventListeners() {
     if (dom.startBracketBtn) {
         dom.startBracketBtn.addEventListener('click', handleStartBracket);
     }
+
+    if (dom.allianceGrid) {
+        dom.allianceGrid.addEventListener('click', handleGridClick);
+        dom.allianceGrid.addEventListener('dragover', handleDragOver);
+        dom.allianceGrid.addEventListener('dragleave', handleDragLeave);
+        dom.allianceGrid.addEventListener('drop', handleDrop);
+    }
+}
+
+function handleGridClick(e) {
+    const slot = e.target.closest('.team-slot');
+    if (!slot) return;
+
+    const allianceIndex = parseInt(slot.getAttribute('data-alliance'));
+    const pickIndex = parseInt(slot.getAttribute('data-pick'));
+
+    if (slot.dataset.action === 'remove') {
+        removeTeamFromAlliance(allianceIndex, pickIndex);
+    } else if (slot.classList.contains('empty')) {
+        handleSlotClick(allianceIndex, pickIndex);
+    }
 }
 
 // Handle start bracket button click
@@ -515,21 +536,28 @@ function handleDragEnd(e) {
 function handleDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    e.currentTarget.classList.add('drag-over');
+    const target = e.target.closest('.team-slot');
+    if (target) {
+        target.classList.add('drag-over');
+    }
 }
 
 function handleDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
+    const target = e.target.closest('.team-slot');
+    if (target) {
+        target.classList.remove('drag-over');
+    }
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
+    const target = e.target.closest('.team-slot');
+    if (target) target.classList.remove('drag-over');
     
-    if (!state.draggedTeam) return;
+    if (!state.draggedTeam || !target) return;
     
-    const allianceIndex = parseInt(e.currentTarget.getAttribute('data-alliance'));
-    const pickIndex = parseInt(e.currentTarget.getAttribute('data-pick'));
+    const allianceIndex = parseInt(target.getAttribute('data-alliance'));
+    const pickIndex = parseInt(target.getAttribute('data-pick'));
     
     const alliance = state.alliances[allianceIndex];
     if (alliance && !alliance.picks[pickIndex]) {
@@ -626,7 +654,10 @@ function createFilledAllianceHTML(alliance, index, isActive) {
 // Create HTML for filled pick slot
 function createFilledPickHTML(pick, allianceIndex, pickIndex) {
     return `
-        <div class="team-slot filled p-3 rounded mb-2 cursor-pointer hover:bg-red-50 group" onclick="removeTeamFromAlliance(${allianceIndex}, ${pickIndex})">
+        <div class="team-slot filled p-3 rounded mb-2 cursor-pointer hover:bg-red-50 group" 
+             data-alliance="${allianceIndex}" 
+             data-pick="${pickIndex}"
+             data-action="remove">
             <div class="flex justify-between items-center">
                 <div class="flex-1">
                     <div class="font-semibold">${pick.team_number}</div>
@@ -648,11 +679,7 @@ function createEmptyPickHTML(allianceIndex, pickIndex, isCurrentPick) {
     return `
         <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400" 
                 data-alliance="${allianceIndex}" 
-                data-pick="${pickIndex}"
-                onclick="handleSlotClick(${allianceIndex}, ${pickIndex})"
-                ondrop="handleDrop(event)" 
-                ondragover="handleDragOver(event)"
-                ondragleave="handleDragLeave(event)">
+                data-pick="${pickIndex}">
             ${isCurrentPick ? '← Tap or drag team here' : `Pick ${pickIndex + 1}`}
         </div>
     `;

@@ -1362,7 +1362,7 @@ def get_alliance_rankings(event_key):
         rankings = tba.get_event_rankings(event_key)
 
         if not rankings:
-            return jsonify({"error": "Failed to fetch rankings"}), 204
+            return jsonify({"error": "Failed to fetch rankings"}), 404
 
         # Fetch all team details in bulk for the event
         teams = tba.get_event_teams(event_key)

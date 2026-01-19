@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from functools import cached_property, lru_cache
+from functools import lru_cache
 import requests
 
 logger = logging.getLogger(__name__)
@@ -110,6 +110,7 @@ class TBAInterface:
             logger.error(f"Error fetching events from TBA: {e}")
             return None
             
+    @lru_cache(maxsize=20)
     def get_team_status_at_event(self, team_key, event_key):
         """Get team status and ranking at a specific event"""
         try:
