@@ -1,33 +1,33 @@
 import asyncio
-import contextlib
 import logging
 import os
 import time
+from datetime import datetime
 from functools import wraps
 from io import BytesIO
 from urllib.parse import urljoin, urlparse
-from datetime import datetime
 
+import colorlog
 from bson import ObjectId
 from dotenv import load_dotenv
-from flask import flash, jsonify, render_template, request, send_file, g, current_app
+from flask import flash, g, jsonify, render_template, request, send_file
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from gridfs import GridFS
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from werkzeug.utils import secure_filename
-import colorlog
+
 
 # Configure logging with custom format and color with colorlog and file logging
 def setup_logger():
     # Create log directory if it doesn't exist
-    log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+    log_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
     os.makedirs(log_dir, exist_ok=True)
     
     # Create a timestamp for the log filename
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    log_file = os.path.join(log_dir, f'app_{timestamp}.log')
+    timestamp: str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    log_file: str = os.path.join(log_dir, f'app_{timestamp}.log')
     
     # Set up root logger
     root_logger = logging.getLogger()
@@ -38,11 +38,11 @@ def setup_logger():
         root_logger.handlers.clear()
     
     # Console handler with colors
-    console_handler = logging.StreamHandler()
+    console_handler: logging.StreamHandler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     
     # Color formatter for console
-    color_formatter = colorlog.ColoredFormatter(
+    color_formatter: colorlog.ColoredFormatter = colorlog.ColoredFormatter(
         '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
         log_colors={
             'DEBUG': 'cyan',
@@ -56,21 +56,21 @@ def setup_logger():
     console_handler.setFormatter(color_formatter)
     
     # File handler for logging to file
-    file_handler = logging.FileHandler(log_file)
+    file_handler: logging.FileHandler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s')
+    file_formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s')
     file_handler.setFormatter(file_formatter)
     
     # Add handlers to root logger
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
     
-    logger = logging.getLogger(__name__)
+    logger: logging.Logger = logging.getLogger(__name__)
     logger.info(f"Logging initialized. Log file: {log_file}")
     return logger
 
 # Initialize logger
-logger = setup_logger()
+logger: logging.Logger = setup_logger()
 
 # File handling constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -85,10 +85,10 @@ class MongoDB:
     throughout the application lifecycle.
     """
     # Class variables for the single global connection
-    _instance = None
-    _client = None
-    _db = None
-    _initialized = False
+    _instance: str | None = None
+    _client: MongoClient | None = None
+    _db: MongoClient | None = None
+    _initialized: bool = False
     
     def __new__(cls, mongo_uri=None, *args, **kwargs):
         if cls._instance is None:
@@ -98,7 +98,7 @@ class MongoDB:
     def __init__(self, mongo_uri=None):
         # Only initialize once
         if not MongoDB._initialized:
-            self.mongo_uri = mongo_uri or os.getenv("MONGO_URI")
+            self.mongo_uri: str | None = mongo_uri or os.getenv("MONGO_URI")
             self._connect()
             MongoDB._initialized = True
     
@@ -106,7 +106,7 @@ class MongoDB:
         """Create the MongoDB connection"""
         try:
             logger.info("Creating new MongoDB connection")
-            self._client = MongoClient(
+            self._client: MongoClient = MongoClient(
                 self.mongo_uri,
                 serverSelectionTimeoutMS=30000,  # Increased from 10000
                 maxPoolSize=50,                  # Increased from 10
@@ -122,7 +122,7 @@ class MongoDB:
             
             # Test the connection
             self._client.server_info()
-            self._db = self._client.get_default_database()
+            self._db: MongoClient = self._client.get_default_database()
             logger.info("MongoDB connection established successfully")
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
@@ -154,8 +154,8 @@ class MongoDB:
             except Exception as e:
                 logger.warning(f"Error closing MongoDB connection: {str(e)}")
             finally:
-                self._client = None
-                self._db = None
+                self._client: MongoClient | None = None
+                self._db: MongoClient | None = None
                 MongoDB._initialized = False
 
 # Global instance
@@ -258,7 +258,7 @@ def handle_route_errors(f):
             return render_template("500.html"), 500
     return wrapper
 
-limiter = Limiter(
+limiter: Limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["50000 per day", "10000 per hour"],
     strategy="moving-window"
@@ -271,7 +271,7 @@ def allowed_file(filename: str) -> bool:
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def save_file_to_gridfs(file, db, prefix: str = '') -> str:
+def save_file_to_gridfs(file, prefix: str = '') -> str | None:
     """Save file to GridFS and return file ID"""
     if file and allowed_file(file.filename):
         filename = secure_filename(f"{prefix}_{file.filename}" if prefix else file.filename)
@@ -283,7 +283,7 @@ def save_file_to_gridfs(file, db, prefix: str = '') -> str:
         return str(file_id)
     return None
 
-def send_gridfs_file(file_id, db, default_path: str = None):
+def send_gridfs_file(file_id, default_path: str = None):
     """Send file from GridFS or return default file"""
     try:
         if isinstance(file_id, str):
@@ -338,7 +338,7 @@ async def check_password_strength(password: str) -> tuple[bool, str]:
         return False, "Password must be at least 8 characters long"
     return True, "Password meets all requirements"
 
-def get_gridfs():
+def get_gridfs() -> GridFS | None:
     """Get the GridFS instance"""
     global fs
     if fs is None:

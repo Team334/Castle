@@ -2,11 +2,11 @@ import logging
 import os
 from datetime import datetime
 from functools import lru_cache
+
 import requests
-from .artificial_data import ( 
-    _generate_test_matches, _generate_test_rankings,
-                              _generate_test_teams
-)
+
+from .artificial_data import (_generate_test_matches, _generate_test_rankings,
+                              _generate_test_teams)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class TBAInterface:
         self.timeout = 5  # Reduced timeout
 
     @lru_cache(maxsize=100)
-    def get_team(self, team_key):
+    def get_team(self, team_key: str) -> dict | None:
         """Get team information from TBA"""
         # Check for test teams 1-15
         if team_key and team_key.startswith('frc'):
@@ -59,7 +59,7 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=5)
-    def get_event_matches(self, event_key):
+    def get_event_matches(self, event_key: str) -> dict[str, dict] | None:
         """Get matches for an event and format them by match number"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
              return _generate_test_matches(event_key)
@@ -103,7 +103,7 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=20)
-    def get_current_events(self, year, include_test_data=False):
+    def get_current_events(self, year: int, include_test_data: bool = False) -> dict | None:
         """Get all events for the specified year"""
         try:
             response = requests.get(
@@ -153,7 +153,7 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_status_at_event(self, team_key, event_key):
+    def get_team_status_at_event(self, team_key: str, event_key: str) -> dict | None:
         """Get team status and ranking at a specific event"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
             try:
@@ -177,8 +177,8 @@ class TBAInterface:
                          },
                          'playoff': None
                      }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Error generating test rankings: {e}")
 
         try:
             response = requests.get(
@@ -192,7 +192,7 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_matches_at_event(self, team_key, event_key):
+    def get_team_matches_at_event(self, team_key: str, event_key: str) -> dict[str, list] | None:
         """Get a team's matches at a specific event with previous and upcoming separation"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
              matches_dict = _generate_test_matches(event_key)
@@ -281,7 +281,7 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_events(self, team_key, year=None):
+    def get_team_events(self, team_key: str, year: int | None = None) -> list[dict] | None:
         """Get all events a team is participating in for the given year"""
         if year is None:
             year = datetime.now().year
@@ -340,7 +340,7 @@ class TBAInterface:
         return events[0]
     
     @lru_cache(maxsize=5)
-    def get_event_teams(self, event_key):
+    def get_event_teams(self, event_key: str) -> list[dict] | None:
         """
         Retrieve a list of teams attending a specific event.
 
@@ -369,7 +369,7 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=5)
-    def get_event_rankings(self, event_key):
+    def get_event_rankings(self, event_key: str) -> list[dict] | None:
         """
         Retrieve the team rankings for a given event, including ranking points and match records.
 
@@ -428,5 +428,3 @@ class TBAInterface:
         except Exception as e:
             logger.error(f"Error fetching event rankings from TBA: {e}")
             return None
-
-    

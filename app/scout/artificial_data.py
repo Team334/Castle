@@ -1,5 +1,16 @@
-def _generate_test_teams(event_key):
-    """Generate test teams based on event key"""
+from __future__ import annotations
+
+
+def _generate_test_teams(event_key: str) -> list[dict]:
+    """
+    Generate test teams based on event key
+    
+    Arrgs: 
+        event_key (str): The event key to determine which test teams to generate.
+
+    Returns: 
+        list[dict]: A list of team objects.
+    """
     if str(event_key).endswith("test1"):
         start, end = 1, 6
     elif str(event_key).endswith("test2"):
@@ -22,8 +33,16 @@ def _generate_test_teams(event_key):
         })
     return teams
 
-def _generate_test_matches(event_key):
-    """Generate test matches for 5 teams"""
+def _generate_test_matches(event_key: str) -> dict[str, dict]:
+    """
+    Generate test matches for 5 teams
+    
+    Args:
+        event_key (str): The event key to determine which test matches to generate.
+
+    Returns:
+        dict: A dictionary of match objects formatted by match key.
+    """
     teams = [t['key'] for t in _generate_test_teams(event_key)]
     if not teams:
         return {}
@@ -76,8 +95,16 @@ def _generate_test_matches(event_key):
 
     return formatted_matches
 
-def _generate_test_rankings(event_key):
-    """Generate test rankings"""
+def _generate_test_rankings(event_key: str) -> list[dict]:
+    """
+    Generate test rankings for teams at an event.
+
+    Args:
+        event_key (str): The event key to determine which test rankings to generate.
+
+    Returns:
+        list[dict]: A list of ranking objects.
+    """
     teams = _generate_test_teams(event_key)
     rankings = []
     

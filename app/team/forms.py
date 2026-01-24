@@ -12,7 +12,7 @@ class CreateTeamForm(FlaskForm):
     class Meta:
         csrf = True
 
-    team_number = IntegerField(
+    team_number: IntegerField = IntegerField(
         "Team Number",
         validators=[
             DataRequired(message="Team number is required"),
@@ -22,7 +22,7 @@ class CreateTeamForm(FlaskForm):
         ],
     )
 
-    team_name = StringField(
+    team_name: StringField = StringField(
         "Team Name",
         validators=[
             DataRequired(message="Team name is required"),
@@ -32,14 +32,14 @@ class CreateTeamForm(FlaskForm):
         ],
     )
 
-    description = TextAreaField(
+    description: TextAreaField = TextAreaField(
         "Description",
         validators=[
             Length(max=500, message="Description must be less than 500 characters")
         ],
     )
 
-    logo = FileField(
+    logo: FileField = FileField(
         "Team Logo",
         validators=[
             FileAllowed(["jpg", "png"], "Only JPG and PNG images are allowed!"),
@@ -49,7 +49,7 @@ class CreateTeamForm(FlaskForm):
         ],
     )
 
-    def validate(self, extra_validators=None):
+    def validate(self, extra_validators=None) -> bool:
         """Override validate method to add custom validation and logging"""
         initial_validation = super().validate(extra_validators=extra_validators)
         logger.debug(f"Form initial validation: {initial_validation}")

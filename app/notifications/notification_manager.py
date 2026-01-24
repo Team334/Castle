@@ -1,13 +1,14 @@
+import json
 import logging
 import threading
 from datetime import datetime, timedelta
-import json
-from bson import ObjectId
 from typing import Dict, Optional, Tuple
 
+from bson import ObjectId
+from pywebpush import WebPushException, webpush
+
 from app.models import AssignmentSubscription
-from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection
-from pywebpush import webpush, WebPushException
+from app.utils import DatabaseManager, with_mongodb_retry
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class NotificationManager(DatabaseManager):
             self.db.create_collection("assignment_subscriptions")
             logger.info("Created assignment_subscriptions collection")
             
-    def start_notification_service(self):
+    def start_notification_service(self) -> None:
         """Start the background thread that processes notifications"""
         if self._notification_thread is None or not self._notification_thread.is_alive():
             self._shutdown_event.clear()
@@ -48,14 +49,14 @@ class NotificationManager(DatabaseManager):
             self._notification_thread.start()
             logger.info("Notification service started")
     
-    def stop_notification_service(self):
+    def stop_notification_service(self) -> None:
         """Stop the notification background thread"""
         if self._notification_thread and self._notification_thread.is_alive():
             self._shutdown_event.set()
             self._notification_thread.join(timeout=5)
             logger.info("Notification service stopped")
     
-    def _notification_worker(self):
+    def _notification_worker(self) -> None:
         """Background worker that checks for pending notifications"""
         logger.info("Notification worker started")
         
@@ -75,7 +76,7 @@ class NotificationManager(DatabaseManager):
                 self._shutdown_event.wait(5)
     
     @with_mongodb_retry()
-    def _process_pending_notifications(self):
+    def _process_pending_notifications(self) -> None:
         """Process all pending notifications that are due to be sent"""
         
 
@@ -129,7 +130,7 @@ class NotificationManager(DatabaseManager):
             logger.info(f"Sent {count} notifications")
     
     @with_mongodb_retry()
-    def _schedule_assignment_notifications(self):
+    def _schedule_assignment_notifications(self) -> None:
         """Schedule notifications for assignments with due dates"""
         
         
@@ -142,7 +143,7 @@ class NotificationManager(DatabaseManager):
             # Get the subscriptions for this assignment
             self._schedule_assignment_reminder(assignment)
     
-    def _schedule_assignment_reminder(self, assignment: Dict):
+    def _schedule_assignment_reminder(self, assignment: Dict) -> None:
         """Schedule reminders for a specific assignment
         
         Args:

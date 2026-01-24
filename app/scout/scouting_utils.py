@@ -17,7 +17,7 @@ class ScoutingManager(DatabaseManager):
         super().__init__(mongo_uri)
         self._ensure_collections()
 
-    def _ensure_collections(self):
+    def _ensure_collections(self) -> None:
         """Ensure required collections exist"""
         collections = self.db.list_collection_names()
         if "team_data" not in collections:
@@ -28,18 +28,15 @@ class ScoutingManager(DatabaseManager):
             self.db.pit_scouting.create_index([("scouter_id", 1)])
             logger.info("Created pit_scouting collection and indexes")
         
-    def _create_team_data_collection(self):
+    def _create_team_data_collection(self) -> None:
         self.db.create_collection("team_data")
         self.db.team_data.create_index([("team_number", 1)])
         self.db.team_data.create_index([("scouter_id", 1)])
         logger.info("Created team_data collection and indexes")
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_scouting_data(self, data, scouter_id):
-        """Add new scouting data with retry mechanism"""
-        # Ensure we have a valid connection
-        
-        
+    def add_scouting_data(self, data: dict, scouter_id: str) -> tuple[bool, str]:
+        """Add new scouting data with retry mechanism"""        
         try:
             # Validate team number
             team_number = int(data["team_number"])
@@ -144,7 +141,7 @@ class ScoutingManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_scouting_data(self, user_team_number=None, user_id=None):
+    def get_all_scouting_data(self, user_team_number=None, user_id=None) -> list[dict]:
         """Get all scouting data with user information, filtered by team access"""
         try:
             # Base pipeline for user lookup
@@ -223,7 +220,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_data(self, team_id, scouter_id=None):
+    def get_team_data(self, team_id, scouter_id=None) -> TeamData | None:
         """Get specific team data with optional scouter verification"""
         try:
             # Just get the data by ID first
@@ -250,7 +247,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def update_team_data(self, team_id, data, scouter_id):
+    def update_team_data(self, team_id, data, scouter_id) -> bool:
         """Update existing team data if user is the owner"""
         try:
             # First verify ownership and get current data
@@ -355,7 +352,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_team_data(self, team_id, user_id, admin_override=False):
+    def delete_team_data(self, team_id: str, user_id: str, admin_override=False) -> bool:
         """Delete team data if scouter has permission (original scouter or team admin)"""
         try:
             # First get the team data to check permissions
@@ -406,7 +403,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def has_team_data(self, team_number):
+    def has_team_data(self, team_number: str) -> bool:
         """Check if there is any scouting data for a given team number"""
         try:
             count = self.db.team_data.count_documents({"team_number": int(team_number)})
@@ -416,7 +413,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_stats(self, team_number):
+    def get_team_stats(self, team_number: str) -> dict | None:
         """Get comprehensive stats for a team"""
         try:
             pipeline = [
@@ -468,7 +465,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_matches(self, team_number):
+    def get_team_matches(self, team_number: str) -> list[dict]:
         """Get all match data for a specific team"""
         try:
             pipeline = [
@@ -491,7 +488,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_auto_paths(self, team_number):
+    def get_auto_paths(self, team_number: str) -> list[dict]:
         """Get all auto paths for a specific team"""
         try:
             paths = list(self.db.team_data.find(
@@ -520,7 +517,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_pit_scouting(self, data):
+    def add_pit_scouting(self, data: dict) -> bool:
         """Add new pit scouting data with team validation"""
         try:
             team_number = int(data["team_number"])
@@ -563,7 +560,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_pit_scouting(self, team_number):
+    def get_pit_scouting(self, team_number: str) -> dict | None:
         """Get pit scouting data with scouter information"""
         try:
             pipeline = [
@@ -613,7 +610,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_pit_scouting(self, user_team_number=None, user_id=None):
+    def get_all_pit_scouting(self, user_team_number=None, user_id=None) -> list[dict]:
         """Get all pit scouting data with team-based access control"""
         try:
             logger.info(f"Fetching pit scouting data for user_id: {user_id}, team_number: {user_team_number}")
@@ -710,7 +707,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def update_pit_scouting(self, team_number, data, scouter_id):
+    def update_pit_scouting(self, team_number: str, data: dict, scouter_id: str) -> bool:
         """Update pit scouting data with team validation"""
         try:
             # First verify ownership and get current data
@@ -762,7 +759,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_pit_scouting(self, team_number, scouter_id):
+    def delete_pit_scouting(self, team_number: str, scouter_id: str) -> bool:
         """Delete pit scouting data"""
         try:
             result = self.db.pit_scouting.delete_one({

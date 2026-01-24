@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 
 import aiohttp
@@ -9,7 +10,6 @@ from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_login import current_user, login_required
 
-import logging
 from app.scout.scouting_utils import ScoutingManager
 from app.utils import async_route, handle_route_errors, limiter
 

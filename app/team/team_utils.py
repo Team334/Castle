@@ -7,13 +7,12 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Dict, Optional, Tuple, Union
 
-import gridfs
 from bson.objectid import ObjectId
+from flask import current_app
 from PIL import Image, ImageDraw, ImageFont
 
 from app.models import Assignment, Team, User
-from app.utils import DatabaseManager, with_mongodb_retry, get_database_connection, get_gridfs
-from flask import current_app
+from app.utils import DatabaseManager, get_gridfs, with_mongodb_retry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ DatabaseID = Union[str, ObjectId]
 class TeamManager(DatabaseManager):
     """Handles all team-related operations"""
     
-    def __init__(self, mongo_uri=None):
+    def __init__(self, mongo_uri: Optional[str] = None) -> None:
         # Use the singleton connection
         super().__init__(mongo_uri)
         self._ensure_collections()
@@ -130,7 +129,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def join_team(self, user_id: str, team_join_code: str):
+    async def join_team(self, user_id: str, team_join_code: str) -> TeamResult:
         """Add a user to a team using the join code"""
         
         try:
@@ -165,7 +164,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def leave_team(self, user_id: str, team_number: int):
+    async def leave_team(self, user_id: str, team_number: int) -> TeamResult:
         """Remove a user from a team and remove their admin status"""
         
         try:
@@ -202,7 +201,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def get_team_members(self, team_number: int):
+    async def get_team_members(self, team_number: int) -> list[User]:
         """Get all members of a team"""
         
         try:
@@ -294,7 +293,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def remove_user(self, team_number: int, user_id: str, admin_id: str):
+    async def remove_user(self, team_number: int, user_id: str, admin_id: str) -> TeamResult:
         """Remove a user from a team (admin action)"""
         
         try:
@@ -335,7 +334,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def create_or_update_assignment(self, team_number: int, assignment_data: dict, creator_id: str):
+    async def create_or_update_assignment(self, team_number: int, assignment_data: dict, creator_id: str) -> TeamResult:
         """Create or update an assignment"""
         
         try:
@@ -366,8 +365,10 @@ class TeamManager(DatabaseManager):
                 {"$addToSet": {"assignments": str(result.inserted_id)}},
             )
 
-            from app.notifications.notification_manager import NotificationManager
             import asyncio
+
+            from app.notifications.notification_manager import \
+                NotificationManager
             
             async def send_notifications():
                 try:
@@ -402,7 +403,7 @@ class TeamManager(DatabaseManager):
     @with_mongodb_retry(retries=3, delay=2)
     def update_assignment_status(
         self, assignment_id: str, user_id: str, new_status: str
-    ):
+    ) -> Tuple[bool, str]:
         """Update the status of an assignment"""
         
         try:
@@ -427,7 +428,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def get_team_assignments(self, team_number: int):
+    async def get_team_assignments(self, team_number: int) -> list[Assignment]:
         """Get all assignments for a team"""
         
         try:
@@ -583,7 +584,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def reset_user_team(self, user_id: str):
+    async def reset_user_team(self, user_id: str) -> bool:
         """Reset user's team number to None"""
         
         try:
@@ -599,7 +600,7 @@ class TeamManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def validate_user_team(self, user_id: str, team_number: int):
+    async def validate_user_team(self, user_id: str, team_number: int) -> TeamResult:
         """Validate that a user's team exists and update if it doesn't"""
         
         try:
@@ -621,7 +622,7 @@ class TeamManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_team_logo(self, team_number: int, new_logo_id) -> Tuple[bool, str]:
+    async def update_team_logo(self, team_number: int, new_logo_id) -> TeamResult:
         """Update team logo and clean up old one"""
         try:
             # Get current team data
@@ -671,7 +672,7 @@ class TeamManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_team_info(self, team_number: int, updates: dict) -> Tuple[bool, str]:
+    async def update_team_info(self, team_number: int, updates: dict) -> TeamResult:
         """Update team information"""
         try:
             # Filter out None values
@@ -730,7 +731,7 @@ class TeamManager(DatabaseManager):
         return buffer.getvalue()
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def transfer_ownership(self, team_number: int):
+    async def transfer_ownership(self, team_number: int) -> TeamResult:
         """Transfer team ownership to next admin or member"""
         
         try:

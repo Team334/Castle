@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from io import BytesIO
 from datetime import datetime
+from io import BytesIO
 
 from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -11,17 +11,17 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 from app.team.team_utils import TeamManager
-from app.utils import (allowed_file, async_route, error_response,
+from app.utils import (allowed_file, async_route, error_response, get_gridfs,
                        handle_route_errors, limiter, save_file_to_gridfs,
-                       success_response, get_gridfs)
+                       success_response)
 
 from .forms import CreateTeamForm
 
 team_bp = Blueprint("team", __name__)
-team_manager = None
+team_manager: TeamManager | None = None
 
 @team_bp.record
-def on_blueprint_init(state):
+def on_blueprint_init(state) -> None:
     global team_manager
     app = state.app
     
@@ -62,8 +62,6 @@ async def join():
             return redirect(url_for("team.join"))
         
         return render_template("team/join.html")
-
-
 
     except Exception as e:
         current_app.logger.error(f"Error in join_team_page: {str(e)}", exc_info=True)
@@ -505,7 +503,7 @@ async def update_team_logo(team_number):
     if file.filename == '':
         return error_response("No file selected")
         
-    new_logo_id = await save_file_to_gridfs(file, team_manager.db)
+    new_logo_id = await save_file_to_gridfs(file)
     if not new_logo_id:
         return error_response("Invalid file type")
         

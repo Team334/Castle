@@ -2,13 +2,14 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 
 from app.utils import async_route, limiter
+
 from .notification_manager import NotificationManager
 
 notifications_bp = Blueprint("notifications", __name__)
 notification_manager = None
 
 @notifications_bp.record
-def on_blueprint_init(state):
+def on_blueprint_init(state) -> None:
     """Initialize the notification manager"""
     global notification_manager
     app = state.app

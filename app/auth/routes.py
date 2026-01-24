@@ -13,8 +13,8 @@ from flask_pymongo import PyMongo
 from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
-from app.utils import (async_route, handle_route_errors, is_safe_url, limiter,
-                       send_gridfs_file, get_gridfs)
+from app.utils import (async_route, get_gridfs, handle_route_errors,
+                       is_safe_url, limiter, send_gridfs_file)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -249,7 +249,6 @@ def profile_picture(user_id):
     
     return send_gridfs_file(
         user.profile_picture_id,
-        user_manager.db,
         "static/images/default_profile.png"
     )
 

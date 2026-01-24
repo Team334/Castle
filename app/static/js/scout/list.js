@@ -199,6 +199,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize Coloris
-    Coloris.init();
+    // Configure Coloris
+    Coloris({
+        theme: 'polaroid',
+        themeMode: 'light',
+        alpha: false,
+        formatToggle: false,
+        swatches: [
+            '#2563eb', // Default blue
+            '#000000',
+            '#ffffff',
+            '#db4437',
+            '#4285f4',
+            '#0f9d58',
+            '#ffeb3b',
+            '#ff7f00'
+        ]
+    });
 });

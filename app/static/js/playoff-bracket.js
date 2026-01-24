@@ -290,7 +290,7 @@ function propagateBracket(sourceMatchId) {
     const winner = source.winner ? (source.winner === 'red' ? source.red : source.blue) : null;
     const loser = source.winner ? (source.winner === 'red' ? source.blue : source.red) : null;
     
-    // Double Elimination Bracket Mapping (2023+ FRC)
+    // Double Elimination Bracket Mapping
     const flow = {
         // Round 1 Upper
         'm1': { win: { to: 'm7', role: 'red' }, lose: { to: 'm5', role: 'red' } },
