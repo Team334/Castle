@@ -49,9 +49,9 @@ def add():
         # Get current events only
         tba = TBAInterface()
         year = datetime.now().year
-        events = tba.get_current_events(year) or {}
+        events = tba.get_current_events(year, include_test_data=True) or {}
         
-        return render_template("scouting/add.html", 
+        return render_template("scouting/add.html",  
                             events=events,
                             event_matches={})  # Empty dict
 
