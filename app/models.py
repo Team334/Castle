@@ -38,7 +38,7 @@ class User(UserMixin):
         return check_password_hash(self.password_hash, password)
 
     @staticmethod
-    def create_from_db(user_data) -> User | None:
+    def create_from_db(user_data):
         """Creates a User instance from database data"""
         if not user_data:
             return None
@@ -177,7 +177,7 @@ class PitScouting:
         self.updated_at: Optional[datetime] = data.get("updated_at")
 
     @staticmethod
-    def create_from_db(data: Dict) -> Optional["PitScouting"]:
+    def create_from_db(data: Dict):
         """Create a PitScouting instance from database data"""
         if not data:
             return None
@@ -211,7 +211,7 @@ class Team:
         return str(self._id) if self._id else None
 
     @staticmethod
-    def create_from_db(data: Dict) -> Optional["Team"]:
+    def create_from_db(data: Dict):
         if not data:
             return None
         # Convert string ID to ObjectId if necessary
@@ -265,7 +265,7 @@ class Assignment:
             self.created_at = created_at or datetime.now(timezone.utc)
 
     @classmethod
-    def create_from_db(cls, data) -> "Assignment":
+    def create_from_db(cls, data):
         return cls(
             id=data['_id'],
             title=data.get('title'),
@@ -314,7 +314,7 @@ class AssignmentSubscription:
         return str(self._id)
 
     @staticmethod
-    def create_from_db(data: Dict) -> AssignmentSubscription | None:
+    def create_from_db(data: Dict):
         """Create an AssignmentSubscription instance from database data"""
         if not data:
             return None
