@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+from bson import ObjectId
 from flask_login import current_user
 from werkzeug.security import generate_password_hash
 
@@ -229,6 +230,67 @@ class UserManager(DatabaseManager):
 
         except Exception as e:
             logger.error(f"Error deleting user: {str(e)}")
+            return False, "An internal error has occurred."
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def change_password(self, user_id: str, current_password: str, new_password: str) -> tuple[bool, str]:
+        """Change user password after verifying current password"""
+        
+        try:            
+            # Get user data
+            user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
+            if not user_data:
+                return False, "User not found"
+            
+            # Check for account lockout due to too many failed attempts
+            failed_attempts = user_data.get('failed_password_change_attempts', 0)
+            last_failed = user_data.get('last_failed_password_change')
+            
+            if failed_attempts >= 5 and last_failed:
+                # Lock for 15 minutes after 5 failed attempts
+                time_since = (datetime.now(timezone.utc) - last_failed).total_seconds()
+                if time_since < 900:  # 15 minutes
+                    mins_left = int((900 - time_since) / 60) + 1
+                    return False, f"Too many failed attempts. Try again in {mins_left} minutes"
+            
+            # Create user object to verify current password
+            user = User.create_from_db(user_data)
+            if not user.check_password(current_password):
+                # Track failed attempt
+                self.db.users.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {
+                        "$set": {"last_failed_password_change": datetime.now(timezone.utc)},
+                        "$inc": {"failed_password_change_attempts": 1}
+                    }
+                )
+                return False, "Current password is incorrect"
+            
+            # Check new password strength
+            password_valid, message = await check_password_strength(new_password)
+            if not password_valid:
+                return False, message
+            
+            # Update password and reset failed attempts
+            result = self.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {
+                    "$set": {
+                        "password_hash": generate_password_hash(new_password),
+                        "password_changed_at": datetime.now(timezone.utc),
+                        "failed_password_change_attempts": 0
+                    },
+                    "$unset": {"last_failed_password_change": ""}
+                }
+            )
+            
+            if result.modified_count > 0:
+                logger.info(f"Password changed for user: {user.username}")
+                return True, "Password changed successfully"
+            return False, "Failed to update password"
+            
+        except Exception as e:
+            logger.error(f"Error changing password: {str(e)}")
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
