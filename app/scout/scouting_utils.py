@@ -17,7 +17,7 @@ class ScoutingManager(DatabaseManager):
         super().__init__(mongo_uri)
         self._ensure_collections()
 
-    def _ensure_collections(self):
+    def _ensure_collections(self) -> None:
         """Ensure required collections exist"""
         collections = self.db.list_collection_names()
         if "team_data" not in collections:
@@ -28,18 +28,15 @@ class ScoutingManager(DatabaseManager):
             self.db.pit_scouting.create_index([("scouter_id", 1)])
             logger.info("Created pit_scouting collection and indexes")
         
-    def _create_team_data_collection(self):
+    def _create_team_data_collection(self) -> None:
         self.db.create_collection("team_data")
         self.db.team_data.create_index([("team_number", 1)])
         self.db.team_data.create_index([("scouter_id", 1)])
         logger.info("Created team_data collection and indexes")
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_scouting_data(self, data, scouter_id):
-        """Add new scouting data with retry mechanism"""
-        # Ensure we have a valid connection
-        
-        
+    def add_scouting_data(self, data: dict, scouter_id: str) -> tuple[bool, str]:
+        """Add new scouting data with retry mechanism"""        
         try:
             # Validate team number
             team_number = int(data["team_number"])
@@ -47,38 +44,38 @@ class ScoutingManager(DatabaseManager):
                 return False, "Invalid team number"
 
             # Lookup to check if this team is already scouted in this match by someone from the same team
-            pipeline = [
-                {
-                    "$match": {
-                        "event_code": data["event_code"],
-                        "match_number": data["match_number"],
-                        "team_number": team_number
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }
-                },
-                {"$unwind": "$scouter"},
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter.teamNumber",
-                        "foreignField": "teamNumber",
-                        "as": "team_scouters"
-                    }
-                }
-            ]
+            # pipeline = [
+            #     {
+            #         "$match": {
+            #             "event_code": data["event_code"],
+            #             "match_number": data["match_number"],
+            #             "team_number": team_number
+            #         }
+            #     },
+            #     {
+            #         "$lookup": {
+            #             "from": "users",
+            #             "localField": "scouter_id",
+            #             "foreignField": "_id",
+            #             "as": "scouter"
+            #         }
+            #     },
+            #     {"$unwind": "$scouter"},
+            #     {
+            #         "$lookup": {
+            #             "from": "users",
+            #             "localField": "scouter.teamNumber",
+            #             "foreignField": "teamNumber",
+            #             "as": "team_scouters"
+            #         }
+            #     }
+            # ]
 
-            if existing_entries := list(self.db.team_data.aggregate(pipeline)):
-                current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
-                for entry in existing_entries:
-                    if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
-                        return False, f"Team {team_number} has already been scouted by your team in match {data['match_number']}"
+            # if existing_entries := list(self.db.team_data.aggregate(pipeline)):
+            #     current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
+            #     for entry in existing_entries:
+            #         if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
+            #             return False, f"Team {team_number} has already been scouted by your team in match {data['match_number']}"
 
             # Get existing match data to validate alliance sizes and calculate scores
             # match_data = list(self.db.team_data.find({
@@ -144,7 +141,7 @@ class ScoutingManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_scouting_data(self, user_team_number=None, user_id=None):
+    def get_all_scouting_data(self, user_team_number=None, user_id=None) -> list[dict]:
         """Get all scouting data with user information, filtered by team access"""
         try:
             # Base pipeline for user lookup
@@ -223,7 +220,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_data(self, team_id, scouter_id=None):
+    def get_team_data(self, team_id, scouter_id=None) -> TeamData | None:
         """Get specific team data with optional scouter verification"""
         try:
             # Just get the data by ID first
@@ -250,7 +247,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def update_team_data(self, team_id, data, scouter_id):
+    def update_team_data(self, team_id, data, scouter_id) -> bool:
         """Update existing team data if user is the owner"""
         try:
             # First verify ownership and get current data
@@ -355,7 +352,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_team_data(self, team_id, user_id, admin_override=False):
+    def delete_team_data(self, team_id: str, user_id: str, admin_override=False) -> bool:
         """Delete team data if scouter has permission (original scouter or team admin)"""
         try:
             # First get the team data to check permissions
@@ -406,7 +403,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def has_team_data(self, team_number):
+    def has_team_data(self, team_number: str) -> bool:
         """Check if there is any scouting data for a given team number"""
         try:
             count = self.db.team_data.count_documents({"team_number": int(team_number)})
@@ -416,7 +413,7 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_stats(self, team_number):
+    def get_team_stats(self, team_number: str) -> dict | None:
         """Get comprehensive stats for a team"""
         try:
             pipeline = [
@@ -468,7 +465,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_team_matches(self, team_number):
+    def get_team_matches(self, team_number: str) -> list[dict]:
         """Get all match data for a specific team"""
         try:
             pipeline = [
@@ -491,7 +488,7 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_auto_paths(self, team_number):
+    def get_auto_paths(self, team_number: str) -> list[dict]:
         """Get all auto paths for a specific team"""
         try:
             paths = list(self.db.team_data.find(
@@ -520,37 +517,11 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_pit_scouting(self, data):
+    def add_pit_scouting(self, data: dict) -> bool:
         """Add new pit scouting data with team validation"""
         try:
             team_number = int(data["team_number"])
             scouter_id = ObjectId(data["scouter_id"])  # Convert to ObjectId
-
-            # Check if this team is already scouted by someone from the same team
-            pipeline = [
-                {
-                    "$match": {
-                        "team_number": team_number
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }
-                },
-                {"$unwind": "$scouter"}
-            ]
-            
-            existing_entries = list(self.db.pit_scouting.aggregate(pipeline))
-            current_user = self.db.users.find_one({"_id": scouter_id})
-            
-            for entry in existing_entries:
-                if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
-                    logger.warning(f"Team {team_number} has already been pit scouted by team {current_user.get('teamNumber')}")
-                    return False
 
             # Ensure scouter_id is ObjectId in the data
             data["scouter_id"] = scouter_id
@@ -563,7 +534,52 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_pit_scouting(self, team_number):
+    def get_pit_scouting_by_id(self, entry_id: str) -> dict | None:
+        """Get a single pit scouting record by its MongoDB _id"""
+        try:
+            pipeline = [
+                {"$match": {"_id": ObjectId(entry_id)}},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "scouter_id",
+                        "foreignField": "_id",
+                        "as": "scouter"
+                    }
+                },
+                {
+                    "$unwind": {
+                        "path": "$scouter",
+                        "preserveNullAndEmptyArrays": True
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "team_number": 1,
+                        "drive_type": 1,
+                        "swerve_modules": 1,
+                        "motor_details": 1,
+                        "motor_count": 1,
+                        "dimensions": 1,
+                        "programming_language": 1,
+                        "autonomous_capabilities": 1,
+                        "driver_experience": 1,
+                        "notes": 1,
+                        "scouter_id": "$scouter._id",
+                        "scouter_name": "$scouter.username",
+                        "scouter_team": "$scouter.teamNumber"
+                    }
+                }
+            ]
+            result = list(self.db.pit_scouting.aggregate(pipeline))
+            return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Error fetching pit scouting data by id: {str(e)}")
+            return None
+
+    @with_mongodb_retry(retries=3, delay=2)
+    def get_pit_scouting(self, team_number: str) -> dict | None:
         """Get pit scouting data with scouter information"""
         try:
             pipeline = [
@@ -613,7 +629,7 @@ class ScoutingManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_pit_scouting(self, user_team_number=None, user_id=None):
+    def get_all_pit_scouting(self, user_team_number=None, user_id=None) -> list[dict]:
         """Get all pit scouting data with team-based access control"""
         try:
             logger.info(f"Fetching pit scouting data for user_id: {user_id}, team_number: {user_team_number}")
@@ -710,51 +726,16 @@ class ScoutingManager(DatabaseManager):
             return []
 
     @with_mongodb_retry(retries=3, delay=2)
-    def update_pit_scouting(self, team_number, data, scouter_id):
-        """Update pit scouting data with team validation"""
+    def update_pit_scouting(self, entry_id: str, data: dict, scouter_id: str) -> bool:
+        """Update pit scouting data with ownership validation"""
         try:
-            # First verify ownership and get current data
-            existing_data = self.db.pit_scouting.find_one(
-                {"team_number": team_number}
-            )
-
-            if not existing_data:
-                logger.warning(f"Pit data not found for team: {team_number}")
-                return False
-
-            # Check if this team is already scouted by someone else from the same team
-            pipeline = [
-                {
-                    "$match": {
-                        "team_number": team_number,
-                        "_id": {"$ne": existing_data["_id"]}  # Exclude current entry
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }
-                },
-                {"$unwind": "$scouter"}
-            ]
-            
-            existing_entries = list(self.db.pit_scouting.aggregate(pipeline))
-            current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
-            
-            for entry in existing_entries:
-                if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
-                    logger.warning(
-                        f"Update attempted for team {team_number} which is already pit scouted by team {current_user.get('teamNumber')}"
-                    )
-                    return False
-
             result = self.db.pit_scouting.update_one(
-                {"team_number": team_number},
+                {"_id": ObjectId(entry_id), "scouter_id": ObjectId(scouter_id)},
                 {"$set": data}
             )
+            if result.matched_count == 0:
+                logger.warning(f"Pit data not found or permission denied for entry: {entry_id}")
+                return False
             return result.modified_count > 0
 
         except Exception as e:
@@ -762,11 +743,11 @@ class ScoutingManager(DatabaseManager):
             return False
 
     @with_mongodb_retry(retries=3, delay=2)
-    def delete_pit_scouting(self, team_number, scouter_id):
+    def delete_pit_scouting(self, entry_id: str, scouter_id: str) -> bool:
         """Delete pit scouting data"""
         try:
             result = self.db.pit_scouting.delete_one({
-                "team_number": int(team_number),
+                "_id": ObjectId(entry_id),
                 "scouter_id": ObjectId(scouter_id)
             })
             return result.deleted_count > 0

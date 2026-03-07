@@ -2,7 +2,11 @@ import logging
 import os
 from datetime import datetime
 from functools import lru_cache
+
 import requests
+
+from .artificial_data import (_generate_test_matches, _generate_test_rankings,
+                              _generate_test_teams)
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +26,27 @@ class TBAInterface:
         self.timeout = 5  # Reduced timeout
 
     @lru_cache(maxsize=100)
-    def get_team(self, team_key):
+    def get_team(self, team_key: str) -> dict | None:
         """Get team information from TBA"""
+        # Check for test teams 1-15
+        if team_key and team_key.startswith('frc'):
+            try:
+                team_num = int(team_key.replace('frc', ''))
+                if 1 <= team_num <= 15:
+                    return {
+                        'key': team_key,
+                        'team_number': team_num,
+                        'nickname': f'Test Team {team_num}',
+                        'name': f'Test Team {team_num}',
+                        'city': 'Test City', 
+                        'state_prov': 'Test State',
+                        'country': 'Test Country',
+                        'website': 'https://www.example.com',
+                        'rookie_year': 2024
+                    }
+            except ValueError:
+                pass
+
         try:
             response = requests.get(
                 f"{self.base_url}/team/{team_key}",
@@ -36,8 +59,11 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=5)
-    def get_event_matches(self, event_key):
+    def get_event_matches(self, event_key: str) -> dict[str, dict] | None:
         """Get matches for an event and format them by match number"""
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+             return _generate_test_matches(event_key)
+
         try:
             response = requests.get(
                 f"{self.base_url}/event/{event_key}/matches",
@@ -77,7 +103,7 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=20)
-    def get_current_events(self, year):
+    def get_current_events(self, year: int, include_test_data: bool = False) -> dict | None:
         """Get all events for the specified year"""
         try:
             response = requests.get(
@@ -93,6 +119,22 @@ class TBAInterface:
             # No date filtering - include all events
             # Convert to dictionary, maintaining alphabetical order
             current_events = {}
+
+            if include_test_data:
+                current_events.update({
+                    "Testing Regional #1": {
+                        'key': f"{year}test1",
+                        'start_date': f"{year}-01-01"
+                    },
+                    "Testing Regional #2": {
+                        'key': f"{year}test2",
+                        'start_date': f"{year}-01-02"
+                    },
+                    "Testing Regional #3": {
+                        'key': f"{year}test3",
+                        'start_date': f"{year}-01-03"
+                    }
+                })
             
             # Sort events alphabetically by name
             events.sort(key=lambda x: x['name'])
@@ -111,8 +153,33 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_status_at_event(self, team_key, event_key):
+    def get_team_status_at_event(self, team_key: str, event_key: str) -> dict | None:
         """Get team status and ranking at a specific event"""
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+            try:
+                # Get rank from generated rankings
+                rankings = _generate_test_rankings(event_key)
+                team_rank = next((r for r in rankings if r['team_key'] == team_key), None)
+                
+                if team_rank:
+                     return {
+                        'qual': {
+                             'rank': team_rank['rank'],
+                             'ranking_points': team_rank['ranking_points'],
+                             'record': team_rank['record'],
+                             'matches_played': team_rank['matches_played']
+                        },
+                         'alliance': {
+                             'name': 'Alliance 1',
+                             'number': 1,
+                             'pick': 1,
+                             'backup': None
+                         },
+                         'playoff': None
+                     }
+            except Exception as e:
+                logger.error(f"Error generating test rankings: {e}")
+
         try:
             response = requests.get(
                 f"{self.base_url}/team/{team_key}/event/{event_key}/status",
@@ -125,8 +192,24 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_matches_at_event(self, team_key, event_key):
+    def get_team_matches_at_event(self, team_key: str, event_key: str) -> dict[str, list] | None:
         """Get a team's matches at a specific event with previous and upcoming separation"""
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+             matches_dict = _generate_test_matches(event_key)
+             team_matches = []
+             for key, m in matches_dict.items():
+                 if team_key in m['red'] or team_key in m['blue']:
+                     alliance = 'red' if team_key in m['red'] else 'blue'
+                     match_info = {
+                        'match_name': key,
+                        'time': 0,
+                        'alliance': alliance,
+                        'score': {'red': 0, 'blue': 0}
+                     }
+                     team_matches.append(match_info)
+             
+             return {'previous': team_matches, 'upcoming': []}
+
         try:
             response = requests.get(
                 f"{self.base_url}/team/{team_key}/event/{event_key}/matches",
@@ -198,11 +281,24 @@ class TBAInterface:
             return None
             
     @lru_cache(maxsize=20)
-    def get_team_events(self, team_key, year=None):
+    def get_team_events(self, team_key: str, year: int | None = None) -> list[dict] | None:
         """Get all events a team is participating in for the given year"""
         if year is None:
             year = datetime.now().year
             
+        # Mock events for test teams
+        if team_key and team_key.startswith('frc'):
+            try:
+                team_num = int(team_key.replace('frc', ''))
+                if 1 <= team_num <= 5:
+                    return [{'key': f'{year}test1', 'name': 'Testing Regional #1', 'start_date': f'{year}-01-01', 'end_date': f'{year}-01-04'}]
+                elif 6 <= team_num <= 10:
+                    return [{'key': f'{year}test2', 'name': 'Testing Regional #2', 'start_date': f'{year}-01-02', 'end_date': f'{year}-01-05'}]
+                elif 11 <= team_num <= 15:
+                    return [{'key': f'{year}test3', 'name': 'Testing Regional #3', 'start_date': f'{year}-01-03', 'end_date': f'{year}-01-06'}]
+            except ValueError:
+                pass
+
         try:
             response = requests.get(
                 f"{self.base_url}/team/{team_key}/events/{year}/simple",
@@ -244,7 +340,7 @@ class TBAInterface:
         return events[0]
     
     @lru_cache(maxsize=5)
-    def get_event_teams(self, event_key):
+    def get_event_teams(self, event_key: str) -> list[dict] | None:
         """
         Retrieve a list of teams attending a specific event.
 
@@ -254,6 +350,9 @@ class TBAInterface:
         Returns:
             list[dict] or None: A list of team objects, or None if the request fails.
         """
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+             return _generate_test_teams(event_key)
+
         try:
             response = requests.get(
                 f"{self.base_url}/event/{event_key}/teams",
@@ -270,7 +369,7 @@ class TBAInterface:
             return None
 
     @lru_cache(maxsize=5)
-    def get_event_rankings(self, event_key):
+    def get_event_rankings(self, event_key: str) -> list[dict] | None:
         """
         Retrieve the team rankings for a given event, including ranking points and match records.
 
@@ -290,6 +389,9 @@ class TBAInterface:
         Exceptions:
             Logs and returns None if an exception occurs during the request or response parsing.
         """
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+             return _generate_test_rankings(event_key)
+
         try:
             response = requests.get(
                 f"{self.base_url}/event/{event_key}/rankings",

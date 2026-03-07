@@ -133,11 +133,11 @@ function exportToCSV() {
         const autoFuel = row.querySelector('td:nth-child(4)').textContent.trim();
         const autoClimb = row.querySelector('td:nth-child(5)').textContent.trim();
         const transitionFuel = row.querySelector('td:nth-child(6)').textContent.trim();
-        const teleopFuel = row.querySelector('td:nth-child(7)').textContent.trim();
-        const endgameFuel = row.querySelector('td:nth-child(8)').textContent.trim();
-        const climb = row.querySelector('td:nth-child(9)').textContent.trim();
-        const defense = row.querySelector('td:nth-child(11)').textContent.trim();
-        const robotDisabled = row.querySelector('td:nth-child(12) span').textContent.trim();
+        const teleopFuel = row.querySelector('td:nth-child(8)').textContent.trim();
+        const endgameFuel = row.querySelector('td:nth-child(9)').textContent.trim();
+        const climb = row.querySelector('td:nth-child(10)').textContent.trim();
+        const defense = row.querySelector('td:nth-child(12)').textContent.trim();
+        const robotDisabled = row.querySelector('td:nth-child(13) span').textContent.trim();
         const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
         const {scouter} = row.dataset;
         const {eventCode} = row.closest('.event-section').dataset;
@@ -199,6 +199,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize Coloris
-    Coloris.init();
+    // Configure Coloris
+    Coloris({
+        theme: 'polaroid',
+        themeMode: 'light',
+        alpha: false,
+        formatToggle: false,
+        swatches: [
+            '#2563eb', // Default blue
+            '#000000',
+            '#ffffff',
+            '#db4437',
+            '#4285f4',
+            '#0f9d58',
+            '#ffeb3b',
+            '#ff7f00'
+        ]
+    });
 });

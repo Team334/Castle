@@ -13,8 +13,8 @@ from flask_pymongo import PyMongo
 from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
-from app.utils import (async_route, handle_route_errors, is_safe_url, limiter,
-                       send_gridfs_file, get_gridfs)
+from app.utils import (async_route, get_gridfs, handle_route_errors,
+                       is_safe_url, limiter, send_gridfs_file)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -249,7 +249,6 @@ def profile_picture(user_id):
     
     return send_gridfs_file(
         user.profile_picture_id,
-        user_manager.db,
         "static/images/default_profile.png"
     )
 
@@ -280,6 +279,54 @@ async def check_username():
             "available": False,
             "error": "An internal error has occurred."
         }), 500
+
+
+@auth_bp.route("/change_password", methods=["POST"])
+@limiter.limit("5 per minute")
+@login_required
+@async_route
+async def change_password():
+    """Change user password"""
+    try:
+        if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Invalid request"}), 403
+        
+        data = request.get_json()
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+
+        # Validate input
+        if not all([current_password, new_password, confirm_password]):
+            return jsonify({"success": False, "message": "All fields are required"}), 400
+
+        if new_password != confirm_password:
+            return jsonify({"success": False, "message": "New passwords do not match"}), 400
+
+        # Additional security: Prevent reusing current password
+        if current_password == new_password:
+            return jsonify({"success": False, "message": "New password must be different from current password"}), 400
+
+        # Change password
+        success, message = await user_manager.change_password(
+            current_user.get_id(),
+            current_password,
+            new_password
+        )
+
+        if success:
+            current_app.logger.info(f"Password changed for user {current_user.username}")
+            # Log out user to invalidate session
+            logout_user()
+            return jsonify({"success": True, "message": "Password changed successfully. Please log in again.", "redirect": url_for("auth.login")})
+        else:
+            # Don't reveal whether username exists or password was wrong (timing attack mitigation)
+            current_app.logger.warning(f"Failed password change attempt for user {current_user.username}")
+            return jsonify({"success": False, "message": message}), 400
+
+    except Exception as e:
+        current_app.logger.error(f"Error changing password for user {current_user.username}: {str(e)}", exc_info=True)
+        return jsonify({"success": False, "message": "An internal error has occurred."}), 500
 
 
 @auth_bp.route("/delete_account", methods=["POST"])

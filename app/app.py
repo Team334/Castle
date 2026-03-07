@@ -1,18 +1,18 @@
-import os
 import logging
+import os
 import traceback
 from time import strftime
 
 from dotenv import load_dotenv
-from flask import (Flask, make_response, render_template,
-                   send_from_directory, request, flash, redirect, url_for)
+from flask import (Flask, make_response, redirect, render_template, request,
+                   send_from_directory, url_for)
+from flask_cors import CORS
 from flask_login import LoginManager, current_user
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
-from flask_cors import CORS
 
 from app.auth.auth_utils import UserManager
-from app.utils import limiter, get_mongodb_instance, close_mongodb_connection
+from app.utils import close_mongodb_connection, get_mongodb_instance, limiter
 
 csrf = CSRFProtect()
 mongo = PyMongo()
@@ -25,7 +25,7 @@ stop_notification_thread = False
 logger = logging.getLogger(__name__)
 
 def create_app():
-    app = Flask(__name__, static_folder="static", template_folder="templates")
+    app: Flask = Flask(__name__, static_folder="static", template_folder="templates")
 
     # Load config
     load_dotenv()
@@ -104,9 +104,9 @@ def create_app():
 
     # Import blueprints inside create_app to avoid circular imports
     from app.auth.routes import auth_bp
+    from app.notifications.routes import notifications_bp
     from app.scout.routes import scouting_bp
     from app.team.routes import team_bp
-    from app.notifications.routes import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(scouting_bp, url_prefix="/")

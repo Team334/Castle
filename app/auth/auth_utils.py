@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
+from bson import ObjectId
 from flask_login import current_user
 from werkzeug.security import generate_password_hash
 
 from app.models import User
-from app.utils import DatabaseManager, allowed_file, with_mongodb_retry, get_database_connection, get_gridfs
+from app.utils import (DatabaseManager, allowed_file, get_gridfs,
+                       with_mongodb_retry)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +30,7 @@ class UserManager(DatabaseManager):
         super().__init__(mongo_uri)
         self._ensure_collections()
 
-    def _ensure_collections(self):
+    def _ensure_collections(self) -> None:
         """Ensure required collections exist"""
         if "users" not in self.db.list_collection_names():
             self.db.create_collection("users")
@@ -40,7 +43,7 @@ class UserManager(DatabaseManager):
         username,
         password,
         team_number=None
-    ):
+    ) -> tuple[bool, str]:
         """Create a new user with retry mechanism"""
         
         try:
@@ -78,7 +81,7 @@ class UserManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def authenticate_user(self, login, password):
+    async def authenticate_user(self, login: str, password: str) -> tuple[bool, User | None]:
         """Authenticate user with retry mechanism"""
         
         try:
@@ -101,7 +104,7 @@ class UserManager(DatabaseManager):
             return False, None
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_user_by_id(self, user_id):
+    def get_user_by_id(self, user_id: str) -> User | None:
         """Retrieve user by ID with retry mechanism"""
         
         try:
@@ -114,7 +117,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_user_profile(self, user_id, updates):
+    async def update_user_profile(self, user_id: str, updates: dict) -> tuple[bool, str]:
         """Update user profile information"""
         
         try:
@@ -146,7 +149,7 @@ class UserManager(DatabaseManager):
             logger.error(f"Error updating profile: {str(e)}")
             return False, "An internal error has occurred."
 
-    def get_user_profile(self, username):
+    def get_user_profile(self, username: str) -> User | None:
         """Get user profile by username"""
         
         try:
@@ -157,7 +160,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_profile_picture(self, user_id, file_id):
+    async def update_profile_picture(self, user_id: str, file_id: str) -> tuple[bool, str]:
         """Update user's profile picture and clean up old one"""
         
         try:
@@ -188,7 +191,7 @@ class UserManager(DatabaseManager):
             logger.error(f"Error updating profile picture: {str(e)}")
             return False, "An internal error has occurred."
 
-    def get_profile_picture(self, user_id):
+    def get_profile_picture(self, user_id: str) -> str | None:
         """Get user's profile picture ID"""
         
         try:
@@ -200,7 +203,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def delete_user(self, user_id):
+    async def delete_user(self, user_id: str) -> tuple[bool, str]:
         """Delete a user account and all associated data"""
         
         try:
@@ -230,7 +233,68 @@ class UserManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_user_settings(self, user_id, form_data, profile_picture=None):
+    async def change_password(self, user_id: str, current_password: str, new_password: str) -> tuple[bool, str]:
+        """Change user password after verifying current password"""
+        
+        try:            
+            # Get user data
+            user_data = self.db.users.find_one({"_id": ObjectId(user_id)})
+            if not user_data:
+                return False, "User not found"
+            
+            # Check for account lockout due to too many failed attempts
+            failed_attempts = user_data.get('failed_password_change_attempts', 0)
+            last_failed = user_data.get('last_failed_password_change')
+            
+            if failed_attempts >= 5 and last_failed:
+                # Lock for 15 minutes after 5 failed attempts
+                time_since = (datetime.now(timezone.utc) - last_failed).total_seconds()
+                if time_since < 900:  # 15 minutes
+                    mins_left = int((900 - time_since) / 60) + 1
+                    return False, f"Too many failed attempts. Try again in {mins_left} minutes"
+            
+            # Create user object to verify current password
+            user = User.create_from_db(user_data)
+            if not user.check_password(current_password):
+                # Track failed attempt
+                self.db.users.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {
+                        "$set": {"last_failed_password_change": datetime.now(timezone.utc)},
+                        "$inc": {"failed_password_change_attempts": 1}
+                    }
+                )
+                return False, "Current password is incorrect"
+            
+            # Check new password strength
+            password_valid, message = await check_password_strength(new_password)
+            if not password_valid:
+                return False, message
+            
+            # Update password and reset failed attempts
+            result = self.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {
+                    "$set": {
+                        "password_hash": generate_password_hash(new_password),
+                        "password_changed_at": datetime.now(timezone.utc),
+                        "failed_password_change_attempts": 0
+                    },
+                    "$unset": {"last_failed_password_change": ""}
+                }
+            )
+            
+            if result.modified_count > 0:
+                logger.info(f"Password changed for user: {user.username}")
+                return True, "Password changed successfully"
+            return False, "Failed to update password"
+            
+        except Exception as e:
+            logger.error(f"Error changing password: {str(e)}")
+            return False, "An internal error has occurred."
+
+    @with_mongodb_retry(retries=3, delay=2)
+    async def update_user_settings(self, user_id: str, form_data: dict, profile_picture=None) -> tuple[bool, Optional[str]]:
         """Update user settings including profile picture"""
         
         try:
@@ -241,7 +305,7 @@ class UserManager(DatabaseManager):
                 if new_username != current_user.username:
                     # Check if username is taken
                     if self.db.users.find_one({"username": new_username}):
-                        return False
+                        return False, "Username is already taken"
                     updates['username'] = new_username
 
             # Handle description update
@@ -262,7 +326,7 @@ class UserManager(DatabaseManager):
 
             if updates:
                 success, message = await self.update_user_profile(user_id, updates)
-                return success
+                return success, message
 
             return True, "Profile updated successfully"
         except Exception as e:
