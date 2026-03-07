@@ -1,11 +1,10 @@
 name: Build Flatpak
 
 on:
-  push:
-    branches: [ deploy ]
-  pull_request:
-    branches: [ deploy ]
   workflow_dispatch:
+    inputs:
+      disabled:
+        description: 'This workflow is disabled'
     
 permissions:
   actions: write
