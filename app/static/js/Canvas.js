@@ -583,8 +583,35 @@ class Canvas {
       this.MAX_SCALE,
     );
 
-    const x = (canvasX - safeOffsetX) / safeScale;
-    const y = (canvasY - safeOffsetY) / safeScale;
+    let x = (canvasX - safeOffsetX) / safeScale;
+    let y = (canvasY - safeOffsetY) / safeScale;
+
+    // The forward transform in redrawCanvas is:
+    //   translate(offset) -> scale(zoom) -> flip -> rotate
+    // Which means a drawing-space point p maps to screen as:
+    //   screen = T(S(Flip(R(p))))
+    // After undoing T and S above, the remaining value is Flip(R(p)).
+    // To recover point we need: p = R⁻¹(Flip⁻¹(value))
+    // So: apply inverse-flip first, then inverse-rotation.
+
+    // 1. Apply inverse flip (flip is its own inverse)
+    if (this.flipX) {
+      x = -x;
+    }
+    if (this.flipY) {
+      y = -y;
+    }
+
+    // 2. Apply inverse rotation
+    if (this.rotation !== 0) {
+      const rotationRadians = (-this.rotation * Math.PI) / 180;
+      const cos = Math.cos(rotationRadians);
+      const sin = Math.sin(rotationRadians);
+      const rx = x * cos - y * sin;
+      const ry = x * sin + y * cos;
+      x = rx;
+      y = ry;
+    }
 
     // Ensure returned coordinates are finite
     return {

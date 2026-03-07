@@ -52,6 +52,39 @@
 .tool-btn.bg-purple-50 {
   @apply bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100;
 }
+/* Toolbox layout */
+.tools-group,
+.actions-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .tools-group {
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .actions-group {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tools-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
+  }
+  .actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
+  }
+}
+
 /* Mobile-specific styles */
 @media (max-width: 639px) {
   .controls {
@@ -69,5 +102,9 @@
   .clr-field button {
     width: 48px;
     height: 48px;
+  }
+
+  .tool-btn {
+    width: 100%;
   }
 }
