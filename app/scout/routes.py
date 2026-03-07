@@ -1030,11 +1030,11 @@ def pit_scouting_add():
 
     return render_template("scouting/pit-scouting-add.html")
 
-@scouting_bp.route("/scouting/pit/edit/<int:team_number>", methods=["GET", "POST"])
+@scouting_bp.route("/scouting/pit/edit/<entry_id>", methods=["GET", "POST"])
 @login_required
 # @limiter.limit("10 per minute")
-def pit_scouting_edit(team_number):
-    pit_data = scouting_manager.get_pit_scouting(team_number)
+def pit_scouting_edit(entry_id):
+    pit_data = scouting_manager.get_pit_scouting_by_id(entry_id)
     if not pit_data:
         flash("Pit scouting data not found", "error")
         return redirect(url_for("scouting.pit_scouting"))
@@ -1083,7 +1083,7 @@ def pit_scouting_edit(team_number):
                 "updated_at": datetime.now(timezone.utc)
             }
             
-            if scouting_manager.update_pit_scouting(team_number, data, current_user.get_id()):
+            if scouting_manager.update_pit_scouting(entry_id, data, current_user.get_id()):
                 current_app.logger.info(f"Successfully updated pit scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 flash("Pit scouting data updated successfully", "success")
                 return redirect(url_for("scouting.pit_scouting"))
@@ -1096,14 +1096,14 @@ def pit_scouting_edit(team_number):
 
     return render_template("scouting/pit-scouting-edit.html", pit_data=pit_data)
 
-@scouting_bp.route("/scouting/pit/delete/<int:team_number>")
+@scouting_bp.route("/scouting/pit/delete/<entry_id>")
 @login_required
-def pit_scouting_delete(team_number):
-    if scouting_manager.delete_pit_scouting(team_number, current_user.get_id()):
-        current_app.logger.info(f"Successfully deleted pit scouting data {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+def pit_scouting_delete(entry_id):
+    if scouting_manager.delete_pit_scouting(entry_id, current_user.get_id()):
+        current_app.logger.info(f"Successfully deleted pit scouting entry {entry_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         flash("Pit scouting data deleted successfully", "success")
     else:
-        current_app.logger.info(f"Failed to delete pit scouting data {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        current_app.logger.info(f"Failed to delete pit scouting entry {entry_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         flash("Error deleting pit scouting data", "error")
     return redirect(url_for("scouting.pit_scouting"))
 
