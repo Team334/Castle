@@ -44,38 +44,38 @@ class ScoutingManager(DatabaseManager):
                 return False, "Invalid team number"
 
             # Lookup to check if this team is already scouted in this match by someone from the same team
-            pipeline = [
-                {
-                    "$match": {
-                        "event_code": data["event_code"],
-                        "match_number": data["match_number"],
-                        "team_number": team_number
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }
-                },
-                {"$unwind": "$scouter"},
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter.teamNumber",
-                        "foreignField": "teamNumber",
-                        "as": "team_scouters"
-                    }
-                }
-            ]
+            # pipeline = [
+            #     {
+            #         "$match": {
+            #             "event_code": data["event_code"],
+            #             "match_number": data["match_number"],
+            #             "team_number": team_number
+            #         }
+            #     },
+            #     {
+            #         "$lookup": {
+            #             "from": "users",
+            #             "localField": "scouter_id",
+            #             "foreignField": "_id",
+            #             "as": "scouter"
+            #         }
+            #     },
+            #     {"$unwind": "$scouter"},
+            #     {
+            #         "$lookup": {
+            #             "from": "users",
+            #             "localField": "scouter.teamNumber",
+            #             "foreignField": "teamNumber",
+            #             "as": "team_scouters"
+            #         }
+            #     }
+            # ]
 
-            if existing_entries := list(self.db.team_data.aggregate(pipeline)):
-                current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
-                for entry in existing_entries:
-                    if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
-                        return False, f"Team {team_number} has already been scouted by your team in match {data['match_number']}"
+            # if existing_entries := list(self.db.team_data.aggregate(pipeline)):
+            #     current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
+            #     for entry in existing_entries:
+            #         if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
+            #             return False, f"Team {team_number} has already been scouted by your team in match {data['match_number']}"
 
             # Get existing match data to validate alliance sizes and calculate scores
             # match_data = list(self.db.team_data.find({
