@@ -80,11 +80,9 @@ function exportToCSV() {
 
       // Scouter
       const scouterCell = row.querySelector("td:nth-child(7)");
-      let scouterName = "";
       const scouterLink = scouterCell.querySelector("a");
-      if (scouterLink) {
-        scouterName = scouterLink.textContent.trim();
-      }
+      const scouterSpan = scouterCell.querySelector("span");
+      const scouterName = (scouterLink || scouterSpan)?.textContent.trim() || "";
 
       // Escape and format fields that might contain commas or quotes
       const escapeField = (field) => {
@@ -106,7 +104,6 @@ function exportToCSV() {
         escapeField(motorCount),
         escapeField(motorTypes),
         escapeField(dimensions),
-        escapeField(programmingLang),
         escapeField(programmingLang),
         hasAuto ? "Yes" : "No",
         escapeField(autoRoutes),
