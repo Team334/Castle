@@ -55,6 +55,9 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install briefcase
     
+    - name: Copy PNG icon for Flatpak
+      run: cp app/static/logo.png standalone/src/castle/resources/logo.png
+
     - name: Create Flatpak package
       working-directory: ./standalone
       run: |

@@ -39,6 +39,9 @@ jobs:
     - name: Install Briefcase
       run: python3 -m pip install --break-system-packages briefcase
 
+    - name: Copy PNG icon for Flatpak
+      run: cp app/static/logo.png standalone/src/castle/resources/logo.png
+
     - name: Build DEB package
       working-directory: ./standalone
       env:
