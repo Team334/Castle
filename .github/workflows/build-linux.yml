@@ -37,7 +37,7 @@ jobs:
           desktop-file-utils
 
     - name: Install Briefcase
-      run: python3 -m pip install --break-system-packages briefcase
+      run: python3 -m pip install --break-system-packages "briefcase>=0.4.1"
 
     - name: Copy PNG icon for Flatpak
       run: cp app/static/logo.png standalone/src/castle/resources/logo.png
