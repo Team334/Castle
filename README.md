@@ -21,6 +21,7 @@ https://github.com/user-attachments/assets/09c607ce-628d-41e6-ab82-b5fb1a4ec928
 SECRET_KEY=your_secret_key
 MONGO_URI=mongodb://localhost:27017/scouting_app
 TBA_AUTH_KEY=your_tba_api_key
+NEXUS_API_KEY=your_nexus_api_key
 DEBUG=False
 HOST=localhost
 PORT=5000
