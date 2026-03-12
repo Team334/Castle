@@ -428,3 +428,23 @@ class TBAInterface:
         except Exception as e:
             logger.error(f"Error fetching event rankings from TBA: {e}")
             return None
+
+    @lru_cache(maxsize=20)
+    def get_event_oprs(self, event_key: str) -> dict | None:
+        """Get OPR, DPR, and CCWM for all teams at an event from TBA.
+
+        Returns:
+            dict or None: Keys are 'oprs', 'dprs', 'ccwms', each mapping team_key -> float.
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/event/{event_key}/oprs",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            if response.status_code != 200:
+                return None
+            return response.json()  # {'oprs': {...}, 'dprs': {...}, 'ccwms': {...}}
+        except Exception as e:
+            logger.error(f"Error fetching OPRs from TBA: {e}")
+            return None
