@@ -85,9 +85,8 @@
                     <tr>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Team</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Drive Type</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Motors</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Dimensions</th>
-                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Programming</th>
+                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">BPS</th>
+                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Shooter</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Driver</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Scouter</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
@@ -116,15 +115,10 @@
                             </div>
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500">
-                            {{ data.motor_count }}
-                            {% set separator = joiner(" / ") %}
-                            {% if data.motor_details.falcons %}{{ separator() }}Falcons{% endif %}
-                            {% if data.motor_details.neos %}{{ separator() }}Neos{% endif %}
-                            {% if data.motor_details.krakens %}{{ separator() }}Krakens{% endif %}
-                            {% if data.motor_details.vortex %}{{ separator() }}Vortex{% endif %}
+                            {{ data.fuel_count_bps }}
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500">
-                            {{ data.dimensions.length }} in x {{ data.dimensions.width }} in x {{ data.dimensions.height }} in
+                            {{ data.shooter_type | capitalize }}
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500">
                             <b>Programming Language</b>: {{ data.programming_language }}

@@ -935,6 +935,41 @@
                 </div>
               </div>
             </div>
+
+            <!-- Response to Defense Section -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h2 class="text-lg font-semibold text-gray-700 mb-4">
+                Response to Defense
+              </h2>
+                <div class="p-3">
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Rating (0-5)
+                    <span class="text-xs text-gray-500">(0 = N/A)</span></label
+                  >
+                  <div class="flex items-center space-x-2">
+                    <input
+                      type="range"
+                      name="response_to_defense_rating"
+                      min="0"
+                      max="5"
+                      value="0"
+                      class="w-full"
+                    />
+                  </div>
+                  </div class="p-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                      >How did this team respond to being defended?</label
+                    >
+                    <textarea
+                      name="defense_response_notes"
+                      rows="3"
+                      class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Describe how the team handled defense (e.g. broke away easily, struggled, avoided defenders)..."
+                      autocomplete="off"
+                    >
+                  </textarea>
+                </div>
+            </div>
           </div>
         </div>
 
@@ -963,6 +998,80 @@
                       Full - Robot was disabled for the entire match
                     </option>
                   </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Herd (Pushing Balls) Section -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h2 class="text-lg font-semibold text-gray-700 mb-4">
+                Herd (Pushing Balls)
+              </h2>
+              <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="herd_balls"
+                    name="herd_balls"
+                    value="true"
+                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                    onchange="document.getElementById('herd_rating_group').classList.toggle('hidden', !this.checked);"
+                  />
+                  <label for="herd_balls" class="text-sm font-medium text-gray-700 cursor-pointer">Did this team herd (push) balls?</label>
+                </div>
+                <div id="herd_rating_group" class="hidden space-y-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Herd Effectiveness (1-10)</label
+                  >
+                  <div class="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      name="herd_rating"
+                      min="1"
+                      max="10"
+                      value="5"
+                      class="w-full"
+                      oninput="document.getElementById('herd_rating_val').textContent = this.value;"
+                    />
+                    <span id="herd_rating_val" class="text-sm font-semibold text-blue-600 w-6">5</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ferrying Section -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h2 class="text-lg font-semibold text-gray-700 mb-4">
+                Ferrying
+              </h2>
+              <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="ferrying_did"
+                    name="ferrying_did"
+                    value="true"
+                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                    onchange="document.getElementById('ferrying_rating_group').classList.toggle('hidden', !this.checked);"
+                  />
+                  <label for="ferrying_did" class="text-sm font-medium text-gray-700 cursor-pointer">Did this team ferry?</label>
+                </div>
+                <div id="ferrying_rating_group" class="hidden space-y-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Ferrying Effectiveness (1-10)</label
+                  >
+                  <div class="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      name="ferrying_rating"
+                      min="1"
+                      max="10"
+                      value="5"
+                      class="w-full"
+                      oninput="document.getElementById('ferrying_rating_val').textContent = this.value;"
+                    />
+                    <span id="ferrying_rating_val" class="text-sm font-semibold text-blue-600 w-6">5</span>
+                  </div>
                 </div>
               </div>
             </div>

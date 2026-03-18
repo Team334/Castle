@@ -559,6 +559,20 @@ def leaderboard():
                 # Robot Disabled
                 "robot_disabled_list": {"$push": "$robot_disabled"},
 
+                "herd_rating": {
+                    "$avg": {
+                        "$cond": [{"$eq": ["$herd_balls", True]}, {"$ifNull": ["$herd_rating", 0]}, None]
+                    }
+                },
+                "herd_count": {"$sum": {"$cond": [{"$eq": ["$herd_balls", True]}, 1, 0]}},
+
+                "ferrying_rating": {
+                    "$avg": {
+                        "$cond": [{"$eq": ["$ferrying_did", True]}, {"$ifNull": ["$ferrying_rating", 0]}, None]
+                    }
+                },
+                "ferrying_count": {"$sum": {"$cond": [{"$eq": ["$ferrying_did", True]}, 1, 0]}},
+
                 # Climb stats
                 "climb_level_1_success": {"$sum": {"$cond": [{"$and": [{"$eq": ["$climb_level", 1]}, {"$eq": ["$climb_success", True]}]}, 1, 0]}},
                 "climb_level_2_success": {"$sum": {"$cond": [{"$and": [{"$eq": ["$climb_level", 2]}, {"$eq": ["$climb_success", True]}]}, 1, 0]}},
@@ -637,7 +651,11 @@ def leaderboard():
                     ]
                 },
                 "defense_rating": {"$round": ["$defense_rating", 1]},
-                "robot_disabled_list": "$robot_disabled_list"
+                "robot_disabled_list": "$robot_disabled_list",
+                "herd_rating": {"$round": [{"$ifNull": ["$herd_rating", 0]}, 1]},
+                "herd_count": 1,
+                "ferrying_rating": {"$round": [{"$ifNull": ["$ferrying_rating", 0]}, 1]},
+                "ferrying_count": 1
             }}
         ])
 
@@ -651,7 +669,9 @@ def leaderboard():
             'climb_l1': 'climb_l1_pct',
             'climb_l2': 'climb_l2_pct',
             'climb_l3': 'climb_l3_pct',
-            'defense': 'defense_rating'
+            'defense': 'defense_rating',
+            'herd_rating': 'herd_rating',
+            'ferrying_rating': 'ferrying_rating'
         }.get(sort_type, 'total_fuel')
 
         # if sort_type == 'deep_climb':
@@ -975,28 +995,17 @@ def pit_scouting_add():
                 },
                 "swerve_modules": request.form.get("swerve_modules", ""),
                 
-                # Motor details
-                "motor_details": {
-                    "falcons": "falcons" in request.form.getlist("motors"),
-                    "neos": "neos" in request.form.getlist("motors"),
-                    "krakens": "krakens" in request.form.getlist("motors"),
-                    "vortex": "vortex" in request.form.getlist("motors"),
-                    "other": request.form.get("motors_other", "")
-                },
-                "motor_count": int(request.form.get("motor_count", 0) if not (request.form.get("motor_count") == '') else 0),
+                # Mechanisms
+                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
+                "shooter_type": request.form.get("shooter_type", ""),
+                "shooter_notes": request.form.get("shooter_notes", ""),
+                "hopper_notes": request.form.get("hopper_notes", ""),
+                "intake_notes": request.form.get("intake_notes", ""),
                 
-                # Dimensions
-                "dimensions": {
-                    "length": float(request.form.get("length", 0) if not (request.form.get("length") == '') else 0),
-                    "width": float(request.form.get("width", 0) if not (request.form.get("width") == '') else 0),
-                    "height": float(request.form.get("height", 0) if not (request.form.get("height") == '') else 0)
-                },
-                
-                # Programming and Autonomous
-                "programming_language": request.form.get("programming_language", ""),
+                # Autonomous
                 "autonomous_capabilities": {
                     "has_auto": request.form.get("has_auto") == "true",
-                    "num_routes": int(request.form.get("auto_routes", 0) if not (request.form.get("auto_routes") == '') else 0) if request.form.get("has_auto") == "true" else 0,
+                    "num_routes": int(request.form.get("auto_routes", 0) or 0) if request.form.get("has_auto") == "true" else 0,
                     "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
                     "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
                 },
@@ -1055,20 +1064,14 @@ def pit_scouting_edit(entry_id):
                     "other": request.form.get("drive_type_other", "")
                 },
                 "swerve_modules": request.form.get("swerve_modules", ""),
-                "motor_details": {
-                    "falcons": "falcons" in request.form.getlist("motors"),
-                    "neos": "neos" in request.form.getlist("motors"),
-                    "krakens": "krakens" in request.form.getlist("motors"),
-                    "vortex": "vortex" in request.form.getlist("motors"),
-                    "other": request.form.get("motors_other", "")
-                },
-                "motor_count": int(request.form.get("motor_count", 0)),
-                "dimensions": {
-                    "length": float(request.form.get("length", 0)),
-                    "width": float(request.form.get("width", 0)),
-                    "height": float(request.form.get("height", 0))
-                },
-                "programming_language": request.form.get("programming_language", ""),
+
+                # Mechanisms
+                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
+                "shooter_type": request.form.get("shooter_type", ""),
+                "shooter_notes": request.form.get("shooter_notes", ""),
+                "hopper_notes": request.form.get("hopper_notes", ""),
+                "intake_notes": request.form.get("intake_notes", ""),
+
                 "autonomous_capabilities": {
                     "has_auto": request.form.get("has_auto") == "true",
                     "num_routes": int(request.form.get("auto_routes", 0)) if request.form.get("has_auto") == "true" else 0,
@@ -1094,7 +1097,7 @@ def pit_scouting_edit(entry_id):
             current_app.logger.info(f"Error updating pit scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} {str(e)}", exc_info=True)
             flash("An internal error has occurred.", "error")
 
-    return render_template("scouting/pit-scouting-edit.html", pit_data=pit_data)
+    return render_template("scouting/pit-scouting-edit.html", entry=pit_data)
 
 @scouting_bp.route("/scouting/pit/delete/<entry_id>")
 @login_required

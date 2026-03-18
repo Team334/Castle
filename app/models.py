@@ -92,6 +92,14 @@ class TeamData:
         # Defense
         self.defense_rating: int = data.get('defense_rating', 1)  # 1-5 scale
         self.defense_notes: str = data.get('defense_notes', '')
+        self.response_to_defense_rating: int = data.get('response_to_defense_rating', 1)  # 1-5 scale
+        self.defense_response_notes: str = data.get('defense_response_notes', '')
+
+        # Herd and Ferrying
+        self.herd_balls: bool = data.get('herd_balls', False)
+        self.herd_rating: int = data.get('herd_rating', 0)
+        self.ferrying_did: bool = data.get('ferrying_did', False)
+        self.ferrying_rating: int = data.get('ferrying_rating', 0)
         
         # Auto
         self.auto_path: str = data.get('auto_path', '')  # Store coordinates of drawn path
@@ -137,25 +145,14 @@ class PitScouting:
         })
         self.swerve_modules: str = data.get("swerve_modules", "")
         
-        # Motor details
-        self.motor_details: Dict[str, bool or str] = data.get("motor_details", {
-            "falcons": False,
-            "neos": False,
-            "krakens": False,
-            "vortex": False,
-            "other": ""
-        })
-        self.motor_count: int = data.get("motor_count", 0)
+        # Mechanism details
+        self.fuel_count_bps: int = data.get("fuel_count_bps", 0)
+        self.shooter_type: str = data.get("shooter_type", "")
         
-        # Dimensions (in)
-        self.dimensions: Dict[str, int] = data.get("dimensions", {
-            "length": 0,
-            "width": 0,
-            "height": 0,
-        })
+        self.intake_type: str = data.get("intake_type_bps", "")
+        self.hopper_type: str = data.get("hopper_type", "")
         
-        # Programming and Autonomous
-        self.programming_language: str = data.get("programming_language", "")
+        # Autonomous
         self.autonomous_capabilities: Dict = data.get("autonomous_capabilities", {
             "has_auto": False,
             "num_routes": 0,

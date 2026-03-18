@@ -188,6 +188,12 @@
                                 Ferried Fuel
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Herding Rating
+                            </th>
+                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ferrying Rating
+                            </th>
+                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Teleop Shifts (1-4)
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -202,6 +208,9 @@
                             </th>
                             <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Defense (1-5)
+                            </th>
+                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Response To Defense Rating
                             </th>
                             <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Robot Disabled
@@ -252,7 +261,7 @@
                                 {% if data.auto_climb %}
                                 <span class="text-green-600">✓</span>
                                 {% else %}
-                                <span class="text-gray-400">-</span>
+                                <span class="text-gray-400">None</span>
                                 {% endif %}
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -260,6 +269,12 @@
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.ferried_fuel or 0 }}
+                            </td>
+                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                                {{ data.herd_rating or 0 }}/10
+                            </td>
+                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                                {{ data.ferrying_rating or 0 }}/10
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{ data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
@@ -288,7 +303,10 @@
                                 {% endif %}
                             </td>
                             <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.defense_rating }}/5
+                                {{ data.defense_rating or 0 }}/5
+                            </td>
+                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                {{ data.response_to_defense_rating or 0}}/5
                             </td>
                             <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs rounded-full 
