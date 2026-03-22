@@ -1,405 +1,745 @@
-{% extends "base.html" %}
-{% block head %}
+{% extends "base.html" %} {% block head %}
 <script src="https://cdn.jsdelivr.net/gh/localforage/localforage/dist/localforage.min.js"></script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/coloris.css') }}">
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/coloris.css') }}"
+/>
 <script src="{{ url_for('static', filename='js/coloris.js') }}"></script>
-{% endblock %}
-{% block content %}
+{% endblock %} {% block content %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Auto Path Modal -->
-    <div id="autoPathModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-        <div class="relative top-4 mx-auto p-3 border w-[95%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%] max-w-4xl shadow-lg rounded-md bg-white">
-            <div class="bg-white p-4 rounded-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900">Auto Path</h2>
-                    <button onclick="closeAutoPathModal()" 
-                            class="text-gray-400 hover:text-gray-500">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <!-- Canvas Container -->
-                <div id="autoPathContainer" class="bg-white rounded-lg shadow-lg mb-4 mx-auto w-full h-[400px]">
-                    <canvas id="autoPath" class="w-full h-full rounded border border-gray-200"></canvas>
-                </div>
-                <p class="text-gray-600 secondary mb-4 text-center">
-                    Pan: Shift+Drag or Middle Mouse Button | Zoom: Scroll Wheel
-                </p>
-                <!-- Auto Notes -->
-                <div class="mt-4">
-                    <h3 class="text-sm font-medium text-gray-700 mb-2">Auto Notes</h3>
-                    <p id="autoNotes" class="text-gray-600 bg-gray-50 p-3 rounded-lg"></p>
-                </div>
-            </div>
+  <!-- Auto Path Modal -->
+  <div
+    id="autoPathModal"
+    class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+  >
+    <div
+      class="relative top-4 mx-auto p-3 border w-[95%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%] max-w-4xl shadow-lg rounded-md bg-white"
+    >
+      <div class="bg-white p-4 rounded-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Auto Path</h2>
+          <button
+            onclick="closeAutoPathModal()"
+            class="text-gray-400 hover:text-gray-500"
+          >
+            <svg
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
+        <!-- Canvas Container -->
+        <div
+          id="autoPathContainer"
+          class="bg-white rounded-lg shadow-lg mb-4 mx-auto w-full h-[400px]"
+        >
+          <canvas
+            id="autoPath"
+            class="w-full h-full rounded border border-gray-200"
+          ></canvas>
+        </div>
+        <p class="text-gray-600 secondary mb-4 text-center">
+          Pan: Shift+Drag or Middle Mouse Button | Zoom: Scroll Wheel
+        </p>
+        <!-- Auto Notes -->
+        <div class="mt-4">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Auto Notes</h3>
+          <p id="autoNotes" class="text-gray-600 bg-gray-50 p-3 rounded-lg"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-6 mb-8">
+    <!-- Header Section -->
+    <div
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+    >
+      <div class="flex flex-col gap-2">
+        <h1 class="text-2xl font-bold text-gray-900">Team Data</h1>
+        <!-- Navigation Links -->
+        <div class="flex flex-wrap gap-4">
+          <a
+            href="{{ url_for('scouting.auton') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+              />
+            </svg>
+            Path Comparison
+          </a>
+          <a
+            href="{{ url_for('scouting.lighthouse') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            Lighthouse
+          </a>
+          <a
+            href="{{ url_for('scouting.leaderboard') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            Leaderboard
+          </a>
+          <a
+            href="{{ url_for('scouting.scouter_leaderboard') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            Scouter Rankings
+          </a>
+          <a
+            href="{{ url_for('scouting.matches') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            Match View
+          </a>
+          <a
+            href="{{ url_for('scouting.pit_scouting') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            Pit Scouting
+          </a>
+          <a
+            href="{{ url_for('scouting.live_match_status') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            Live Match Status
+          </a>
+          <a
+            href="{{ url_for('scouting.mock_alliance_selection') }}"
+            class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+            Mock Alliance Selection
+          </a>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3">
+        <a
+          href="{{ url_for('scouting.add') }}"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add New Data
+        </a>
+        <button
+          id="exportCSV"
+          class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Export CSV
+        </button>
+      </div>
     </div>
 
-    <div class="flex flex-col gap-6 mb-8">
-        <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex flex-col gap-2">
-                <h1 class="text-2xl font-bold text-gray-900">Team Data</h1>
-                <!-- Navigation Links -->
-                <div class="flex flex-wrap gap-4">
-                    <a href="{{ url_for('scouting.auton') }}" 
-                    class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                        Path Comparison
-                    </a>
-                    <a href="{{ url_for('scouting.lighthouse') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        Lighthouse
-                    </a>
-                    <a href="{{ url_for('scouting.leaderboard') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        Leaderboard
-                    </a>
-                    <a href="{{ url_for('scouting.scouter_leaderboard') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        Scouter Rankings
-                    </a>
-                    <a href="{{ url_for('scouting.matches') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                        Match View
-                    </a>
-                    <a href="{{ url_for('scouting.pit_scouting') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                        Pit Scouting
-                    </a>
-                    <a href="{{ url_for('scouting.live_match_status') }}" 
-                       class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                        Live Match Status
-                    </a>
-                    <a href="{{ url_for('scouting.mock_alliance_selection') }}" 
-                        class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        Mock Alliance Selection
-                    </a>
-                </div>
-            </div>
+    <!-- Search and Filter Section -->
+    <div class="flex flex-wrap gap-3">
+      <div class="relative flex-1 max-w-xs">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search..."
+          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+      <select
+        id="filterType"
+        class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      >
+        <option value="team">Team Number</option>
+        <option value="match">Match Number</option>
+        <option value="scouter">Scouter</option>
+        <option value="notes">All Notes</option>
+      </select>
+    </div>
+  </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-3">
-                <a href="{{ url_for('scouting.add') }}" 
-                   class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add New Data
-                </a>
-                <button id="exportCSV" 
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Export CSV
+  {% set event_groups = {} %} {% for data in team_data[::-1] %} {% if
+  data.event_code not in event_groups %} {% set _ =
+  event_groups.update({data.event_code: []}) %} {% endif %} {% set _ =
+  event_groups[data.event_code].append(data) %} {% endfor %}
+
+  <div id="teamDataContainer" class="-mx-4 sm:mx-0">
+    {% for event_code, teams in event_groups.items() %}
+    <div class="event-section mb-8" data-event-code="{{ event_code }}">
+      <h2 class="text-xl font-semibold mb-4 bg-gray-100 rounded px-4 py-2">
+        {{ event_code }}
+      </h2>
+      <div class="overflow-x-auto shadow-sm rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Team #
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                EPA / Event Stats
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Alliance
+              </th>
+              <th
+                class="sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Match
+              </th>
+
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Auto Fuel
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Auto Climb
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Transition Fuel
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Ferried Fuel
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Herding Rating
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Ferrying Rating
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Teleop Shifts (1-4)
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Endgame Fuel
+              </th>
+
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Climb
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Auto Path
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Defense (1-5)
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Response To Defense Rating
+              </th>
+              <th
+                class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Robot Disabled
+              </th>
+              <th
+                class="lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Notes
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Scouter
+              </th>
+              <th
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for data in teams %}
+            <tr
+              class="team-row hover:bg-gray-50 {% if data.robot_disabled and data.robot_disabled != 'None' %}bg-yellow-50{% endif %}"
+              data-team-number="{{ data.team_number|string }}"
+              data-event-code="{{ data.event_code }}"
+              data-notes="{{ data.notes }}"
+              data-robot-disabled="{{ data.robot_disabled }}"
+              data-scouter="{{ data.scouter_name }}"
+            >
+              <!-- In the team number cell -->
+              <td class="px-3 sm:px-6 py-4">
+                {% if data.team_number %} {{ data.team_number }} {% endif %}
+              </td>
+              <td
+                class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 team-stats-cell"
+                data-team-id="{{ data.team_number }}"
+                data-event-id="{{ data.event_code }}"
+              >
+                <div class="flex flex-col gap-1">
+                  <span
+                    title="Expected Points Added"
+                    class="font-medium text-blue-600 epa-value"
+                    >EPA:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Offensive Power Rating"
+                    class="font-medium text-green-600 opr-value"
+                    >OPR:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Defensive Power Rating"
+                    class="font-medium text-red-600 dpr-value"
+                    >DPR:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Calculated Contribution to Winning Margin"
+                    class="font-medium text-purple-600 ccwm-value"
+                    >CCWM:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                </div>
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <span
+                    class="px-2 py-1 text-sm rounded-full {% if data.alliance == 'red' %} bg-red-100 text-red-800 {% else %} bg-blue-100 text-blue-800 {% endif %}"
+                  >
+                    {{ data.alliance|title }}
+                  </span>
+                </div>
+              </td>
+              <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.match_number }}
+              </td>
+
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.auto_fuel }}
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {% if data.auto_climb %}
+                <span class="text-green-600">✓</span>
+                {% else %}
+                <span class="text-gray-400">None</span>
+                {% endif %}
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.transition_fuel or 0 }}
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.ferried_fuel or 0 }}
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.herd_rating or 0 }}/10
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.ferrying_rating or 0 }}/10
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{
+                data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.endgame_fuel }}
+              </td>
+
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                {% if data.climb_success %}
+                <span class="text-green-600">✓ L{{ data.climb_level }}</span>
+                {% else %}
+                <span class="text-red-600">✗ L{{ data.climb_level }}</span>
+                {% endif %}
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                {% if data.auto_path %}
+                <button
+                  onclick='showAutoPath({{ data.auto_path|tojson|safe }}, {{ data.auto_notes|default("")|tojson|safe }})'
+                  class="text-blue-600 hover:text-blue-900"
+                >
+                  <span class="hidden sm:inline"
+                    >View Path{% if data.device_type == 'mobile' %} (M){% endif
+                    %}</span
+                  >
+                  <span class="sm:hidden"
+                    >🗺️{% if data.device_type == 'mobile' %}📱{% endif %}</span
+                  >
                 </button>
-            </div>
-        </div>
 
-        <!-- Search and Filter Section -->
-        <div class="flex flex-wrap gap-3">
-            <div class="relative flex-1 max-w-xs">
-                <input type="text" 
-                       id="searchInput" 
-                       placeholder="Search..." 
-                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <select id="filterType" 
-                    class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                <option value="team">Team Number</option>
-                <option value="match">Match Number</option>
-                <option value="scouter">Scouter</option>
-                <option value="notes">All Notes</option>
-            </select>
-        </div>
+                {% else %}
+                <span class="text-gray-400">No path</span>
+                {% endif %}
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.defense_rating or 0 }}/5
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                {{ data.response_to_defense_rating or 0}}/5
+              </td>
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 py-1 text-xs rounded-full {% if data.robot_disabled == 'Full' %} bg-red-100 text-red-800 {% elif data.robot_disabled == 'Partially' %} bg-yellow-100 text-yellow-800 {% else %} bg-green-100 text-green-800 {% endif %}"
+                >
+                  {{ data.robot_disabled if data.robot_disabled else 'None' }}
+                </span>
+              </td>
+              <td
+                class="lg:table-cell px-3 sm:px-6 py-4 whitespace-normal max-w-xs truncate"
+              >
+                {{ data.notes }}
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center space-x-2">
+                  {% if data.scouter_id|string == current_user.id|string or
+                  (data.scouter_team and current_user.teamNumber and
+                  data.scouter_team|string == current_user.teamNumber|string) %}
+                  <img
+                    src="{{ url_for('auth.profile_picture', user_id=data.scouter_id) }}"
+                    alt="Profile Picture"
+                    class="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
+                  />
+                  <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:space-x-1"
+                  >
+                    <a
+                      class="text-blue-600 hover:text-blue-900 text-sm"
+                      href="{{ url_for('auth.profile', username=data.scouter_name) }}"
+                    >
+                      {{ data.scouter_name }}
+                    </a>
+                    {% if data.scouter_team %}
+                    <span class="sm:inline">
+                      <a
+                        href="{{ url_for('team.view', team_number=data.scouter_team) }}"
+                        class="hover:text-blue-500"
+                        >({{ data.scouter_team }})</a
+                      >
+                    </span>
+                    {% endif %}
+                  </div>
+                  {% else %}
+                  <div class="flex items-center space-x-2">
+                    <div
+                      class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center"
+                    >
+                      <svg
+                        class="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-gray-600 text-sm"
+                        >Anonymous Scouter</span
+                      >
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                <div class="flex space-x-2">
+                  {% if data.scouter_id|string == current_user.id|string %}
+                  <a
+                    href="{{ url_for('scouting.edit', id=data._id) }}"
+                    class="text-indigo-600 hover:text-indigo-900"
+                  >
+                    <span class="hidden sm:inline">Edit</span>
+                    <span class="sm:hidden">📝</span>
+                  </a>
+                  <a
+                    href="{{ url_for('scouting.delete', id=data._id) }}"
+                    class="text-red-600 hover:text-red-900"
+                    onclick="
+                      return confirm('Are you sure you want to delete this?');
+                    "
+                  >
+                    <span class="hidden sm:inline">Delete</span>
+                    <span class="sm:hidden">🗑️</span>
+                  </a>
+                  {% elif data.scouter_team and current_user.teamNumber and
+                  data.scouter_team|string == current_user.teamNumber|string %}
+                  <a
+                    href="{{ url_for('scouting.edit', id=data._id) }}"
+                    class="text-indigo-600 hover:text-indigo-900"
+                  >
+                    <span class="hidden sm:inline">Edit Match</span>
+                    <span class="sm:hidden">📝</span>
+                  </a>
+
+                  {% if team and team.is_admin(current_user.id|string) %}
+                  <a
+                    href="{{ url_for('scouting.delete', id=data._id) }}"
+                    class="text-red-600 hover:text-red-900"
+                    onclick="
+                      return confirm(
+                        'Are you sure you want to delete this team data?',
+                      );
+                    "
+                  >
+                    <span class="hidden sm:inline">Delete (Admin)</span>
+                    <span class="sm:hidden">🗑️</span>
+                  </a>
+                  {% endif %} {% else %}
+                  <span class="text-gray-400 text-sm">No Access</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    {% set event_groups = {} %}
-    {% for data in team_data[::-1] %}
-        {% if data.event_code not in event_groups %}
-            {% set _ = event_groups.update({data.event_code: []}) %}
-        {% endif %}
-        {% set _ = event_groups[data.event_code].append(data) %}
     {% endfor %}
+  </div>
 
-    <div id="teamDataContainer" class="-mx-4 sm:mx-0">
-        {% for event_code, teams in event_groups.items() %}
-        <div class="event-section mb-8" data-event-code="{{ event_code }}">
-            <h2 class="text-xl font-semibold mb-4 bg-gray-100 rounded px-4 py-2">
-                {{ event_code }}
-            </h2>
-            <div class="overflow-x-auto shadow-sm rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Team #
-                            </th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Alliance
-                            </th>
-                            <th class="sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Match
-                            </th>
-                            
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Fuel
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Climb
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Transition Fuel
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ferried Fuel
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Herding Rating
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ferrying Rating
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Teleop Shifts (1-4)
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Endgame Fuel
-                            </th>
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      const statsCells = document.querySelectorAll(".team-stats-cell");
+      if (!statsCells.length) return;
 
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Climb
-                            </th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Path
-                            </th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Defense (1-5)
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Response To Defense Rating
-                            </th>
-                            <th class="md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Robot Disabled
-                            </th>
-                            <th class="lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Notes
-                            </th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Scouter
-                            </th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for data in teams %}
-                        <tr class="team-row hover:bg-gray-50 {% if data.robot_disabled and data.robot_disabled != 'None' %}bg-yellow-50{% endif %}" 
-                            data-team-number="{{ data.team_number|string }}"
-                            data-event-code="{{ data.event_code }}"
-                            data-notes="{{ data.notes }}"
-                            data-robot-disabled="{{ data.robot_disabled }}"
-                            data-scouter="{{ data.scouter_name }}">  
-                            <!-- In the team number cell -->
-                            <td class="px-3 sm:px-6 py-4">
-                                {% if data.team_number %}
-                                    {{ data.team_number }}
-                                {% endif %}
-                            </td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <span class="px-2 py-1 text-sm rounded-full 
-                                        {% if data.alliance == 'red' %}
-                                            bg-red-100 text-red-800
-                                        {% else %}
-                                            bg-blue-100 text-blue-800
-                                        {% endif %}">
-                                        {{ data.alliance|title }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">{{ data.match_number }}</td>
-                            
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.auto_fuel }}
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {% if data.auto_climb %}
-                                <span class="text-green-600">✓</span>
-                                {% else %}
-                                <span class="text-gray-400">None</span>
-                                {% endif %}
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.transition_fuel or 0 }}
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.ferried_fuel or 0 }}
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.herd_rating or 0 }}/10
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.ferrying_rating or 0 }}/10
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{ data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.endgame_fuel }}
-                            </td>
+      const requestData = {
+        events: [],
+        teams: [],
+      };
+      const eventsSet = new Set();
 
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {% if data.climb_success %}
-                                <span class="text-green-600">✓ L{{ data.climb_level }}</span>
-                                {% else %}
-                                <span class="text-red-600">✗ L{{ data.climb_level }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {% if data.auto_path %}
-                                <button onclick='showAutoPath({{ data.auto_path|tojson|safe }}, {{ data.auto_notes|default("")|tojson|safe }})' 
-                                        class="text-blue-600 hover:text-blue-900">
-                                    <span class="hidden sm:inline">View Path{% if data.device_type == 'mobile' %} (M){% endif %}</span>
-                                    <span class="sm:hidden">🗺️{% if data.device_type == 'mobile' %}📱{% endif %}</span>
-                                </button>
-                        
-                                {% else %}
-                                    <span class="text-gray-400">No path</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.defense_rating or 0 }}/5
-                            </td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                {{ data.response_to_defense_rating or 0}}/5
-                            </td>
-                            <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 text-xs rounded-full 
-                                    {% if data.robot_disabled == 'Full' %}
-                                        bg-red-100 text-red-800
-                                    {% elif data.robot_disabled == 'Partially' %}
-                                        bg-yellow-100 text-yellow-800
-                                    {% else %}
-                                        bg-green-100 text-green-800
-                                    {% endif %}">
-                                    {{ data.robot_disabled if data.robot_disabled else 'None' }}
-                                </span>
-                            </td>
-                            <td class="lg:table-cell px-3 sm:px-6 py-4 whitespace-normal max-w-xs truncate">{{ data.notes }}</td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center space-x-2">
-                                    {% if data.scouter_id|string == current_user.id|string or 
-                                          (data.scouter_team and current_user.teamNumber and 
-                                           data.scouter_team|string == current_user.teamNumber|string) %}
-                                        <img src="{{ url_for('auth.profile_picture', user_id=data.scouter_id) }}" 
-                                             alt="Profile Picture" 
-                                             class="w-6 h-6 sm:w-8 sm:h-8 rounded-full">
-                                        <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-1">
-                                            <a class="text-blue-600 hover:text-blue-900 text-sm" 
-                                               href="{{ url_for('auth.profile', username=data.scouter_name) }}">
-                                                {{ data.scouter_name }}
-                                            </a>
-                                            {% if data.scouter_team %}
-                                                <span class="sm:inline">
-                                                    <a href="{{ url_for('team.view', team_number=data.scouter_team) }}" 
-                                                       class="hover:text-blue-500">({{ data.scouter_team }})</a>
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% else %}
-                                        <div class="flex items-center space-x-2">
-                                            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                </svg>
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span class="text-gray-600 text-sm">Anonymous Scouter</span>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                                <div class="flex space-x-2">
-                                    {% if data.scouter_id|string == current_user.id|string %}
-                                        <a href="{{ url_for('scouting.edit', id=data._id) }}" 
-                                           class="text-indigo-600 hover:text-indigo-900">
-                                            <span class="hidden sm:inline">Edit</span>
-                                            <span class="sm:hidden">📝</span>
-                                        </a>
-                                        <a href="{{ url_for('scouting.delete', id=data._id) }}" 
-                                           class="text-red-600 hover:text-red-900"
-                                           onclick="return confirm('Are you sure you want to delete this?')">
-                                            <span class="hidden sm:inline">Delete</span>
-                                            <span class="sm:hidden">🗑️</span>
-                                        </a>
-                                    {% elif data.scouter_team and current_user.teamNumber and data.scouter_team|string == current_user.teamNumber|string %}
-                                        <a href="{{ url_for('scouting.edit', id=data._id) }}" 
-                                           class="text-indigo-600 hover:text-indigo-900">
-                                            <span class="hidden sm:inline">Edit Match</span>
-                                            <span class="sm:hidden">📝</span>
-                                        </a>
-                                        
-                                        {% if team and team.is_admin(current_user.id|string) %}
-                                        <a href="{{ url_for('scouting.delete', id=data._id) }}" 
-                                           class="text-red-600 hover:text-red-900"
-                                           onclick="return confirm('Are you sure you want to delete this team data?');">
-                                            <span class="hidden sm:inline">Delete (Admin)</span>
-                                            <span class="sm:hidden">🗑️</span>
-                                        </a>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-gray-400 text-sm">No Access</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
+      statsCells.forEach((cell) => {
+        const teamNum = cell.getAttribute("data-team-id");
+        const eventCode = cell.getAttribute("data-event-id");
+        if (teamNum) {
+          requestData.teams.push({
+            team_number: teamNum,
+            event_code: eventCode,
+          });
+          if (eventCode) eventsSet.add(eventCode);
+        }
+      });
+
+      requestData.events = Array.from(eventsSet);
+
+      try {
+        const response = await fetch("/api/team_epa_opr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        });
+
+        const results = await response.json();
+
+        statsCells.forEach((cell) => {
+          const teamNum = cell.getAttribute("data-team-id");
+          const eventCode = cell.getAttribute("data-event-id");
+          const key = eventCode ? `${teamNum}_${eventCode}` : teamNum;
+
+          const data = results[key] || {};
+
+          const epaHtml =
+            typeof data.epa === "number" && data.epa !== 0
+              ? data.epa.toFixed(1)
+              : "N/A";
+          const oprHtml =
+            typeof data.opr === "number" && data.opr !== 0
+              ? data.opr.toFixed(1)
+              : "N/A";
+          const dprHtml =
+            typeof data.dpr === "number" && data.dpr !== 0
+              ? data.dpr.toFixed(1)
+              : "N/A";
+          const ccwmHtml =
+            typeof data.ccwm === "number" && data.ccwm !== 0
+              ? data.ccwm.toFixed(1)
+              : "N/A";
+
+          cell.querySelector(".epa-value").innerHTML = `EPA: ${epaHtml}`;
+          cell.querySelector(".opr-value").innerHTML = `OPR: ${oprHtml}`;
+          cell.querySelector(".dpr-value").innerHTML = `DPR: ${dprHtml}`;
+          cell.querySelector(".ccwm-value").innerHTML = `CCWM: ${ccwmHtml}`;
+        });
+      } catch (error) {
+        console.error("Failed to fetch EPA/OPR data:", error);
+        statsCells.forEach((cell) => {
+          cell.querySelector(".epa-value").innerHTML = "EPA: N/A";
+          cell.querySelector(".opr-value").innerHTML = "OPR: N/A";
+          cell.querySelector(".dpr-value").innerHTML = "DPR: N/A";
+          cell.querySelector(".ccwm-value").innerHTML = "CCWM: N/A";
+        });
+      }
+    });
+  </script>
+
+  <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/scout/list.js') }}"></script>
+  {% endblock %}
 </div>
-
-<script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
-<script src="{{ url_for('static', filename='js/scout/list.js') }}"></script>
-{% endblock %}

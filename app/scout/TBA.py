@@ -4,11 +4,24 @@ from datetime import datetime
 from functools import lru_cache
 
 import requests
+import statbotics
 
 from .artificial_data import (_generate_test_matches, _generate_test_rankings,
                               _generate_test_teams)
 
 logger = logging.getLogger(__name__)
+
+sb = statbotics.Statbotics()
+
+@lru_cache(maxsize=1000)
+def get_team_epa(team_number: int, year: int) -> float:
+    try:
+        data = sb.get_team_year(team=team_number, year=year)
+        if data and 'epa' in data and data['epa']:
+            return data['epa'].get('total_points', {}).get('mean', 0.0)
+    except Exception as e:
+        logger.error(f"Error fetching statbotics EPA for {team_number}: {e}")
+    return 0.0
 
 class TBAInterface:
     def __init__(self, api_key=None):
@@ -150,6 +163,23 @@ class TBAInterface:
             return current_events
         except Exception as e:
             logger.error(f"Error fetching events from TBA: {e}")
+            return None
+
+    @lru_cache(maxsize=10)
+    def get_event_oprs(self, event_key: str) -> dict | None:
+        """Get event OPRs"""
+        if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
+             return {"oprs": {}, "dprs": {}, "ccwms": {}}
+
+        try:
+            response = requests.get(
+                f"{self.base_url}/event/{event_key}/oprs",
+                headers=self.headers,
+                timeout=self.timeout
+            )
+            return response.json() if response.status_code == 200 else None
+        except Exception as e:
+            logger.error(f"Error fetching event OPRs from TBA: {e}")
             return None
             
     @lru_cache(maxsize=20)

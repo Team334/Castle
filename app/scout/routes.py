@@ -659,31 +659,83 @@ def leaderboard():
             }}
         ])
 
-        # Add sorting based on selected type
-        sort_field = {
-            'fuel': 'total_fuel',
-            'auto_fuel': 'auto_fuel',
-            'ferried_fuel': 'ferried_fuel',
-            'auto_climb': 'auto_climb_pct',
-            'climb': 'climb_success_rate',
-            'climb_l1': 'climb_l1_pct',
-            'climb_l2': 'climb_l2_pct',
-            'climb_l3': 'climb_l3_pct',
-            'defense': 'defense_rating',
-            'herd_rating': 'herd_rating',
-            'ferrying_rating': 'ferrying_rating'
-        }.get(sort_type, 'total_fuel')
+        # We cannot sort purely by TBA-fetched metrics natively in MongoDB aggregation 
+        # (EPA/OPR/DPR/CCWM require secondary API calls). Let's process those *after* 
+        # the aggregate completes if one of those sorts is requested.
+        
+        tba_metrics = {'epa', 'opr', 'dpr', 'ccwm'}
+        
+        if sort_type not in tba_metrics:
+            sort_field = {
+                'fuel': 'total_fuel',
+                'auto_fuel': 'auto_fuel',
+                'ferried_fuel': 'ferried_fuel',
+                'auto_climb': 'auto_climb_pct',
+                'climb': 'climb_success_rate',
+                'climb_l1': 'climb_l1_pct',
+                'climb_l2': 'climb_l2_pct',
+                'climb_l3': 'climb_l3_pct',
+                'defense': 'defense_rating',
+                'herd_rating': 'herd_rating',
+                'ferrying_rating': 'ferrying_rating'
+            }.get(sort_type, 'total_fuel')
 
-        # if sort_type == 'deep_climb':
-        #     pipeline.insert(-1, {
-        #         "$match": {
-        #             # "deep_climb_attempts": {"$gt": 0}
-        #         }
-        #     })
+            pipeline.append({"$sort": {sort_field: -1}})
 
-        pipeline.append({"$sort": {sort_field: -1}})
         teams = list(scouting_manager.db.team_data.aggregate(pipeline))
         current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+        
+        if sort_type in tba_metrics:
+            from app.scout.TBA import TBAInterface, get_team_epa
+            tba_interface = TBAInterface()
+            year = datetime.now().year
+            
+            # Replicate get_team_epa_opr's fetching to assign stats to teams
+            tba_events = tba_interface.get_current_events(year) or {}
+            name_to_key = {name: data.get('key') for name, data in tba_events.items()}
+            oprs_by_event = {}
+            
+            # Fetch for selected event or prep for 'all events'
+            if selected_event != 'all':
+                event_key = name_to_key.get(selected_event, selected_event)
+                event_stats = tba_interface.get_event_oprs(event_key)
+                oprs_by_event[selected_event] = event_stats if event_stats else {}
+                oprs_by_event[event_key] = event_stats if event_stats else {}
+                    
+            for team in teams:
+                team_num = team["team_number"]
+                
+                if sort_type == 'epa':
+                    team['epa'] = get_team_epa(int(team_num), year)
+                    continue
+                    
+                # Otherwise calculate OPR/DPR/CCWM
+                stat_val = 0.0
+                if selected_event != 'all' and selected_event in oprs_by_event:
+                    event_stat = oprs_by_event[selected_event]
+                    stat_val = event_stat.get(f"{sort_type}s", {}).get(f"frc{team_num}", 0.0)
+                else:
+                    team_events = tba_interface.get_team_events(f"frc{team_num}", year) or []
+                    stat_list = []
+                    for ev in team_events:
+                        ev_key = ev.get('key')
+                        if not ev_key: continue
+                        if ev_key not in oprs_by_event:
+                            event_stats = tba_interface.get_event_oprs(ev_key)
+                            oprs_by_event[ev_key] = event_stats if event_stats else {}
+                        
+                        event_stat = oprs_by_event[ev_key]
+                        if event_stat:
+                            t_stat = event_stat.get(f"{sort_type}s", {}).get(f"frc{team_num}")
+                            if t_stat is not None: stat_list.append(t_stat)
+                    if stat_list:
+                        stat_val = sum(stat_list) / len(stat_list)
+                
+                team[sort_type] = stat_val
+            
+            # Sort in python memory with calculated stat
+            teams.sort(key=lambda x: x.get(sort_type, 0.0), reverse=True)
+            
         return render_template("scouting/leaderboard.html", teams=teams, current_sort=sort_type, 
                               events=events, selected_event=selected_event)
     except Exception as e:
@@ -1321,3 +1373,99 @@ def get_alliance_rankings(event_key):
     except Exception as e:
         current_app.logger.error(f"Error fetching alliance rankings: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch rankings"}), 500
+
+@scouting_bp.route("/api/team_epa_opr", methods=["POST"])
+@login_required
+def get_team_epa_opr():
+    """Get EPA and OPR asynchronously for a list of teams and an event"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+            
+        teams = data.get("teams", [])
+        events = data.get("events", [])
+        # Provide year gracefully
+        year = data.get("year", datetime.now().year)
+
+        from app.scout.TBA import TBAInterface, get_team_epa
+        tba_interface = TBAInterface()
+        
+        # We need to map event names (like "Finger Lakes Regional") to their TBA keys (like "2026nyro")
+        tba_events = tba_interface.get_current_events(year) or {}
+        name_to_key = {name: data.get('key') for name, data in tba_events.items()}
+
+        oprs_by_event = {}
+        # Fetch OPRs for any events we received
+        for event_name in events:
+            if event_name and event_name not in oprs_by_event:
+                # Fallback to event_name as key in case it's actually a key
+                event_key = name_to_key.get(event_name, event_name)
+                event_stats = tba_interface.get_event_oprs(event_key)
+                oprs_by_event[event_name] = event_stats if event_stats else {}
+                oprs_by_event[event_key] = event_stats if event_stats else {} # cache by key too
+
+        results = {}
+        for item in teams:
+            team_num = item.get("team_number")
+            event_code = item.get("event_code")
+            if not team_num:
+                continue
+                
+            epa = get_team_epa(int(team_num), int(year))
+            
+            opr = 0.0
+            dpr = 0.0
+            ccwm = 0.0
+            if event_code and event_code in oprs_by_event:
+                event_stat = oprs_by_event[event_code]
+                opr = event_stat.get('oprs', {}).get(f"frc{team_num}", 0.0)
+                dpr = event_stat.get('dprs', {}).get(f"frc{team_num}", 0.0)
+                ccwm = event_stat.get('ccwms', {}).get(f"frc{team_num}", 0.0)
+            elif not event_code or event_code == 'all':
+                # Average OPRs across all regionals for the team
+                team_events = tba_interface.get_team_events(f"frc{team_num}", year) or []
+                oprs_list, dprs_list, ccwms_list = [], [], []
+                
+                for ev in team_events:
+                    ev_key = ev.get('key')
+                    if not ev_key:
+                        continue
+                    if ev_key not in oprs_by_event:
+                        event_stats = tba_interface.get_event_oprs(ev_key)
+                        oprs_by_event[ev_key] = event_stats if event_stats else {}
+                    
+                    event_stat = oprs_by_event[ev_key]
+                    if event_stat:
+                        t_opr = event_stat.get('oprs', {}).get(f"frc{team_num}")
+                        t_dpr = event_stat.get('dprs', {}).get(f"frc{team_num}")
+                        t_ccwm = event_stat.get('ccwms', {}).get(f"frc{team_num}")
+                        
+                        if t_opr is not None: oprs_list.append(t_opr)
+                        if t_dpr is not None: dprs_list.append(t_dpr)
+                        if t_ccwm is not None: ccwms_list.append(t_ccwm)
+                
+                if oprs_list:
+                    opr = sum(oprs_list) / len(oprs_list)
+                if dprs_list:
+                    dpr = sum(dprs_list) / len(dprs_list)
+                if ccwms_list:
+                    ccwm = sum(ccwms_list) / len(ccwms_list)
+
+            # We key results by team_number_event_code to uniquely identify the row if needed,
+            # or just by team_number if we want to generalise.
+            key = f"{team_num}_{event_code}" if event_code else str(team_num)
+            
+            results[key] = {
+                "epa": epa,
+                "opr": opr,
+                "dpr": dpr,
+                "ccwm": ccwm
+            }
+            
+        return jsonify(results)
+
+    except Exception as e:
+        current_app.logger.error(f"Error in get_team_epa_opr: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to process EPA/OPR request"}), 500
+

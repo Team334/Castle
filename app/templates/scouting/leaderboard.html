@@ -1,257 +1,537 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="max-w-7xl mx-auto p-4">
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold mb-2">Team Leaderboard</h1>
-        <p class="text-gray-600">Rankings based on match performance (minimum 1 match required)</p>
-        <div class="flex gap-4 py-3 ">
-            <a href="{{ url_for('scouting.matches') }}" 
-            class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-                Match View
-            </a>
-            <a href="{{ url_for('scouting.home') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-                Game Scouting
-            </a>
-            <a href="{{ url_for('scouting.pit_scouting') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Pit Scouting
-            </a>
-            <a href="{{ url_for('scouting.mock_alliance_selection') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                Mock Alliance Selection
-            </a>
-        </div>
-
-        <!-- Ranking Filter Buttons -->
-        <div class="mt-4 flex flex-wrap gap-4">
-            <select id="eventSelect" 
-                    onchange="changeEvent(this.value)" 
-                    class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="all" {% if selected_event == 'all' %}selected{% endif %}>All Events</option>
-                {% for event in events %}
-                <option value="{{ event._id }}" {% if selected_event == event._id %}selected{% endif %}>
-                    {% if event.event_name %}{{ event.event_name }}{% else %}{{ event._id }}{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-
-            <select id="rankingSelect" 
-                    onchange="changeRanking(this.value)" 
-                    class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="fuel" {% if current_sort == 'fuel' %}selected{% endif %}>Most Fuel (Total)</option>
-                <option value="auto_fuel" {% if current_sort == 'auto_fuel' %}selected{% endif %}>Most Fuel (Auto)</option>
-                <option value="ferried_fuel" {% if current_sort == 'ferried_fuel' %}selected{% endif %}>Most Fuel (Ferried)</option>
-                <option value="auto_climb" {% if current_sort == 'auto_climb' %}selected{% endif %}>Auto Climb %</option>
-                <option value="climb" {% if current_sort == 'climb' %}selected{% endif %}>Highest Climb %</option>
-                <option value="climb_l1" {% if current_sort == 'climb_l1' %}selected{% endif %}>Climb Level 1 %</option>
-                <option value="climb_l2" {% if current_sort == 'climb_l2' %}selected{% endif %}>Climb Level 2 %</option>
-                <option value="climb_l3" {% if current_sort == 'climb_l3' %}selected{% endif %}>Climb Level 3 %</option>
-                <option value="defense" {% if current_sort == 'defense' %}selected{% endif %}>Defense Rating</option>
-                <option value="herd_rating" {% if current_sort == 'herd_rating' %}selected{% endif %}>Herd Avg Rating</option>
-                <option value="ferrying_rating" {% if current_sort == 'ferrying_rating' %}selected{% endif %}>Ferrying Avg Rating</option>
-            </select>
-        </div>
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold mb-2">Team Leaderboard</h1>
+    <p class="text-gray-600">
+      Rankings based on match performance (minimum 1 match required)
+    </p>
+    <div class="flex gap-4 py-3">
+      <a
+        href="{{ url_for('scouting.matches') }}"
+        class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+          />
+        </svg>
+        Match View
+      </a>
+      <a
+        href="{{ url_for('scouting.home') }}"
+        class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+          />
+        </svg>
+        Game Scouting
+      </a>
+      <a
+        href="{{ url_for('scouting.pit_scouting') }}"
+        class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        Pit Scouting
+      </a>
+      <a
+        href="{{ url_for('scouting.mock_alliance_selection') }}"
+        class="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+        Mock Alliance Selection
+      </a>
     </div>
 
-    <div class="overflow-x-auto">
-        <div class="inline-block min-w-full align-middle">
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Auto Climb
-                                <span class="text-xs text-gray-400 block">success rate</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Transition Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ferried Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Teleop Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Endgame Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Total Fuel
-                                <span class="text-xs text-gray-400 block">avg per match</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Defense
-                                <span class="text-xs text-gray-400 block">avg rating</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Herd
-                                <span class="text-xs text-gray-400 block">avg rating (1-10)</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ferrying
-                                <span class="text-xs text-gray-400 block">avg rating (1-10)</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Robot Disabled
-                                <span class="text-xs text-gray-400 block">times disabled</span>
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Climb Stats
-                                <span class="text-xs text-gray-400 block">success rates</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for team in teams %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ loop.index }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                Team {{ team.team_number }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ team.matches_played }}</td>
-                            
-                            <!-- Auto Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.1f"|format(team.auto_fuel) }}</div>
-                            </td>
+    <!-- Ranking Filter Buttons -->
+    <div class="mt-4 flex flex-wrap gap-4">
+      <select
+        id="eventSelect"
+        onchange="changeEvent(this.value)"
+        class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+      >
+        <option value="all" {% if selected_event == 'all' %}selected{% endif %}>
+          All Events
+        </option>
+        {% for event in events %}
+        <option value="{{ event._id }}" {% if selected_event == event._id %}selected{% endif %}>
+          {% if event.event_name %}{{ event.event_name }}{% else %}{{ event._id }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
 
-                            <!-- Auto Climb -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.0f"|format(team.auto_climb_pct) }}%</div>
-                            </td>
-
-                            <!-- Transition Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.1f"|format(team.transition_fuel) }}</div>
-                            </td>
-
-                            <!-- Ferried Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.1f"|format(team.ferried_fuel) }}</div>
-                            </td>
-                
-                            <!-- Teleop Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.1f"|format(team.teleop_fuel_total) }}</div>
-                            </td>
-
-                            <!-- Endgame Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold">{{ "%.1f"|format(team.endgame_fuel) }}</div>
-                            </td>
-
-                            <!-- Total Fuel -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold text-blue-600">{{ "%.1f"|format(team.total_fuel) }}</div>
-                            </td>
-                            
-                            <!-- Defense Rating -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-500">{{ "%.1f"|format(team.defense_rating) }}/5</div>
-                            </td>
-
-                            <!-- Herd Avg Rating -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if team.herd_count > 0 %}
-                                <div class="text-sm font-bold text-green-600">{{ "%.1f"|format(team.herd_rating) }}/10</div>
-                                <div class="text-xs text-gray-400">{{ team.herd_count }} match{{ 'es' if team.herd_count != 1 else '' }}</div>
-                                {% else %}
-                                <div class="text-sm text-gray-400">0/10</div>
-                                {% endif %}
-                            </td>
-
-                            <!-- Ferrying Avg Rating -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if team.ferrying_count > 0 %}
-                                <div class="text-sm font-bold text-blue-600">{{ "%.1f"|format(team.ferrying_rating) }}/10</div>
-                                <div class="text-xs text-gray-400">{{ team.ferrying_count }} match{{ 'es' if team.ferrying_count != 1 else '' }}</div>
-                                {% else %}
-                                <div class="text-sm text-gray-400">0/10</div>
-                                {% endif %}
-                            </td>
-                            
-                            <!-- Robot Disabled Status -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm space-y-1">
-                                    {% set full_disabled = team.robot_disabled_list | select('equalto', 'Full') | list | length %}
-                                    {% set partially_disabled = team.robot_disabled_list | select('equalto', 'Partially') | list | length %}
-                                    {% set total_disabled = full_disabled + partially_disabled %}
-                                    {% if total_disabled > 0 %}
-                                        <div class="text-red-600">Full: {{ full_disabled }}</div>
-                                        <div class="text-yellow-600">Partial: {{ partially_disabled }}</div>
-                                    {% else %}
-                                        <div class="text-green-600">Never disabled</div>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            
-                            <!-- Climb Stats -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="space-y-1 text-sm">
-                                    <div class="text-green-600 font-medium">L1: {{ "%.0f"|format(team.climb_l1_pct) }}%</div>
-                                    <div class="text-blue-600 font-medium">L2: {{ "%.0f"|format(team.climb_l2_pct) }}%</div>
-                                    <div class="text-purple-600 font-bold">L3: {{ "%.0f"|format(team.climb_l3_pct) }}%</div>
-                                    <div class="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100">
-                                        Total Success: {{ "%.0f"|format(team.climb_success_rate) }}%
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      <select
+        id="rankingSelect"
+        onchange="changeRanking(this.value)"
+        class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+      >
+        <option value="fuel" {% if current_sort == 'fuel' %}selected{% endif %}>
+          Most Fuel (Total)
+        </option>
+        <option value="auto_fuel" {% if current_sort == 'auto_fuel' %}selected{% endif %}>
+          Most Fuel (Auto)
+        </option>
+        <option value="ferried_fuel" {% if current_sort == 'ferried_fuel' %}selected{% endif %}>
+          Most Fuel (Ferried)
+        </option>
+        <option value="auto_climb" {% if current_sort == 'auto_climb' %}selected{% endif %}>
+          Auto Climb %
+        </option>
+        <option value="climb" {% if current_sort == 'climb' %}selected{% endif %}>
+          Highest Climb %
+        </option>
+        <option value="climb_l1" {% if current_sort == 'climb_l1' %}selected{% endif %}>
+          Climb Level 1 %
+        </option>
+        <option value="climb_l2" {% if current_sort == 'climb_l2' %}selected{% endif %}>
+          Climb Level 2 %
+        </option>
+        <option value="climb_l3" {% if current_sort == 'climb_l3' %}selected{% endif %}>
+          Climb Level 3 %
+        </option>
+        <option value="epa" {% if current_sort == 'epa' %}selected{% endif %}>
+          Highest EPA
+        </option>
+        <option value="opr" {% if current_sort == 'opr' %}selected{% endif %}>
+          Highest OPR
+        </option>
+        <option value="dpr" {% if current_sort == 'dpr' %}selected{% endif %}>
+          Lowest DPR (Defensive Rating)
+        </option>
+        <option value="ccwm" {% if current_sort == 'ccwm' %}selected{% endif %}>
+          Highest CCWM
+        </option>
+        <option value="defense" {% if current_sort == 'defense' %}selected{% endif %}>
+          Defense Rating
+        </option>
+        <option value="herd_rating" {% if current_sort == 'herd_rating' %}selected{% endif %}>
+          Herd Avg Rating
+        </option>
+        <option value="ferrying_rating" {% if current_sort == 'ferrying_rating' %}selected{% endif %}>
+          Ferrying Avg Rating
+        </option>
+      </select>
     </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <div class="inline-block min-w-full align-middle">
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Rank
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Team
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                EPA / Event Stats
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Matches
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Auto Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Auto Climb
+                <span class="text-xs text-gray-400 block">success rate</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Transition Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Ferried Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Teleop Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Endgame Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Total Fuel
+                <span class="text-xs text-gray-400 block">avg per match</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Defense
+                <span class="text-xs text-gray-400 block">avg rating</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Herd
+                <span class="text-xs text-gray-400 block"
+                  >avg rating (1-10)</span
+                >
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Ferrying
+                <span class="text-xs text-gray-400 block"
+                  >avg rating (1-10)</span
+                >
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Robot Disabled
+                <span class="text-xs text-gray-400 block">times disabled</span>
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Climb Stats
+                <span class="text-xs text-gray-400 block">success rates</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for team in teams %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ loop.index }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                Team {{ team.team_number }}
+              </td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 team-stats-cell"
+                data-team-id="{{ team.team_number }}"
+                data-event-id="{{ selected_event if selected_event != 'all' else '' }}"
+              >
+                <div class="flex flex-col gap-1">
+                  <span
+                    title="Expected Points Added"
+                    class="font-medium text-blue-600 epa-value"
+                    >EPA:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Offensive Power Rating"
+                    class="font-medium text-green-600 opr-value"
+                    >OPR:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Defensive Power Rating"
+                    class="font-medium text-red-600 dpr-value"
+                    >DPR:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                  <span
+                    title="Calculated Contribution to Winning Margin"
+                    class="font-medium text-purple-600 ccwm-value"
+                    >CCWM:
+                    <span
+                      class="loading-spinner w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin inline-block"
+                    ></span
+                  ></span>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ team.matches_played }}
+              </td>
+
+              <!-- Auto Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.1f"|format(team.auto_fuel) }}
+                </div>
+              </td>
+
+              <!-- Auto Climb -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.0f"|format(team.auto_climb_pct) }}%
+                </div>
+              </td>
+
+              <!-- Transition Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.1f"|format(team.transition_fuel) }}
+                </div>
+              </td>
+
+              <!-- Ferried Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.1f"|format(team.ferried_fuel) }}
+                </div>
+              </td>
+
+              <!-- Teleop Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.1f"|format(team.teleop_fuel_total) }}
+                </div>
+              </td>
+
+              <!-- Endgame Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold">
+                  {{ "%.1f"|format(team.endgame_fuel) }}
+                </div>
+              </td>
+
+              <!-- Total Fuel -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold text-blue-600">
+                  {{ "%.1f"|format(team.total_fuel) }}
+                </div>
+              </td>
+
+              <!-- Defense Rating -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-500">
+                  {{ "%.1f"|format(team.defense_rating) }}/5
+                </div>
+              </td>
+
+              <!-- Herd Avg Rating -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                {% if team.herd_count > 0 %}
+                <div class="text-sm font-bold text-green-600">
+                  {{ "%.1f"|format(team.herd_rating) }}/10
+                </div>
+                <div class="text-xs text-gray-400">
+                  {{ team.herd_count }} match{{ 'es' if team.herd_count != 1 else '' }}
+                </div>
+                {% else %}
+                <div class="text-sm text-gray-400">0/10</div>
+                {% endif %}
+              </td>
+
+              <!-- Ferrying Avg Rating -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                {% if team.ferrying_count > 0 %}
+                <div class="text-sm font-bold text-blue-600">
+                  {{ "%.1f"|format(team.ferrying_rating) }}/10
+                </div>
+                <div class="text-xs text-gray-400">
+                  {{ team.ferrying_count }} match{{ 'es' if team.ferrying_count != 1 else '' }}
+                </div>
+                {% else %}
+                <div class="text-sm text-gray-400">0/10</div>
+                {% endif %}
+              </td>
+
+              <!-- Robot Disabled Status -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm space-y-1">
+                  {% set full_disabled = team.robot_disabled_list | select('equalto', 'Full') | list | length %}
+                  {% set partially_disabled = team.robot_disabled_list | select('equalto', 'Partially') | list | length %}
+                  {% set total_disabled = full_disabled + partially_disabled %}
+                  {% if total_disabled > 0 %}
+                  <div class="text-red-600">Full: {{ full_disabled }}</div>
+                  <div class="text-yellow-600">
+                    Partial: {{ partially_disabled }}
+                  </div>
+                  {% else %}
+                  <div class="text-green-600">Never disabled</div>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Climb Stats -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="space-y-1 text-sm">
+                  <div class="text-green-600 font-medium">
+                    L1: {{ "%.0f"|format(team.climb_l1_pct) }}%
+                  </div>
+                  <div class="text-blue-600 font-medium">
+                    L2: {{ "%.0f"|format(team.climb_l2_pct) }}%
+                  </div>
+                  <div class="text-purple-600 font-bold">
+                    L3: {{ "%.0f"|format(team.climb_l3_pct) }}%
+                  </div>
+                  <div
+                    class="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100"
+                  >
+                    Total Success: {{ "%.0f"|format(team.climb_success_rate) }}%
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-function changeRanking(type) {
+  function changeRanking(type) {
     const sanitizedType = encodeURIComponent(type);
-    const currentEvent = document.getElementById('eventSelect').value;
+    const currentEvent = document.getElementById("eventSelect").value;
     window.location.href = `{{ url_for('scouting.leaderboard') }}?sort=${sanitizedType}&event=${encodeURIComponent(currentEvent)}`;
-}
+  }
 
-function changeEvent(event) {
+  function changeEvent(event) {
     const sanitizedEvent = encodeURIComponent(event);
-    const currentSort = document.getElementById('rankingSelect').value;
+    const currentSort = document.getElementById("rankingSelect").value;
     window.location.href = `{{ url_for('scouting.leaderboard') }}?sort=${encodeURIComponent(currentSort)}&event=${sanitizedEvent}`;
-}
+  }
 
-// Set progress bar widths after the page loads
-window.onload = function() {
-    document.querySelectorAll('[data-progress-value]').forEach(element => {
-        const value = element.getAttribute('data-progress-value');
-        element.style.width = value + '%';
+  // Set progress bar widths after the page loads
+  window.onload = function () {
+    document.querySelectorAll("[data-progress-value]").forEach((element) => {
+      const value = element.getAttribute("data-progress-value");
+      element.style.width = value + "%";
     });
-}
+  };
+
+  document.addEventListener("DOMContentLoaded", async function () {
+    const statsCells = document.querySelectorAll(".team-stats-cell");
+    if (!statsCells.length) return;
+
+    const requestData = {
+      events: [],
+      teams: [],
+    };
+    const eventsSet = new Set();
+
+    statsCells.forEach((cell) => {
+      const teamNum = cell.getAttribute("data-team-id");
+      const eventCode = cell.getAttribute("data-event-id");
+      if (teamNum) {
+        requestData.teams.push({ team_number: teamNum, event_code: eventCode });
+        if (eventCode) eventsSet.add(eventCode);
+      }
+    });
+
+    requestData.events = Array.from(eventsSet);
+
+    try {
+      const response = await fetch("/api/team_epa_opr", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const results = await response.json();
+
+      statsCells.forEach((cell) => {
+        const teamNum = cell.getAttribute("data-team-id");
+        const eventCode = cell.getAttribute("data-event-id");
+        const key = eventCode ? `${teamNum}_${eventCode}` : teamNum;
+
+        const data = results[key] || {};
+
+        const epaHtml =
+          typeof data.epa === "number" && data.epa !== 0
+            ? data.epa.toFixed(1)
+            : "N/A";
+        const oprHtml =
+          typeof data.opr === "number" && data.opr !== 0
+            ? data.opr.toFixed(1)
+            : "N/A";
+        const dprHtml =
+          typeof data.dpr === "number" && data.dpr !== 0
+            ? data.dpr.toFixed(1)
+            : "N/A";
+        const ccwmHtml =
+          typeof data.ccwm === "number" && data.ccwm !== 0
+            ? data.ccwm.toFixed(1)
+            : "N/A";
+
+        cell.querySelector(".epa-value").innerHTML = `EPA: ${epaHtml}`;
+        cell.querySelector(".opr-value").innerHTML = `OPR: ${oprHtml}`;
+        cell.querySelector(".dpr-value").innerHTML = `DPR: ${dprHtml}`;
+        cell.querySelector(".ccwm-value").innerHTML = `CCWM: ${ccwmHtml}`;
+      });
+    } catch (error) {
+      console.error("Failed to fetch EPA/OPR data:", error);
+      statsCells.forEach((cell) => {
+        cell.querySelector(".epa-value").innerHTML = "EPA: N/A";
+        cell.querySelector(".opr-value").innerHTML = "OPR: N/A";
+        cell.querySelector(".dpr-value").innerHTML = "DPR: N/A";
+        cell.querySelector(".ccwm-value").innerHTML = "CCWM: N/A";
+      });
+    }
+  });
 </script>
-{% endblock %} 
+{% endblock %}
