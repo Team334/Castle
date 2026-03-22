@@ -86,9 +86,16 @@ def add():
 @login_required
 def home():
     try:
-        team_data = scouting_manager.get_all_scouting_data(
-            current_user.teamNumber, 
-            current_user.get_id()
+        page = request.args.get('page', 1, type=int)
+        event_code = request.args.get('event', None)
+        per_page = 1
+
+        team_data, total_pages, all_events = scouting_manager.get_all_scouting_data(
+            current_user.teamNumber,
+            current_user.get_id(),
+            page=page,
+            per_page=per_page,
+            event_code=event_code
         )
 
         # Get the user's team if they have one
@@ -99,13 +106,13 @@ def home():
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
         current_app.logger.info(f"Successfully fetched team data for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        return render_template("scouting/list.html", team_data=team_data, team=team)
+        return render_template("scouting/list.html", team_data=team_data, team=team, 
+                               current_page=page, total_pages=total_pages, 
+                               all_events=all_events, current_event=event_code)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
         flash("Unable to fetch scouting data. Please try again later.", "error")
-        return render_template("scouting/list.html", team_data=[])
-
-
+        return render_template("scouting/list.html", team_data=[], current_page=1, total_pages=1, all_events=[], current_event=None)
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])
 # @limiter.limit("15 per minute")
 @login_required

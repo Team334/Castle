@@ -147,11 +147,23 @@ class ScoutingManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_scouting_data(self, user_team_number=None, user_id=None) -> list[dict]:
-        """Get all scouting data with user information, filtered by team access"""
+    def get_all_scouting_data(self, user_team_number=None, user_id=None, page=1, per_page=50, event_code=None) -> tuple[list[dict], int, list[str]]:
+        """Get all scouting data with user information, filtered by team access.
+        Returns tuple of (paginated_data, total_pages, available_event_codes)."""
         try:
-            # Base pipeline for user lookup
-            pipeline = [
+            # First, determine the match conditions for user/team access
+            access_match = {}
+            if user_team_number:
+                access_match["$or"] = [
+                    {"scouter.teamNumber": user_team_number},
+                    {"scouter._id": ObjectId(user_id)}
+                ]
+            else:
+                access_match["scouter._id"] = ObjectId(user_id)
+
+            # Build pipeline exactly for getting unique event codes
+            # We want to know all available event codes for this team's data
+            event_codes_pipeline = [
                 {
                     "$lookup": {
                         "from": "users",
@@ -161,26 +173,44 @@ class ScoutingManager(DatabaseManager):
                     }
                 },
                 {"$unwind": "$scouter"},
+                {"$match": access_match},
+                {"$group": {"_id": "$event_code"}},
+                {"$sort": {"_id": 1}}
+            ]
+            all_events = [doc["_id"] for doc in self.db.team_data.aggregate(event_codes_pipeline) if doc["_id"]]
+
+            # Base pipeline for our actual data fetching
+            pipeline = [
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "scouter_id",
+                        "foreignField": "_id",
+                        "as": "scouter"
+                    }
+                },
+                {"$unwind": "$scouter"}
             ]
 
-            # Add match stage for filtering based on team number or user ID
-            if user_team_number:
-                # If user has a team number, show data from their team and their own data
-                pipeline.append({
-                    "$match": {
-                        "$or": [
-                            {"scouter.teamNumber": user_team_number},
-                            {"scouter._id": ObjectId(user_id)}
-                        ]
-                    }
-                })
-            else:
-                # If user has no team, only show their own data
-                pipeline.append({
-                    "$match": {
-                        "scouter._id": ObjectId(user_id)
-                    }
-                })
+            # Combine user access with optional event_code filter
+            full_match = dict(access_match)
+            if event_code:
+                full_match["event_code"] = event_code
+
+            pipeline.append({"$match": full_match})
+
+            # Get total count before pagination
+            count_pipeline = pipeline + [{"$count": "total"}]
+            count_result = list(self.db.team_data.aggregate(count_pipeline))
+            total_items = count_result[0]["total"] if count_result else 0
+            
+            import math
+            total_pages = max(1, math.ceil(total_items / per_page))
+
+            # Add sorting, skip, limit
+            pipeline.append({"$sort": {"_id": -1}}) # Sort by newest first
+            pipeline.append({"$skip": (page - 1) * per_page})
+            pipeline.append({"$limit": per_page})
 
             # Project the needed fields
             pipeline.append({
@@ -225,10 +255,10 @@ class ScoutingManager(DatabaseManager):
             })
             
             team_data = list(self.db.team_data.aggregate(pipeline))
-            return team_data
+            return team_data, total_pages, all_events
         except Exception as e:
             logger.error(f"Error fetching team data: {str(e)}")
-            return []
+            return [], 1, []
 
     @with_mongodb_retry(retries=3, delay=2)
     def get_team_data(self, team_id, scouter_id=None) -> TeamData | None:
