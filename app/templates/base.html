@@ -75,7 +75,8 @@
             <div class="flex justify-between items-center gap-10">
                 <div class="flex space-x-4 text-center">
                     <a href="{{ url_for('index') }}" class="flex items-center text-center hover:text-blue-500">
-                        <img src="{{ url_for('static', filename='logo.png') }}" alt="Castle Logo" class="h-12">
+                        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="h-12 dark:hidden">
+                        <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="Logo" class="h-12 hidden dark:block">
                         <p class="py-4 px-2 text-center -ml-4">Castle</p>
                     </a>
                     <!-- Offline Status Indicator -->

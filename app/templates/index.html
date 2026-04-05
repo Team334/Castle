@@ -12,7 +12,8 @@
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
             <div class="mx-auto max-w-4xl text-center">
                 <h1 class="text-center text-4xl font-bold tracking-tight sm:text-6xl animate-on-load uppercase flex items-center justify-center">
-                    <img src="{{ url_for('static', filename='/logo.png') }}" alt="Castle Logo" class="h-24 sm:h-32 -mx-8">
+                    <img src="{{ url_for('static', filename='/logo.png') }}" alt="Castle Logo" class="h-24 sm:h-32 -mx-8 dark:hidden">
+                    <img src="{{ url_for('static', filename='/logo-dark.png') }}" alt="Castle Logo" class="h-24 sm:h-32 -mx-8 hidden dark:block">
                     C a s t l e
                 </h1>
                 <p class="text-lg leading-8 text-gray-600 dark:text-gray-400 animate-on-load delay-200 text-center">
