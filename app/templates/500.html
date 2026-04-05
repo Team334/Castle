@@ -16,17 +16,17 @@
 
         <!-- Error Message -->
         <h1 class="mb-4 text-6xl font-semibold text-blue-600">500</h1>
-        <h2 class="mb-4 text-2xl font-bold text-gray-800">Server Error</h2>
-        <p class="mb-8 text-gray-600">Oops! Looks like our robot needs some maintenance.</p>
+        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-gray-200">Server Error</h2>
+        <p class="mb-8 text-gray-600 dark:text-gray-400">Oops! Looks like our robot needs some maintenance.</p>
 
         <!-- Action Buttons -->
         <div class="flex justify-center space-x-4">
             <a href="{{ url_for('index') }}"
-               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+               class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200">
                 Go Home
             </a>
             <button onclick="history.back()"
-                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200">
+                    class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:bg-gray-600 transition duration-200">
                 Go Back
             </button>
         </div>
