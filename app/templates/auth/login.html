@@ -6,39 +6,39 @@
 <div class="relative flex min-h-screen flex-col overflow-hidden bg-[#f6f5f3] w-full rounded-md z-0">
     <div class="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <h2 class="text-center text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl animate-fade-in-up">
+            <h2 class="text-center text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl animate-fade-in-up">
                 Welcome Back
             </h2>
-            <p class="mt-4 text-center text-lg text-gray-600 animate-fade-in-up delay-200">
+            <p class="mt-4 text-center text-lg text-gray-600 dark:text-gray-400 animate-fade-in-up delay-200">
                 Sign in to continue your scouting journey
             </p>
         </div>
 
         <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="bg-white py-4 px-4 shadow-lg sm:rounded-xl sm:px-10">
+            <div class="bg-white dark:bg-gray-800 py-4 px-4 shadow-lg dark:shadow-none sm:rounded-xl sm:px-10">
                 <form method="POST" autocomplete="off" class="space-y-6">
                     <div>
-                        <label for="login" class="block text-sm font-medium text-gray-700">Email or Username</label>
+                        <label for="login" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email or Username</label>
                         <div class="mt-1">
                             <input type="text" 
                                    id="login" 
                                    name="login" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                    value="{{ form_data.get('login', '') }}"
                                    required>
                         </div>
                     </div>
 
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
                         <div class="mt-1 relative">
                             <input type="password" 
                                    id="password" 
                                    name="password" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                    required>
                             <button type="button" 
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 transition-colors"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 dark:text-gray-400 transition-colors"
                                     onclick="togglePassword()">
                                 <svg class="h-5 w-5" id="eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -52,9 +52,9 @@
                             <input type="checkbox" 
                                    id="remember" 
                                    name="remember"
-                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors"
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                    {% if form_data.get('remember') %}checked{% endif %}>
-                            <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                            <label for="remember" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Remember me</label>
                         </div>
                         <div class="text-sm">
                             <a href="{{ url_for('auth.forgot_password') }}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
@@ -65,20 +65,20 @@
 
                     <div>
                         <button type="submit" 
-                                class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors hover-lift">
+                                class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors hover-lift">
                             Sign in
                         </button>
                     </div>
                 </form>
 
                 <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
                         Don't have an account? 
                         <a href="{{ url_for('auth.register') }}" class="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
                             Register here
                         </a>
                     </p>
-                    <!-- <p class="mt-2 text-xs text-gray-500">
+                    <!-- <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         This is a private application for Team 334 members only.
                     </p> -->
                 </div>

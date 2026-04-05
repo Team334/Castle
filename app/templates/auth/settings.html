@@ -7,17 +7,17 @@
 
 <div class="container mx-auto px-4 py-8">
   <div class="max-w-4xl mx-auto">
-    <div class="bg-white rounded-2xl shadow-xl">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
       <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 rounded-t-2xl">
         <div class="flex justify-between items-center">
           <h2 class="text-white text-2xl font-bold">Profile Settings</h2>
           <a
             href="{{ url_for('auth.profile', username=current_user.username) }}"
-            class="bg-white p-2 rounded-full hover:bg-gray-50 transition-colors"
+            class="bg-white dark:bg-gray-800 p-2 rounded-full hover:bg-gray-50 dark:bg-gray-900/50 transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="h-6 w-6 text-gray-600"
+              class="h-6 w-6 text-gray-600 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -40,12 +40,12 @@
             <div class="relative inline-block">
               <img
                 src="{{ url_for('auth.profile_picture', user_id=current_user.id) }}"
-                class="w-40 h-40 rounded-full border-4 border-white shadow-lg object-cover profile-preview"
+                class="w-40 h-40 rounded-full border-4 border-white shadow-lg dark:shadow-none object-cover profile-preview"
                 alt="Profile picture"
               />
               <label
                 for="profile_picture"
-                class="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                class="absolute bottom-0 right-0 bg-blue-600 dark:bg-blue-500 p-2 rounded-full shadow-lg dark:shadow-none hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -73,11 +73,11 @@
                 id="profile_picture"
                 name="profile_picture"
                 accept="image/*"
-                class="hidden"
+                class="hidden dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               />
             </div>
             <div class="mt-2">
-              <p id="upload-info" class="text-sm text-gray-500"></p>
+              <p id="upload-info" class="text-sm text-gray-500 dark:text-gray-400"></p>
               <p class="text-xs text-gray-400 mt-1">
                 Supported formats: PNG, JPG, JPEG. Maximum file size: 6MB
               </p>
@@ -86,9 +86,9 @@
 
           <!-- Settings Form -->
           <div class="space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
               <h4
-                class="flex items-center text-lg font-semibold text-gray-900 mb-6"
+                class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -111,7 +111,7 @@
                 <div>
                   <label
                     for="username"
-                    class="block text-sm font-medium text-gray-700 mb-1"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Username</label
                   >
                   <div class="relative rounded-md shadow-sm">
@@ -139,7 +139,7 @@
                       name="username"
                       value="{{ current_user.username }}"
                       required
-                      class="block w-full pl-10 pr-3 py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      class="block w-full pl-10 pr-3 py-3 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                       onkeyup="checkUsername(this.value)"
                     />
                   </div>
@@ -149,7 +149,7 @@
                 <div>
                   <label
                     for="description"
-                    class="block text-sm font-medium text-gray-700 mb-1"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >About Me</label
                   >
                   <div class="relative rounded-md shadow-sm">
@@ -243,7 +243,7 @@
                       name="description"
                       rows="4"
                       placeholder="Tell us about yourself..."
-                      class="block w-full pl-10 pr-3 py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      class="block w-full pl-10 pr-3 py-3 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     >
 {{ current_user.description }}</textarea
                     >
@@ -253,9 +253,9 @@
             </div>
 
             {% if current_user.teamNumber %}
-            <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
               <h4
-                class="flex items-center text-lg font-semibold text-gray-900 mb-4"
+                class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -274,9 +274,9 @@
                 Team Information
               </h4>
               <div class="flex items-center space-x-3">
-                <span class="text-gray-500">Current Team:</span>
+                <span class="text-gray-500 dark:text-gray-400">Current Team:</span>
                 <span
-                  class="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold"
+                  class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold"
                 >
                   Team {{ current_user.teamNumber }}
                 </span>
@@ -288,7 +288,7 @@
             <div class="flex justify-end">
               <button
                 type="submit"
-                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -312,9 +312,9 @@
 
         <!-- Password Change Section (Separate from form) -->
         <div class="space-y-6 mt-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
               <h4
-                class="flex items-center text-lg font-semibold text-gray-900 mb-6"
+                class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -337,14 +337,14 @@
                 <div>
                   <label
                     for="current_password"
-                    class="block text-sm font-medium text-gray-700 mb-1"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Current Password</label
                   >
                   <input
                     type="password"
                     id="current_password"
                     name="current_password"
-                    class="block w-full px-3 py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full px-3 py-3 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     placeholder="Enter your current password"
                   />
                 </div>
@@ -352,14 +352,14 @@
                 <div>
                   <label
                     for="new_password"
-                    class="block text-sm font-medium text-gray-700 mb-1"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >New Password</label
                   >
                   <input
                     type="password"
                     id="new_password"
                     name="new_password"
-                    class="block w-full px-3 py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full px-3 py-3 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     placeholder="Enter new password (min. 8 characters)"
                   />
                 </div>
@@ -367,14 +367,14 @@
                 <div>
                   <label
                     for="confirm_new_password"
-                    class="block text-sm font-medium text-gray-700 mb-1"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Confirm New Password</label
                   >
                   <input
                     type="password"
                     id="confirm_new_password"
                     name="confirm_new_password"
-                    class="block w-full px-3 py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full px-3 py-3 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     placeholder="Confirm your new password"
                   />
                 </div>
@@ -383,7 +383,7 @@
                   <button
                     type="button"
                     onclick="changePassword()"
-                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -405,9 +405,9 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
               <h4
-                class="flex items-center text-lg font-semibold text-gray-900 mb-4"
+                class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -427,7 +427,7 @@
               </h4>
               <div class="border border-red-200 rounded-lg p-4">
                 <h5 class="text-red-600 font-medium mb-2">Delete Account</h5>
-                <p class="text-gray-600 text-sm mb-4">
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
                   Once you delete your account, there is no going back. Please
                   be certain.
                 </p>
@@ -473,7 +473,7 @@
         icon: "text-yellow-600",
       },
       info: {
-        bg: "bg-blue-50",
+        bg: "bg-blue-50 dark:bg-blue-900/20",
         text: "text-blue-800",
         border: "border-blue-300",
         icon: "text-blue-600",
@@ -494,7 +494,7 @@
     const icon = icons[type] || icons.info;
 
     const notification = document.createElement("div");
-    notification.className = `flex items-center p-4 rounded-lg shadow-lg ${color.bg} ${color.text} border-2 ${color.border} animate-slide-in`;
+    notification.className = `flex items-center p-4 rounded-lg shadow-lg dark:shadow-none ${color.bg} ${color.text} border-2 ${color.border} animate-slide-in`;
     notification.style.cssText =
       "animation: slideIn 0.3s ease-out; min-width: 300px;";
 

@@ -414,7 +414,7 @@ function updateAutoPaths(data) {
             // Add table header
             table.innerHTML = `
                 <thead class="bg-gray-50">
-                    <tr>
+                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Match</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Path</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>

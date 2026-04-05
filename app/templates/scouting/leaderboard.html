@@ -2,7 +2,7 @@
 <div class="max-w-7xl mx-auto p-4">
   <div class="mb-8">
     <h1 class="text-2xl font-bold mb-2">Team Leaderboard</h1>
-    <p class="text-gray-600">
+    <p class="text-gray-600 dark:text-gray-400">
       Rankings based on match performance (minimum 1 match required)
     </p>
     <div class="flex gap-4 py-3">
@@ -89,7 +89,7 @@
       <select
         id="eventSelect"
         onchange="changeEvent(this.value)"
-        class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+        class="block w-48 px-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-white"
       >
         <option value="all" {% if selected_event == 'all' %}selected{% endif %}>
           All Events
@@ -104,7 +104,7 @@
       <select
         id="rankingSelect"
         onchange="changeRanking(this.value)"
-        class="block w-48 px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+        class="block w-48 px-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-white"
       >
         <option value="fuel" {% if current_sort == 'fuel' %}selected{% endif %}>
           Most Fuel (Total)
@@ -157,80 +157,80 @@
 
   <div class="overflow-x-auto">
     <div class="inline-block min-w-full align-middle">
-      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
+      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-900/50">
+            <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Rank
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Team
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 EPA / Event Stats
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Matches
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Auto Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Auto Climb
                 <span class="text-xs text-gray-400 block">success rate</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Transition Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Ferried Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Teleop Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Endgame Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Total Fuel
                 <span class="text-xs text-gray-400 block">avg per match</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Defense
                 <span class="text-xs text-gray-400 block">avg rating</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Herd
                 <span class="text-xs text-gray-400 block"
@@ -238,7 +238,7 @@
                 >
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Ferrying
                 <span class="text-xs text-gray-400 block"
@@ -246,30 +246,30 @@
                 >
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Robot Disabled
                 <span class="text-xs text-gray-400 block">times disabled</span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 Climb Stats
                 <span class="text-xs text-gray-400 block">success rates</span>
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {% for team in teams %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <tr class="hover:bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
                 {{ loop.index }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 Team {{ team.team_number }}
               </td>
               <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 team-stats-cell"
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 team-stats-cell"
                 data-team-id="{{ team.team_number }}"
                 data-event-id="{{ selected_event if selected_event != 'all' else '' }}"
               >
@@ -308,68 +308,68 @@
                   ></span>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
                 {{ team.matches_played }}
               </td>
 
               <!-- Auto Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.1f"|format(team.auto_fuel) }}
                 </div>
               </td>
 
               <!-- Auto Climb -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.0f"|format(team.auto_climb_pct) }}%
                 </div>
               </td>
 
               <!-- Transition Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.1f"|format(team.transition_fuel) }}
                 </div>
               </td>
 
               <!-- Ferried Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.1f"|format(team.ferried_fuel) }}
                 </div>
               </td>
 
               <!-- Teleop Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.1f"|format(team.teleop_fuel_total) }}
                 </div>
               </td>
 
               <!-- Endgame Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold">
                   {{ "%.1f"|format(team.endgame_fuel) }}
                 </div>
               </td>
 
               <!-- Total Fuel -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm font-bold text-blue-600">
                   {{ "%.1f"|format(team.total_fuel) }}
                 </div>
               </td>
 
               <!-- Defense Rating -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-500">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
                   {{ "%.1f"|format(team.defense_rating) }}/5
                 </div>
               </td>
 
               <!-- Herd Avg Rating -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 {% if team.herd_count > 0 %}
                 <div class="text-sm font-bold text-green-600">
                   {{ "%.1f"|format(team.herd_rating) }}/10
@@ -383,7 +383,7 @@
               </td>
 
               <!-- Ferrying Avg Rating -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 {% if team.ferrying_count > 0 %}
                 <div class="text-sm font-bold text-blue-600">
                   {{ "%.1f"|format(team.ferrying_rating) }}/10
@@ -397,7 +397,7 @@
               </td>
 
               <!-- Robot Disabled Status -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="text-sm space-y-1">
                   {% set full_disabled = team.robot_disabled_list | select('equalto', 'Full') | list | length %}
                   {% set partially_disabled = team.robot_disabled_list | select('equalto', 'Partially') | list | length %}
@@ -414,7 +414,7 @@
               </td>
 
               <!-- Climb Stats -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 <div class="space-y-1 text-sm">
                   <div class="text-green-600 font-medium">
                     L1: {{ "%.0f"|format(team.climb_l1_pct) }}%
@@ -426,7 +426,7 @@
                     L3: {{ "%.0f"|format(team.climb_l3_pct) }}%
                   </div>
                   <div
-                    class="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100"
+                    class="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100 dark:border-gray-700"
                   >
                     Total Success: {{ "%.0f"|format(team.climb_success_rate) }}%
                   </div>

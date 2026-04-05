@@ -4,29 +4,29 @@
     <!-- Header Section -->
     <div class="mb-3">
         <h1 class="text-3xl font-bold mb-2">Match List</h1>
-        <p class="text-gray-600">View all recorded matches and alliance performance data</p>
+        <p class="text-gray-600 dark:text-gray-400">View all recorded matches and alliance performance data</p>
     </div>
 
     <!-- Search Bar Section -->
     <div class="mb-6">
         <div class="relative max-w-md">
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
             </div>
-            <input id="teamSearchInput" type="text" class="block w-full p-2.5 pl-10 text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500" placeholder="Search by team number...">
+            <input id="teamSearchInput" type="text" class="block w-full p-2.5 pl-10 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-blue-500 focus:border-blue-500" placeholder="Search by team number...">
         </div>
-        <p class="mt-2 text-sm text-gray-500">Enter a team number to filter matches</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Enter a team number to filter matches</p>
     </div>
 
     <div class="flex flex-col gap-4 mb-8">
         <!-- Live Team Schedule Section -->
-        <div class="bg-gray-50 p-4 rounded-lg mb-2">
-            <h2 class="text-xl font-semibold text-gray-800 mb-2">Live Team Schedule</h2>
-            <p class="text-sm text-gray-600 mb-3">Check a team's current ranking, previous and upcoming matches at an event.</p>
+        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg mb-2">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Live Team Schedule</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Check a team's current ranking, previous and upcoming matches at an event.</p>
             <a href="{{ url_for('scouting.live_match_status') }}" 
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors">
+                class="bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -66,9 +66,9 @@
     <!-- Match Cards Container -->
     <div class="space-y-6">
         {% for match in matches %}
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-lg overflow-hidden">
             <!-- Match Header -->
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-2xl font-bold">
                     {{ match.event_code }} - Qualification {{ match.match_number }}
                 </h2>
@@ -92,7 +92,7 @@
                             <!-- Team Stats Grid -->
                             <div class="grid grid-cols-1 gap-4">
                                 <!-- Fuel Stats -->
-                                <div class="bg-white rounded p-3">
+                                <div class="bg-white dark:bg-gray-800 rounded p-3">
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
                                         <div>Count: <span class="font-bold text-lg">{{ team.fuel_total }}</span></div>
@@ -104,7 +104,7 @@
                             <!-- Climb Status -->
                             <div class="mt-3 flex gap-2">
                                 {% if team.auto_climb %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800">
                                     🤖 Auto Climb
                                 </div>
                                 {% endif %}
@@ -113,7 +113,7 @@
                                     ⬆️ L{{ team.climb_level }} Success
                                 </div>
                                 {% else %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
                                     L{{ team.climb_level }} Attempt
                                 </div>
                                 {% endif %}
@@ -147,11 +147,11 @@
                         </div>
                         
                         {% for team in match.blue_teams %}
-                        <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                             <div class="font-bold mb-2">Team {{ team.number }}</div>
                             
                             <div class="grid grid-cols-1 gap-4">
-                                <div class="bg-white rounded p-3">
+                                <div class="bg-white dark:bg-gray-800 rounded p-3">
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
                                         <div>Count: <span class="font-bold text-lg">{{ team.fuel_total }}</span></div>
@@ -162,7 +162,7 @@
                             
                             <div class="mt-3 flex gap-2">
                                 {% if team.auto_climb %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800">
                                     🤖 Auto Climb
                                 </div>
                                 {% endif %}
@@ -171,7 +171,7 @@
                                     ⬆️ L{{ team.climb_level }} Success
                                 </div>
                                 {% else %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
                                     L{{ team.climb_level }} Attempt
                                 </div>
                                 {% endif %}
@@ -180,7 +180,7 @@
                         {% endfor %}
                         
                         <!-- Blue Alliance Totals -->
-                        <div class="bg-blue-100 rounded-lg p-4 mt-4">
+                        <div class="bg-blue-100 dark:bg-blue-900/40 rounded-lg p-4 mt-4">
                             <h4 class="font-bold text-blue-800 mb-3">Alliance Totals</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -207,7 +207,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('teamSearchInput');
-    const matchCards = document.querySelectorAll('.bg-white.shadow-lg.rounded-lg');
+    const matchCards = document.querySelectorAll('.bg-white dark:bg-gray-800.shadow-lg dark:shadow-none.rounded-lg');
     
     searchInput.addEventListener('input', function() {
         const searchTerm = searchInput.value.trim();
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         matchCards.forEach(card => {
             const teamNumbers = [
                 ...Array.from(card.querySelectorAll('.bg-red-50.rounded-lg')),
-                ...Array.from(card.querySelectorAll('.bg-blue-50.rounded-lg'))
+                ...Array.from(card.querySelectorAll('.bg-blue-50 dark:bg-blue-900/20.rounded-lg'))
             ].map(teamDiv => teamDiv.textContent.trim());
             
             // Check if any team number contains the search term

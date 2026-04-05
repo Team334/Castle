@@ -11,12 +11,12 @@
     <div class="mb-8">
         <div class="sm:flex sm:items-center sm:justify-between">
             <div class="sm:flex-auto">
-                <h1 class="text-3xl font-bold text-gray-900">Edit Match Scouting Data</h1>
-                <p class="mt-2 text-base text-gray-600">Edit match scouting information for Team {{ team_data.team_number }}</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Edit Match Scouting Data</h1>
+                <p class="mt-2 text-base text-gray-600 dark:text-gray-400">Edit match scouting information for Team {{ team_data.team_number }}</p>
             </div>
             <div class="mt-4 sm:mt-0 sm:flex-none">
                 <a href="{{ url_for('scouting.home') }}"
-                   class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                   class="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
@@ -27,50 +27,50 @@
     </div>
 
     <!-- Form Section -->
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden text-center">
-        <form method="POST" class="divide-y divide-gray-200" id="scoutingForm" autocomplete="off">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none overflow-hidden text-center">
+        <form method="POST" class="divide-y divide-gray-200 dark:divide-gray-700" id="scoutingForm" autocomplete="off">
             <!-- Basic Info -->
-            <div class="p-8 bg-gray-50">
-                <h3 class="text-lg font-semibold text-gray-900 mb-6">Basic Information</h3>
+            <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Basic Information</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Event Code</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Event Code</label>
                         <input type="text" name="event_code" required value="{{ team_data.event_code }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase text-lg transition-colors duration-200"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 uppercase text-lg transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                readonly>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Match Number</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Match Number</label>
                         <input type="text" name="match_number" required value="{{ team_data.match_number }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors duration-200"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 text-lg transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                readonly>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Team Number</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Team Number</label>
                         <input type="number" name="team_number" required min="1" value="{{ team_data.team_number }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors duration-200"
+                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 text-lg transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                readonly>
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">Alliance</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Alliance</label>
                     <div class="flex space-x-4 justify-center">
                         <label class="relative flex items-center group">
                             <input type="radio" name="alliance" value="red" {{ 'checked' if team_data.alliance == 'red' }}
-                                   class="peer sr-only" disabled>
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-sm font-medium text-red-600
+                                   class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" disabled>
+                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-red-600
                                         cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 peer-checked:border-red-500 peer-checked:text-red-600
+                                        group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-red-500 peer-checked:text-red-600
                                         peer-focus:ring-2 peer-focus:ring-red-500 peer-focus:ring-offset-2">
                                 Red Alliance
                             </div>
                         </label>
                         <label class="relative flex items-center group">
                             <input type="radio" name="alliance" value="blue" {{ 'checked' if team_data.alliance == 'blue' }}
-                                   class="peer sr-only">
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 bg-white text-sm font-medium text-blue-600
+                                   class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-blue-600
                                         cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:text-blue-600
+                                        group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-blue-500 peer-checked:text-blue-600
                                         peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:ring-offset-2">
                                 Blue Alliance
                             </div>
@@ -81,14 +81,14 @@
 
             <!-- Auto Path Section -->
             <div class="md:p-8">
-                <h3 class="text-lg font-semibold text-gray-900 mb-6">Auto Path</h3>
-                <p class="text-gray-600 secondary mb-4 text-center">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Auto Path</h3>
+                <p class="text-gray-600 dark:text-gray-400 secondary mb-4 text-center">
                     Pan: Shift+Drag or Middle Mouse Button | Zoom: Scroll Wheel
                 </p>
-                <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
                     <!-- Add canvas container -->
-                    <div id="autoPathContainer" class="bg-white rounded-lg shadow-lg mb-4 mx-auto w-full h-[400px]">
-                        <canvas id="autoPath" class="w-full h-full rounded border border-gray-200"></canvas>
+                    <div id="autoPathContainer" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none mb-4 mx-auto w-full h-[400px]">
+                        <canvas id="autoPath" class="w-full h-full rounded border border-gray-200 dark:border-gray-700"></canvas>
                     </div>
                     
                     <!-- Controls -->
@@ -96,17 +96,17 @@
                         <!-- Color and Thickness Controls -->
                         <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:justify-center">
                             <div class="color-picker-container w-full sm:w-auto">
-                                <input type="text" id="pathColorPicker" class="w-full sm:w-36" value="#2563eb" data-coloris>
+                                <input type="text" id="pathColorPicker" class="w-full sm:w-36 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" value="#2563eb" data-coloris>
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <label for="pathThickness" class="text-gray-700 whitespace-nowrap">Thickness:</label>
+                                <label for="pathThickness" class="text-gray-700 dark:text-gray-300 whitespace-nowrap">Thickness:</label>
                                 <input type="range" id="pathThickness" min="1" max="20" value="3" 
-                                    class="w-full sm:w-48 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                                <span id="pathThicknessValue" class="text-gray-700 w-8 text-center">3</span>
+                                    class="w-full sm:w-48 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                <span id="pathThicknessValue" class="text-gray-700 dark:text-gray-300 w-8 text-center">3</span>
                             </div>
                             <div class="w-full sm:w-auto">
                                 <button id="fillToggle" type="button" 
-                                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" 
+                                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors" 
                                         title="Fill: Off">
                                     Fill: Off
                                 </button>
@@ -157,7 +157,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
                                     </svg>
                                 </button>
-                                <button id="goHome" type="button" class="tool-btn bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-300 rounded-xl" title="Reset View">
+                                <button id="goHome" type="button" class="tool-btn bg-blue-50 dark:bg-blue-900/20 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 border-blue-300 rounded-xl" title="Reset View">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                                     </svg>
@@ -216,7 +216,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                                     </svg>
                                 </button>
-                                <input type="file" id="loadFile" class="hidden" accept=".json">
+                                <input type="file" id="loadFile" class="hidden dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" accept=".json">
                             </div>
                         </div>
                     </div>
@@ -226,16 +226,16 @@
                 </div>
                 
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Auto Notes</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto Notes</label>
                     <textarea name="auto_notes" rows="2" 
-                              class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                               placeholder="Enter any observations about autonomous..." autocomplete="off">{{ team_data.auto_notes }}</textarea>
                 </div>
             </div>
 
             <div class="p-8">
                 <div class="mb-4">
-                    <div class="border-b border-gray-200 overflow-hidden flex flex-row justify-center text-center">
+                    <div class="border-b border-gray-200 dark:border-gray-700 overflow-hidden flex flex-row justify-center text-center">
                         <!-- Mobile scrollable tabs wrapper -->
                         <div class="overflow-x-auto -mb-px hide-scrollbar" style="scrollbar-width: none;">
                             <nav class="flex whitespace-nowrap min-w-full" aria-label="Tabs">
@@ -245,22 +245,22 @@
                                     Auto Period
                                 </button>
                                 <button type="button" 
-                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap" 
                                         data-tab="teleop">
                                     Teleop Period
                                 </button>
                                 <button type="button" 
-                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap" 
                                         data-tab="endgame">
                                     Endgame
                                 </button>
                                 <button type="button" 
-                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap" 
                                         data-tab="defense">
                                     Defense
                                 </button>
                                 <button type="button" 
-                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent whitespace-nowrap" 
+                                        class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap" 
                                         data-tab="other">
                                     Other Stats
                                 </button>
@@ -273,22 +273,22 @@
                 <div class="tab-content active" data-tab="auto">
                     <div class="space-y-8">
                         <!-- Auto Fuel -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Auto Fuel</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Auto Fuel</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuel Count</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="auto_fuel" value="{{ team_data.auto_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="auto_fuel" value="{{ team_data.auto_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
@@ -296,12 +296,12 @@
                         </div>
 
                         <!-- Auto Climb -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Auto Climb</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Auto Climb</h2>
                             <div class="flex items-center">
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" name="auto_climb" value="true" {% if team_data.auto_climb %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 transition duration-150 ease-in-out">
-                                    <span class="text-gray-700 font-medium">Successful Auto Climb</span>
+                                    <input type="checkbox" name="auto_climb" value="true" {% if team_data.auto_climb %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 transition duration-150 ease-in-out dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+                                    <span class="text-gray-700 dark:text-gray-300 font-medium">Successful Auto Climb</span>
                                 </label>
                             </div>
                         </div>
@@ -312,22 +312,22 @@
                 <div class="tab-content hidden" data-tab="teleop">
                     <div class="space-y-8">
                         <!-- Transition Shift Fuel -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Transition Shift Fuel</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Transition Shift Fuel</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuel Count</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="transition_fuel" value="{{ team_data.transition_fuel or 0 }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="transition_fuel" value="{{ team_data.transition_fuel or 0 }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
@@ -335,18 +335,18 @@
                         </div>
 
                         <!-- Ferried Fuel -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Ferried Fuel</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Ferried Fuel</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Count</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Count</label>
                                     <div class="counter-group">
                                        <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="ferried_fuel" value="{{ team_data.ferried_fuel or 0 }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="ferried_fuel" value="{{ team_data.ferried_fuel or 0 }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                                         </div>
                                     </div>
                                 </div>
@@ -354,70 +354,70 @@
                         </div>
 
                         <!-- Teleop Fuel -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Teleop Shifts Fuel</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Teleop Shifts Fuel</h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 1 Fuel</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shift 1 Fuel</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="teleop_shift_1_fuel" value="{{ team_data.teleop_shift_1_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="teleop_shift_1_fuel" value="{{ team_data.teleop_shift_1_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 2 Fuel</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shift 2 Fuel</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="teleop_shift_2_fuel" value="{{ team_data.teleop_shift_2_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="teleop_shift_2_fuel" value="{{ team_data.teleop_shift_2_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 3 Fuel</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shift 3 Fuel</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="teleop_shift_3_fuel" value="{{ team_data.teleop_shift_3_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="teleop_shift_3_fuel" value="{{ team_data.teleop_shift_3_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift 4 Fuel</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shift 4 Fuel</label>
                                     <div class="counter-group">
                                         <div class="counter-decrements">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                         </div>
-                                        <input type="number" name="teleop_shift_4_fuel" value="{{ team_data.teleop_shift_4_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                        <input type="number" name="teleop_shift_4_fuel" value="{{ team_data.teleop_shift_4_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                         <div class="counter-increments">
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                            <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                            <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                         </div>
                                     </div>
                                 </div>
@@ -430,33 +430,33 @@
                 <div class="tab-content hidden" data-tab="endgame">
                     <div class="space-y-8">
                         <!-- Endgame Fuel -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Endgame Fuel</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Endgame Fuel</h2>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fuel Count</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuel Count</label>
                                 <div class="counter-group">
                                     <div class="counter-decrements">
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                                     </div>
-                                    <input type="number" name="endgame_fuel" value="{{ team_data.endgame_fuel }}" min="0" class="px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded" />
+                                    <input type="number" name="endgame_fuel" value="{{ team_data.endgame_fuel }}" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                                     <div class="counter-increments">
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                                        <button type="button" class="bg-gray-200 border border-gray-300 hover:bg-gray-300 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Climb Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Climb</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Climb</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Climb Level</label>
-                                    <select name="climb_level" class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Climb Level</label>
+                                    <select name="climb_level" class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                                         <option value="0" {% if team_data.climb_level == 0 %}selected{% endif %}>None</option>
                                         <option value="1" {% if team_data.climb_level == 1 %}selected{% endif %}>Level 1</option>
                                         <option value="2" {% if team_data.climb_level == 2 %}selected{% endif %}>Level 2</option>
@@ -468,8 +468,8 @@
                                     <input type="checkbox" 
                                            name="climb_success" 
                                            {% if team_data.climb_success %}checked{% endif %}
-                                           class="h-4 w-4 text-blue-600">
-                                    <label class="ml-2 text-sm text-gray-700">Climb Successful</label>
+                                           class="h-4 w-4 text-blue-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+                                    <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Climb Successful</label>
                                 </div>
                             </div>
                         </div>
@@ -480,26 +480,26 @@
                 <div class="tab-content hidden" data-tab="defense">
                     <div class="space-y-8">
                         <!-- Defense Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Defense Rating</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Defense Rating</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rating (0-5) <span class="text-xs text-gray-500">(0 = N/A)</span></label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rating (0-5) <span class="text-xs text-gray-500 dark:text-gray-400">(0 = N/A)</span></label>
                                     <div class="flex items-center space-x-2">
                                         <input type="range" 
                                                name="defense_rating" 
                                                min="0" 
                                                max="5" 
                                                value="{{ team_data.defense_rating }}" 
-                                               class="w-full"
+                                               class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                         >
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Defense Notes</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Defense Notes</label>
                                     <textarea name="defense_notes" 
                                               rows="4" 
-                                              class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                              class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                               placeholder="Enter any observations about defense..." 
                                               autocomplete="off">{{ team_data.defense_notes }}</textarea>
                                 </div>
@@ -507,13 +507,13 @@
                         </div>
 
                         <!-- Response to Defense Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Response to Defense</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Response to Defense</h2>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">How did this team respond to being defended?</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">How did this team respond to being defended?</label>
                                 <textarea name="defense_response_notes"
                                           rows="3"
-                                          class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                           placeholder="Describe how the team handled defense (e.g. broke away easily, struggled, avoided defenders)..."
                                           autocomplete="off">{{ team_data.defense_response_notes }}</textarea>
                             </div>
@@ -525,13 +525,13 @@
                 <div class="tab-content hidden" data-tab="other">
                     <div class="space-y-8">
                         <!-- Robot Disabled Status Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Robot Disabled Status</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Robot Disabled Status</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Was the robot disabled during the match?</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Was the robot disabled during the match?</label>
                                     <select name="robot_disabled" 
-                                            class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                                         <option value="None" {% if team_data.robot_disabled == 'None' %}selected{% endif %}>None - Robot was not disabled</option>
                                         <option value="Partially" {% if team_data.robot_disabled == 'Partially' %}selected{% endif %}>Partially - Robot was disabled for part of the match</option>
                                         <option value="Full" {% if team_data.robot_disabled == 'Full' %}selected{% endif %}>Full - Robot was disabled for the entire match</option>
@@ -541,22 +541,22 @@
                         </div>
 
                         <!-- Herd (Pushing Balls) Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Herd (Pushing Balls)</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Herd (Pushing Balls)</h2>
                             <div class="space-y-4">
                                 <div class="flex items-center space-x-3">
                                     <input type="checkbox" id="herd_balls" name="herd_balls" value="true"
-                                           class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                           class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                            {% if team_data.herd_balls %}checked{% endif %}
                                            onchange="document.getElementById('herd_rating_group').classList.toggle('hidden', !this.checked);">
-                                    <label for="herd_balls" class="text-sm font-medium text-gray-700 cursor-pointer">Did this team herd (push) balls?</label>
+                                    <label for="herd_balls" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">Did this team herd (push) balls?</label>
                                 </div>
                                 <div id="herd_rating_group" class="{% if not team_data.herd_balls %}hidden {% endif %}space-y-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Herd Effectiveness (1-10)</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Herd Effectiveness (1-10)</label>
                                     <div class="flex items-center space-x-3">
                                         <input type="range" name="herd_rating" min="1" max="10"
                                                value="{{ team_data.herd_rating or 5 }}"
-                                               class="w-full"
+                                               class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                                oninput="document.getElementById('herd_rating_val').textContent = this.value;">
                                         <span id="herd_rating_val" class="text-sm font-semibold text-blue-600 w-6">{{ team_data.herd_rating or 5 }}</span>
                                     </div>
@@ -565,22 +565,22 @@
                         </div>
 
                         <!-- Ferrying Section -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Ferrying</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Ferrying</h2>
                             <div class="space-y-4">
                                 <div class="flex items-center space-x-3">
                                     <input type="checkbox" id="ferrying_did" name="ferrying_did" value="true"
-                                           class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                           class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                            {% if team_data.ferrying_did %}checked{% endif %}
                                            onchange="document.getElementById('ferrying_rating_group').classList.toggle('hidden', !this.checked);">
-                                    <label for="ferrying_did" class="text-sm font-medium text-gray-700 cursor-pointer">Did this team ferry?</label>
+                                    <label for="ferrying_did" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">Did this team ferry?</label>
                                 </div>
                                 <div id="ferrying_rating_group" class="{% if not team_data.ferrying_did %}hidden {% endif %}space-y-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ferrying Effectiveness (1-10)</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ferrying Effectiveness (1-10)</label>
                                     <div class="flex items-center space-x-3">
                                         <input type="range" name="ferrying_rating" min="1" max="10"
                                                value="{{ team_data.ferrying_rating or 5 }}"
-                                               class="w-full"
+                                               class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                                oninput="document.getElementById('ferrying_rating_val').textContent = this.value;">
                                         <span id="ferrying_rating_val" class="text-sm font-semibold text-blue-600 w-6">{{ team_data.ferrying_rating or 5 }}</span>
                                     </div>
@@ -589,11 +589,11 @@
                         </div>
 
                         <!-- Additional Notes -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Additional Notes</h2>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Additional Notes</h2>
                             <textarea name="notes" 
                                       rows="4" 
-                                      class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                                       autocomplete="off"
                                       >{{ team_data.notes }}</textarea>
                         </div>
@@ -602,14 +602,14 @@
             </div>
 
             <!-- Submit Buttons -->
-            <div class="p-8 bg-white">
+            <div class="p-8 bg-white dark:bg-gray-800">
                 <div class="flex justify-end gap-4">
                     <a href="{{ url_for('scouting.home') }}"
-                       class="px-6 py-3 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                       class="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
                         Cancel
                     </a>
                     <button type="submit"
-                            class="px-6 py-3 rounded-lg border border-transparent bg-indigo-600 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
+                            class="px-6 py-3 rounded-lg border border-transparent bg-indigo-600 dark:bg-indigo-500 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
                         Save Changes
                     </button>
                 </div>

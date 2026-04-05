@@ -15,31 +15,31 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-8">
-  <div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <div class="px-6 py-4 border-b">
+  <div class="bg-white dark:bg-gray-800 shadow-md dark:shadow-none rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b dark:border-gray-700">
       <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-gray-900">Live Team Schedule</h1>
-        <a href="{{ url_for('scouting.home') }}" class="text-gray-500 hover:text-gray-700">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Live Team Schedule</h1>
+        <a href="{{ url_for('scouting.home') }}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </a>
       </div>
-      <p class="mt-2 text-sm text-gray-500">Upcoming match time data is only a prediction from the Blue Alliance API</p>
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Upcoming match time data is only a prediction from the Blue Alliance API</p>
     </div>
 
     <!-- Team Input Form -->
-    <div class="px-6 py-4 border-b">
+    <div class="px-6 py-4 border-b dark:border-gray-700">
       <form id="teamStatusForm" class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
-          <label for="teamNumber" class="block text-sm font-medium text-gray-700 mb-1">Team Number</label>
+          <label for="teamNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Number</label>
           <input type="number" id="teamNumber" name="teamNumber" value="{{ team_number }}" 
-                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" 
                  placeholder="e.g. 334" required>
         </div>
         <div class="flex items-end">
           <button type="submit" 
-                  class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                  class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             View Status
           </button>
         </div>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Event Info Banner -->
-    <div id="eventInfoBanner" class="px-6 py-3 bg-blue-50 border-b hidden">
+    <div id="eventInfoBanner" class="px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border-b hidden">
       <div class="flex items-center">
         <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -75,24 +75,24 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 13h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <h3 class="mt-2 text-lg font-medium text-gray-900">No match data available</h3>
-        <p class="mt-1 text-gray-500">Either this team is not registered for any events, or the event has not published matches yet.</p>
+        <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">No match data available</h3>
+        <p class="mt-1 text-gray-500 dark:text-gray-400">Either this team is not registered for any events, or the event has not published matches yet.</p>
       </div>
     </div>
 
     <!-- Results Container -->
     <div id="resultsContainer" class="hidden">
       <!-- Team Ranking -->
-      <div id="teamRanking" class="px-6 py-4 border-b">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Team Standing</h2>
+      <div id="teamRanking" class="px-6 py-4 border-b dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Team Standing</h2>
         <div id="rankingDetails" class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Ranking details will be populated by JavaScript -->
         </div>
       </div>
 
       <!-- Upcoming Matches -->
-      <div id="upcomingMatchesContainer" class="px-6 py-4 border-b">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Upcoming Matches</h2>
+      <div id="upcomingMatchesContainer" class="px-6 py-4 border-b dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Upcoming Matches</h2>
         <div id="upcomingMatches" class="space-y-3">
           <!-- Upcoming matches will be populated by JavaScript -->
         </div>
@@ -100,7 +100,7 @@
 
       <!-- Previous Matches -->
       <div id="previousMatchesContainer" class="px-6 py-4">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Previous Matches</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Previous Matches</h2>
         <div id="previousMatches" class="space-y-3">
           <!-- Previous matches will be populated by JavaScript -->
         </div>
@@ -223,16 +223,16 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Add ranking info
       rankingDetails.innerHTML = `
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <div class="text-sm text-gray-500">Rank</div>
+        <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Rank</div>
           <div class="text-xl font-bold">${escapeHtml(String(ranking.rank))}</div>
         </div>
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <div class="text-sm text-gray-500">Record (All Matches)</div>
+        <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Record (All Matches)</div>
           <div class="text-xl font-bold">${escapeHtml(String(wins))}-${escapeHtml(String(losses))}-${escapeHtml(String(ties))}</div>
         </div>
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <div class="text-sm text-gray-500">The Blue Alliance Page</div>
+        <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500 dark:text-gray-400">The Blue Alliance Page</div>
           <div class="text-xl font-bold">
             <a href="https://thebluealliance.com/team/${escapeHtml(String(teamNumber))}" target="_blank" class="text-blue-500 hover:underline">
               View
@@ -244,8 +244,8 @@ document.addEventListener('DOMContentLoaded', function() {
       teamRanking.classList.remove('hidden');
     } else {
       rankingDetails.innerHTML = `
-        <div class="col-span-3 bg-gray-50 p-3 rounded-lg">
-          <div class="text-sm text-gray-500 text-center">No ranking information available yet</div>
+        <div class="col-span-3 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg">
+          <div class="text-sm text-gray-500 dark:text-gray-400 text-center">No ranking information available yet</div>
         </div>
       `;
     }
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const allianceClass = match.alliance === 'red' ? 'red-alliance' : 'blue-alliance';
         
         let resultText = 'No Score';
-        let resultClass = 'text-gray-600';
+        let resultClass = 'text-gray-600 dark:text-gray-400';
         
         if (match.score) {
           const redScore = match.score.red;
@@ -280,12 +280,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const matchElement = document.createElement('div');
-        matchElement.className = `match-item ${allianceClass} bg-gray-50 p-3 rounded-lg`;
+        matchElement.className = `match-item ${allianceClass} bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg`;
         matchElement.innerHTML = `
           <div class="flex justify-between items-center">
             <div>
               <div class="font-medium">${escapeHtml(match.match_name)}</div>
-              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(matchTime)}</div>
             </div>
             <div class="${resultClass}">${resultText}</div>
           </div>
@@ -312,12 +312,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const allianceColor = match.alliance; // Store the alliance color for CSS classes
         
         const matchElement = document.createElement('div');
-        matchElement.className = `match-item ${allianceClass} bg-gray-50 p-3 rounded-lg`;
+        matchElement.className = `match-item ${allianceClass} bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg`;
         matchElement.innerHTML = `
           <div class="flex justify-between items-center">
             <div>
               <div class="font-medium">${escapeHtml(match.match_name)}</div>
-              <div class="text-sm text-gray-500">${escapeHtml(matchTime)}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">${escapeHtml(matchTime)}</div>
             </div>
             <div class="text-sm bg-${allianceColor}-100 text-${allianceColor}-800 px-2 py-1 rounded-full">
               ${escapeHtml(match.alliance.charAt(0).toUpperCase() + match.alliance.slice(1))} Alliance
