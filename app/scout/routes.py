@@ -1064,7 +1064,7 @@ def pit_scouting_add():
                 
                 # Driver Experience
                 "driver_experience": {
-                    "years": int(request.form.get("years", 0) if not (request.form.get("years") == '') else 0),
+                    "years": int(request.form.get("driver_years", 0) if not (request.form.get("driver_years") == '') else 0),
                     "notes": request.form.get("driver_notes", "")
                 },
                 
