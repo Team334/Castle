@@ -87,6 +87,9 @@
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Drive Type</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">BPS</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Shooter</th>
+                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Intake</th>
+                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Hopper</th>
+                        <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Programming</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Driver</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Scouter</th>
                         <th scope="col" class="px-4 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Actions</th>
@@ -118,7 +121,13 @@
                             {{ data.fuel_count_bps }}
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
-                            {{ data.shooter_type | capitalize }}
+                            {{ data.shooter_type | capitalize }} - {{ data.shooter_notes }}
+                        </td>
+                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+                            {{ data.intake_notes }}
+                        </td>
+                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+                            {{ data.hopper_notes }}
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
                             <b>Programming Language</b>: {{ data.programming_language }}
@@ -132,7 +141,7 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
-                            {{ data.driver_experience.years }} years - {{ data.driver_experience.notes }}
+                            {{ data.driver_experience.driver_years }} years - {{ data.driver_experience.driver_notes }}
                         </td>
                         <td class="px-4 py-4 text-sm border-b dark:border-gray-700">
                             {% if data.scouter_team and current_user.teamNumber and data.scouter_team|string == current_user.teamNumber|string %}
