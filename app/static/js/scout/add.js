@@ -489,12 +489,12 @@ document.addEventListener("DOMContentLoaded", function () {
     searchInput.type = "text";
     searchInput.placeholder = `Search ${placeholder}...`;
     searchInput.className =
-      "w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+      "w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white";
 
     // Create dropdown container
     const dropdownContainer = document.createElement("div");
     dropdownContainer.className =
-      "absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto hidden";
+      "absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto hidden dark:bg-gray-700 dark:border-gray-600";
 
     // Insert new elements
     selectElement.parentNode.insertBefore(wrapper, selectElement);
@@ -527,7 +527,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } // Skip placeholder option
 
         const option = document.createElement("div");
-        option.className = "px-4 py-2 cursor-pointer hover:bg-gray-100";
+        option.className = "px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600";
         option.textContent = opt.text;
 
         option.addEventListener("click", () => {

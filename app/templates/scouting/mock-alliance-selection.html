@@ -52,7 +52,7 @@
                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                            disabled
                            autocomplete="off">
-                    <div id="event-dropdown_arrow" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 cursor-pointer hover:text-gray-600 dark:text-gray-400">
+                    <div id="event-dropdown_arrow" class="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:bg-gray-600 dark:text-gray-400">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -67,7 +67,7 @@
             </div>
             <div class="flex items-end">
                 <button id="load-rankings-btn" 
-                        class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
+                        class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap">
                     Load Rankings
                 </button>
             </div>
@@ -76,14 +76,14 @@
 
     <!-- Selection Status -->
     <div id="selection-status" class="hidden bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
-        <div class="flex items-center">
+        <div class="flex items-center dark:text-blue-400 dark:bg-blue-900/20 text-blue-800">
             <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                 </svg>
             </div>
             <div class="ml-3">
-                <p id="status-text" class="text-sm font-medium text-blue-800"></p>
+                <p id="status-text" class="text-sm font-medium text-blue-800 dark:text-blue-400"></p>
             </div>
         </div>
     </div>
@@ -121,7 +121,7 @@
     <!-- Control Buttons -->
     <div id="control-buttons" class="hidden mt-6 flex gap-4">
         <button id="reset-btn" 
-                class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
             Reset Selection
         </button>
         <button id="start-bracket-btn" 
@@ -129,11 +129,11 @@
             Start Bracket
         </button>
         <button id="export-btn" 
-                class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
             Export Results
         </button>
         <button id="export-playoff-btn" onclick="exportPlayoffResults()" 
-                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                class="bg-green-600 hover:bg-green-700 dark:hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
             Export Playoff Results
         </button>
     </div>
@@ -189,7 +189,7 @@
             
             <div class="p-2 space-y-1">
                 <!-- Red Alliance -->
-                <div class="alliance-option red cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-red-50 group">
+                <div class="alliance-option red cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-red-50 dark:hover:bg-red-600 group dark:bg-gray-800">
                     <div class="w-1.5 h-8 absolute left-0 bg-red-500 rounded-r-sm"></div>
                     <div class="seed-badge flex items-center justify-center w-6 h-6 bg-red-100 text-red-600 text-[10px] md:text-xs font-bold rounded-full mr-2 ml-2 border border-red-200 shadow-sm">
                         ?
@@ -204,7 +204,7 @@
                 </div>
 
                 <!-- Blue Alliance -->
-                <div class="alliance-option blue cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-blue-50 dark:bg-blue-900/20 group">
+                <div class="alliance-option blue cursor-pointer relative flex items-center p-2 rounded-lg transition-all border border-transparent hover:bg-blue-50 dark:hover:bg-blue-600 group dark:bg-gray-800">
                     <div class="w-1.5 h-8 absolute left-0 bg-blue-500 rounded-r-sm"></div>
                     <div class="seed-badge flex items-center justify-center w-6 h-6 bg-blue-100 dark:bg-blue-900/40 text-blue-600 text-[10px] md:text-xs font-bold rounded-full mr-2 ml-2 border border-blue-200 shadow-sm">
                         ?

@@ -369,12 +369,12 @@ function updateAutoPaths(data) {
 
     // Create the single container for all auto paths
     autoPathsContainer.innerHTML = `
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8 dark:bg-gray-800">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 dark:border-gray-600 dark:bg-gray-700">
                 <h3 class="text-xl font-semibold">Auto Paths</h3>
-                <p class="text-sm text-gray-600">Latest 5 matches per team</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Latest 5 matches per team</p>
             </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 dark:bg-gray-800" id="auto-paths-grid">
             </div>
         </div>
     `;
@@ -414,7 +414,7 @@ function updateAutoPaths(data) {
             // Add table header
             table.innerHTML = `
                 <thead class="bg-gray-50">
-                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 dark:border-gray-600">
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Match</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Path</th>
                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
@@ -428,18 +428,19 @@ function updateAutoPaths(data) {
             const tbody = table.querySelector('tbody');
             sortedPaths.forEach(pathData => {
                 const row = document.createElement('tr');
+                row.className = 'bg-gray-50 dark:bg-gray-700 cursor-pointer';
                 
                 row.innerHTML = `
-                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         ${pathData.match_number}
                     </td>
-                    <td class="px-3 py-2 whitespace-nowrap text-sm">
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         <button onclick='showAutoPath(${JSON.stringify(pathData.path)}, ${JSON.stringify(pathData.notes || '')}, "${pathData.device_type || ''}")' 
                                 class="text-blue-600 hover:text-blue-800">
                             View Path
                         </button>
                     </td>
-                    <td class="px-3 py-2 text-sm text-gray-500">
+                    <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                         ${pathData.notes || '-'}
                     </td>
                 `;

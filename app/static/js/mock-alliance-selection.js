@@ -186,7 +186,7 @@ function createNotificationElement(message, type, color) {
     
     const iconSvg = createSVGElement('w-6 h-6 mr-3 flex-shrink-0 ' + color.icon, NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info);
     const messageP = document.createElement('p');
-    messageP.className = 'text-base font-medium flex-1';
+    messageP.className = 'text-base font-medium flex-1 dark:text-gray-300';
     messageP.textContent = message;
     
     const dismissButton = createDismissButton(color.icon);
@@ -213,7 +213,7 @@ function createSVGElement(className, innerHTML) {
 function createDismissButton(iconClass) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 ${iconClass} hover:bg-opacity-20`;
+    button.className = `ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 ${iconClass} hover:bg-opacity-20 dark:hover:bg-gray-700 dark:hover:bg-opacity-20 transition-colors`;
     
     const srSpan = document.createElement('span');
     srSpan.className = 'sr-only';
@@ -288,7 +288,7 @@ function renderEventDropdown(events) {
 
     if (events.length === 0) {
         const div = document.createElement('div');
-        div.className = 'px-4 py-2 text-sm text-gray-500';
+        div.className = 'px-4 py-2 text-sm text-gray-500 dark:text-white';
         div.textContent = 'No events found';
         dom.eventDropdownList.appendChild(div);
         return;
@@ -297,7 +297,7 @@ function renderEventDropdown(events) {
     const fragment = document.createDocumentFragment();
     events.forEach(evt => {
         const li = document.createElement('li');
-        li.className = 'px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm text-gray-700';
+        li.className = 'px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm text-gray-700 dark:text-white dark:hover:bg-gray-700';
         li.textContent = evt.name;
         li.addEventListener('click', () => {
             if (dom.eventSelect) dom.eventSelect.value = evt.key;
@@ -594,9 +594,7 @@ function areAllPicksComplete() {
 // Create alliance card element
 function createAllianceCard(alliance, index, isActive) {
     const card = document.createElement('div');
-    card.className = `alliance-card bg-white border-2 rounded-lg p-4 ${
-        isActive ? 'active border-blue-500' : 'border-gray-200'
-    }`;
+    card.className = `alliance-card bg-white border-2 dark:border-gray-700 rounded-lg p-4 dark:bg-gray-800`;
     
     if (!alliance) {
         card.innerHTML = createEmptyAllianceHTML(index);
@@ -616,9 +614,9 @@ function createEmptyAllianceHTML(index) {
     
     return `
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-bold text-gray-400">Alliance ${index + 1}</h3>
+            <h3 class="text-lg font-bold text-gray-400 dark:text-gray-100">Alliance ${index + 1}</h3>
         </div>
-        <div class="team-slot empty p-3 rounded mb-3 text-center text-gray-400">
+        <div class="team-slot empty p-3 rounded mb-3 text-center text-gray-400 dark:text-gray-500">
             Waiting for captain...
         </div>
         ${picksHTML}
@@ -639,12 +637,12 @@ function createFilledAllianceHTML(alliance, index, isActive) {
 
     return `
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-bold">Alliance ${alliance.number}</h3>
+            <h3 class="text-lg font-bold dark:text-gray-100">Alliance ${alliance.number}</h3>
             ${isActive ? '<span class="pick-round-indicator">PICKING</span>' : ''}
         </div>
         <div class="team-slot captain p-3 rounded mb-3">
             <div class="font-semibold text-blue-700">${alliance.captain.team_number}</div>
-            <div class="text-xs text-gray-600">${alliance.captain.nickname || ''}</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">${alliance.captain.nickname || ''}</div>
             <div class="text-xs text-blue-600 font-medium mt-1">Captain (Rank ${alliance.captain.rank})</div>
         </div>
         ${picksHTML}
@@ -654,17 +652,17 @@ function createFilledAllianceHTML(alliance, index, isActive) {
 // Create HTML for filled pick slot
 function createFilledPickHTML(pick, allianceIndex, pickIndex) {
     return `
-        <div class="team-slot filled p-3 rounded mb-2 cursor-pointer hover:bg-red-50 group" 
+        <div class="team-slot filled p-3 rounded mb-2 cursor-pointer hover:bg-red-50 group dark:hover:bg-red-700" 
              data-alliance="${allianceIndex}" 
              data-pick="${pickIndex}"
              data-action="remove">
             <div class="flex justify-between items-center">
                 <div class="flex-1">
-                    <div class="font-semibold">${pick.team_number}</div>
-                    <div class="text-xs text-gray-600">${pick.nickname || ''}</div>
+                    <div class="font-semibold text-gray-900 dark:text-white">${pick.team_number}</div>
+                    <div class="text-xs text-gray-600 dark:text-white">${pick.nickname || ''}</div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="text-xs text-gray-500">Pick ${pickIndex + 1}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Pick ${pickIndex + 1}</div>
                     <svg class="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -677,7 +675,7 @@ function createFilledPickHTML(pick, allianceIndex, pickIndex) {
 // Create HTML for empty pick slot
 function createEmptyPickHTML(allianceIndex, pickIndex, isCurrentPick) {
     return `
-        <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400" 
+        <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400 dark:text-gray-500 cursor-pointer ${isCurrentPick ? 'animate-pulse' : ''}" 
                 data-alliance="${allianceIndex}" 
                 data-pick="${pickIndex}">
             ${isCurrentPick ? '← Tap or drag team here' : `Pick ${pickIndex + 1}`}
@@ -720,7 +718,7 @@ function createTeamCard(team) {
 
     const card = document.createElement('div');
     card.id = `team-card-${team.team_number}`;
-    card.className = `team-card bg-white border border-gray-200 rounded-lg p-3 ${
+    card.className = `team-card bg-white border border-gray-200 rounded-lg p-3 dark:bg-gray-800 dark:border-gray-700 ${
         isSelectedForPick ? 'selected-for-pick' : ''
     }`;
     card.draggable = true;
@@ -738,10 +736,10 @@ function createTeamCard(team) {
     card.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     card.innerHTML = `
-        <div class="font-semibold text-lg">${team.team_number}</div>
-        <div class="text-sm text-gray-600 truncate">${team.nickname || 'No name'}</div>
-        <div class="text-xs text-gray-500 mt-1">Rank: ${team.rank}</div>
-        ${isSelectedForPick ? '<div class="selection-indicator text-xs text-blue-600 font-medium mt-1">SELECTED - Tap slot to place</div>' : ''}
+        <div class="font-semibold text-lg dark:text-gray-300">${team.team_number}</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400 truncate">${team.nickname || 'No name'}</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Rank: ${team.rank}</div>
+        ${isSelectedForPick ? '<div class="selection-indicator text-xs text-blue-600 font-medium mt-1 dark:text-blue-400">SELECTED - Tap slot to place</div>' : ''}
     `;
 
     return card;
