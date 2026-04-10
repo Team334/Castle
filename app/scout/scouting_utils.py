@@ -261,9 +261,13 @@ class ScoutingManager(DatabaseManager):
     def update_team_data(self, team_id, data, scouter_id) -> bool:
         """Update existing team data if user is the owner"""
         try:
-            team_number = int(data["team_number"])
-            event_code = data["event_code"]
-            match_number = data["match_number"]
+            try:
+                team_number = int(data["team_number"])
+                event_code = data["event_code"]
+                match_number = data["match_number"]
+            except (KeyError, TypeError, ValueError):
+                logger.warning("Invalid update payload for team data")
+                return False
 
             # First verify ownership and get current data
             existing_data = self.db.team_data.find_one(
