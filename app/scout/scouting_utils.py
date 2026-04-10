@@ -274,10 +274,16 @@ class ScoutingManager(DatabaseManager):
                 logger.warning(f"Data not found for team_id: {team_id}")
                 return False
 
+            existing_team_number = existing_data.get("team_number")
+            try:
+                existing_team_number = int(existing_team_number) if existing_team_number is not None else None
+            except (TypeError, ValueError):
+                existing_team_number = None
+
             identity_changed = (
                 existing_data.get("event_code") != event_code
                 or existing_data.get("match_number") != match_number
-                or int(existing_data.get("team_number", 0)) != team_number
+                or existing_team_number != team_number
             )
 
             # Check for duplicate scouting records only when identity fields change.
