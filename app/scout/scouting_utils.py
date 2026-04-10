@@ -261,6 +261,10 @@ class ScoutingManager(DatabaseManager):
     def update_team_data(self, team_id, data, scouter_id) -> bool:
         """Update existing team data if user is the owner"""
         try:
+            team_number = int(data["team_number"])
+            event_code = data["event_code"]
+            match_number = data["match_number"]
+
             # First verify ownership and get current data
             existing_data = self.db.team_data.find_one(
                 {"_id": ObjectId(team_id)}
@@ -270,42 +274,50 @@ class ScoutingManager(DatabaseManager):
                 logger.warning(f"Data not found for team_id: {team_id}")
                 return False
 
-            # Check if the team is already scouted by someone else from the same team
-            pipeline = [
-                {
-                    "$match": {
-                        "event_code": data["event_code"],
-                        "match_number": data["match_number"],
-                        "team_number": int(data["team_number"]),
-                        "_id": {"$ne": ObjectId(team_id)}  # Exclude current entry
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "scouter_id",
-                        "foreignField": "_id",
-                        "as": "scouter"
-                    }
-                },
-                {"$unwind": "$scouter"}
-            ]
-            
-            existing_entries = list(self.db.team_data.aggregate(pipeline))
-            current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
-            
-            for entry in existing_entries:
-                if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
-                    logger.warning(
-                        f"Update attempted for team {data['team_number']} in match {data['match_number']} "
-                        f"which is already scouted by team {current_user.get('teamNumber')}"
-                    )
-                    return False
+            identity_changed = (
+                existing_data.get("event_code") != event_code
+                or existing_data.get("match_number") != match_number
+                or int(existing_data.get("team_number", 0)) != team_number
+            )
+
+            # Check for duplicate scouting records only when identity fields change.
+            # This allows editing existing duplicate records without being blocked.
+            if identity_changed:
+                pipeline = [
+                    {
+                        "$match": {
+                            "event_code": event_code,
+                            "match_number": match_number,
+                            "team_number": team_number,
+                            "_id": {"$ne": ObjectId(team_id)}  # Exclude current entry
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "users",
+                            "localField": "scouter_id",
+                            "foreignField": "_id",
+                            "as": "scouter"
+                        }
+                    },
+                    {"$unwind": "$scouter"}
+                ]
+
+                existing_entries = list(self.db.team_data.aggregate(pipeline))
+                current_user = self.db.users.find_one({"_id": ObjectId(scouter_id)})
+
+                for entry in existing_entries:
+                    if entry.get("scouter", {}).get("teamNumber") == current_user.get("teamNumber"):
+                        logger.warning(
+                            f"Update attempted for team {team_number} in match {match_number} "
+                            f"which is already scouted by team {current_user.get('teamNumber')}"
+                        )
+                        return False
 
             # Get match data to validate alliance sizes
             match_data = list(self.db.team_data.find({
-                "event_code": data["event_code"],
-                "match_number": data["match_number"],
+                "event_code": event_code,
+                "match_number": match_number,
                 "_id": {"$ne": ObjectId(team_id)}  # Exclude current entry
             }))
 
@@ -318,9 +330,9 @@ class ScoutingManager(DatabaseManager):
                 return False
 
             updated_data = {
-                "team_number": int(data["team_number"]),
-                "event_code": data["event_code"],
-                "match_number": data["match_number"],
+                "team_number": team_number,
+                "event_code": event_code,
+                "match_number": match_number,
                 "alliance": alliance,
                 
                 # Fuel Stats
