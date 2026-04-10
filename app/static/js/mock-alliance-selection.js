@@ -658,11 +658,11 @@ function createFilledPickHTML(pick, allianceIndex, pickIndex) {
              data-action="remove">
             <div class="flex justify-between items-center">
                 <div class="flex-1">
-                    <div class="font-semibold text-gray-900 dark:text-white">${pick.team_number}</div>
-                    <div class="text-xs text-gray-600 dark:text-white">${pick.nickname || ''}</div>
+                    <div class="font-semibold text-gray-900 dark:text-black">${pick.team_number}</div>
+                    <div class="text-xs text-gray-600 dark:text-black">${pick.nickname || ''}</div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Pick ${pickIndex + 1}</div>
+                    <div class="text-xs text-gray-500">Pick ${pickIndex + 1}</div>
                     <svg class="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>

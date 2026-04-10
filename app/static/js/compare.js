@@ -151,6 +151,14 @@ function updateRadarChart(data) {
         radarChart.destroy();
     }
 
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#e5e7eb' : '#374151';
+    const gridColor = isDark ? '#374151' : '#e5e7eb';
+    const angleLineColor = isDark ? '#4b5563' : '#d1d5db';
+    const pointBorderColor = isDark ? '#1f2937' : '#fff';
+
+    window.lastCompareData = data;
+
     const datasets = Object.entries(data).map(([teamKey, teamData], index) => {
         const normalized = teamData.normalized_stats || {};
         const color = getTeamColor(index);
@@ -169,8 +177,8 @@ function updateRadarChart(data) {
             borderColor: color,
             borderWidth: 2,
             pointBackgroundColor: color,
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
+            pointBorderColor: pointBorderColor,
+            pointHoverBackgroundColor: pointBorderColor,
             pointHoverBorderColor: color
         };
     });
@@ -189,17 +197,42 @@ function updateRadarChart(data) {
                     beginAtZero: true,
                     max: 2,
                     ticks: {
-                        stepSize: 0.5
+                        stepSize: 0.5,
+                        color: textColor,
+                        backdropColor: 'transparent'
+                    },
+                    grid: {
+                        color: gridColor
+                    },
+                    angleLines: {
+                        color: angleLineColor
+                    },
+                    pointLabels: {
+                        color: textColor
                     }
                 }
             },
             plugins: {
                 legend: {
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        color: textColor
+                    }
                 }
             }
         }
     });
+
+    if (!window.themeObserver) {
+        window.themeObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class' && window.lastCompareData) {
+                    updateRadarChart(window.lastCompareData);
+                }
+            });
+        });
+        window.themeObserver.observe(document.documentElement, { attributes: true });
+    }
 }
 
 // Add resize handler
@@ -225,45 +258,45 @@ function updateRawDataTable(data) {
             const row = document.createElement('tr');
 
             row.innerHTML = `
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     ${teamNumber}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.alliance || '-'}
                 </td>
-                <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.match_number || '-'}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                    ${match.auto_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                    ${match.transition_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                    ${match.ferried_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.teleop_shift_1_fuel || 0} / ${match.teleop_shift_2_fuel || 0} / ${match.teleop_shift_3_fuel || 0} / ${match.teleop_shift_4_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.endgame_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     Level ${match.climb_level || 0}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     ${match.auto_path ? 
-                        `<button onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="text-blue-600 hover:text-blue-800">View</button>` 
+                        `<button onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-500">View</button>` 
                         : 'None'}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.defense_rating || 0}/5
                 </td>
-                <td class="lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.notes || '-'}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
                     ${match.scouter?.username || match.scouter_name || '-'}
                 </td>
             `;
@@ -369,12 +402,12 @@ function updateAutoPaths(data) {
 
     // Create the single container for all auto paths
     autoPathsContainer.innerHTML = `
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8 dark:bg-gray-800">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 dark:border-gray-600 dark:bg-gray-700">
-                <h3 class="text-xl font-semibold">Auto Paths</h3>
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden mb-8">
+            <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Auto Paths</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Latest 5 matches per team</p>
             </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 dark:bg-gray-800" id="auto-paths-grid">
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="auto-paths-grid">
             </div>
         </div>
     `;
@@ -386,7 +419,7 @@ function updateAutoPaths(data) {
         
         // Add team header
         teamContainer.innerHTML = `
-            <h4 class="text-lg font-semibold mb-2">Team ${teamNumber} - ${teamData.nickname}</h4>
+            <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Team ${teamNumber} - ${teamData.nickname}</h4>
         `;
 
         // Get auto paths from matches
@@ -404,23 +437,23 @@ function updateAutoPaths(data) {
 
         if (sortedPaths.length === 0) {
             teamContainer.innerHTML += `
-                <p class="text-gray-500 italic">No auto paths available</p>
+                <p class="text-gray-500 dark:text-gray-400 italic">No auto paths available</p>
             `;
         } else {
             // Create a table for the paths
             const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200';
+            table.className = 'min-w-full divide-y divide-gray-200 dark:divide-gray-700';
             
             // Add table header
             table.innerHTML = `
-                <thead class="bg-gray-50">
-                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 dark:border-gray-600">
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Match</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Path</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                <thead class="bg-gray-50 dark:bg-gray-900/50">
+                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Match</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Path</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Notes</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 </tbody>
             `;
 
@@ -428,7 +461,7 @@ function updateAutoPaths(data) {
             const tbody = table.querySelector('tbody');
             sortedPaths.forEach(pathData => {
                 const row = document.createElement('tr');
-                row.className = 'bg-gray-50 dark:bg-gray-700 cursor-pointer';
+                row.className = 'bg-gray-50 dark:bg-gray-900/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700';
                 
                 row.innerHTML = `
                     <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
@@ -436,7 +469,7 @@ function updateAutoPaths(data) {
                     </td>
                     <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         <button onclick='showAutoPath(${JSON.stringify(pathData.path)}, ${JSON.stringify(pathData.notes || '')}, "${pathData.device_type || ''}")' 
-                                class="text-blue-600 hover:text-blue-800">
+                                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-500">
                             View Path
                         </button>
                     </td>

@@ -9,11 +9,19 @@
 }
 .path-card:hover {
   background-color: #f3f4f6;
-  border-color: #d1d5db;
+  /* border-color: #d1d5db; */
 }
 .path-card.selected {
   border-color: #3b82f6;
   background-color: #ebf5ff;
+}
+.dark .path-card {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+.dark .path-card.selected {
+  background-color: #1e3a8a40;
 }
 .draggable-container {
   border: 2px dashed #d1d5db;
@@ -21,6 +29,8 @@
   padding: 1rem;
   min-height: 200px;
 }
+
+
 .drag-handle {
   cursor: grab;
 }
@@ -34,6 +44,9 @@
   top: 0.5rem;
   cursor: pointer;
   color: #ef4444;
+}
+.dark .remove-path {
+  color: #f87171;
 }
 .color-indicator {
   display: inline-block;
@@ -55,6 +68,11 @@
   border-radius: 0.75rem;
   transition: all 0.2s ease;
 }
+.dark .tool-btn {
+  background-color: #1f2937;
+  color: #d1d5db;
+  border-color: #4b5563;
+}
 .tool-btn svg {
   width: 24px;
   height: 24px;
@@ -70,6 +88,14 @@
 .tool-btn.bg-blue-50:hover {
   background-color: #dbeafe;
 }
+.dark .tool-btn.bg-blue-50 {
+  background-color: #1e3a8a40;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+.dark .tool-btn.bg-blue-50:hover {
+  background-color: #1d4ed866;
+}
 .tool-btn.bg-red-50 {
   background-color: #fef2f2;
   border-color: #fca5a5;
@@ -77,6 +103,14 @@
 }
 .tool-btn.bg-red-50:hover {
   background-color: #fee2e2;
+}
+.dark .tool-btn.bg-red-50 {
+  background-color: #7f1d1d40;
+  border-color: #f87171;
+  color: #fca5a5;
+}
+.dark .tool-btn.bg-red-50:hover {
+  background-color: #991b1b66;
 }
 .tool-btn.bg-purple-50 {
   background-color: #faf5ff;
@@ -86,6 +120,14 @@
 .tool-btn.bg-purple-50:hover {
   background-color: #f3e8ff;
 }
+.dark .tool-btn.bg-purple-50 {
+  background-color: #581c8740;
+  border-color: #a78bfa;
+  color: #c4b5fd;
+}
+.dark .tool-btn.bg-purple-50:hover {
+  background-color: #6b21a866;
+}
 .tool-btn.bg-green-50 {
   background-color: #f0fdf4;
   border-color: #86efac;
@@ -93,6 +135,14 @@
 }
 .tool-btn.bg-green-50:hover {
   background-color: #dcfce7;
+}
+.dark .tool-btn.bg-green-50 {
+  background-color: #14532d40;
+  border-color: #4ade80;
+  color: #86efac;
+}
+.dark .tool-btn.bg-green-50:hover {
+  background-color: #16653466;
 }
 @media (max-width: 640px) {
   .tool-btn {

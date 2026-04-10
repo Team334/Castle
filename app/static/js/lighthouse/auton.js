@@ -289,7 +289,7 @@ function updateAvailablePaths() {
   // Add each path as a card
   availablePaths.forEach((path, index) => {
     const card = document.createElement("div");
-    card.className = "path-card";
+    card.className = "path-card dark:bg-gray-700";
     card.dataset.index = index;
 
     // Alliance color indicator border
@@ -302,10 +302,10 @@ function updateAvailablePaths() {
             <div class="flex justify-between items-start">
                 <div>
                     <div class="font-medium">Match ${path.match_number}</div>
-                    <div class="text-sm text-gray-600">${path.event_name || path.event_code}</div>
-                    <div class="text-xs text-gray-500 mt-1">
+                    <div class="text-sm text-gray-600 dark:text-white">${path.event_name || path.event_code}</div>
+                    <div class="text-xs text-gray-500 dark:text-white mt-1">
                         ${path.alliance ? `<span class="px-2 py-0.5 rounded ${path.alliance === "red" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"} capitalize">${path.alliance}</span>` : ""}
-                        ${path.auto_notes ? `<span class="ml-2">${path.auto_notes}</span>` : ""}
+                        ${path.auto_notes ? `<span class="ml-2 dark:text-white">${path.auto_notes}</span>` : ""}
                     </div>
                 </div>
                 <button class="add-path-btn bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs">
@@ -409,7 +409,7 @@ function updateSelectedPaths() {
   // Add each selected path as a card
   selectedPaths.forEach((path, index) => {
     const card = document.createElement("div");
-    card.className = "selected-path-card path-card flex items-center";
+    card.className = "selected-path-card path-card flex items-center dark:bg-gray-700";
     card.dataset.id = path.id;
 
     // Add an alliance class for styling
@@ -427,7 +427,7 @@ function updateSelectedPaths() {
             <span class="color-indicator" style="background-color: ${path.color};"></span>
             <div class="flex-1">
                 <div class="font-medium">${teamDisplay} - Match ${path.matchNumber}</div>
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 dark:text-white">
                     ${path.eventCode}
                     ${
                       path.alliance
