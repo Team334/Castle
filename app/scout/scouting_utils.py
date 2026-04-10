@@ -265,8 +265,8 @@ class ScoutingManager(DatabaseManager):
                 team_number = int(data["team_number"])
                 event_code = data["event_code"]
                 match_number = data["match_number"]
-            except (KeyError, TypeError, ValueError):
-                logger.warning("Invalid update payload for team data")
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning(f"Invalid update payload for team data: {exc}")
                 return False
 
             # First verify ownership and get current data
@@ -282,6 +282,7 @@ class ScoutingManager(DatabaseManager):
             try:
                 existing_team_number = int(existing_team_number) if existing_team_number is not None else None
             except (TypeError, ValueError):
+                logger.warning(f"Invalid existing team_number in record {team_id}: {existing_team_number}")
                 existing_team_number = None
 
             identity_changed = (
