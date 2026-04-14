@@ -401,7 +401,7 @@
 
         if ('serviceWorker' in navigator) {
             // Track the current version of content
-            const APP_VERSION = '{{ request.args.get("v", "1.0") }}';
+            const APP_VERSION = '{{ request.args.get("v", "26.4") }}';
             
             // Store the current version in localStorage
             if (!localStorage.getItem('appVersion') || 

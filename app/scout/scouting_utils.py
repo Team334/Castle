@@ -150,8 +150,19 @@ class ScoutingManager(DatabaseManager):
     def get_all_scouting_data(self, user_team_number=None, user_id=None) -> list[dict]:
         """Get all scouting data with user information, filtered by team access"""
         try:
-            # Base pipeline for user lookup
+            valid_scouter_ids = [ObjectId(user_id)] if user_id else []
+            if user_team_number:
+                team_users = self.db.users.find({"teamNumber": user_team_number}, {"_id": 1})
+                valid_scouter_ids.extend([u["_id"] for u in team_users])
+                
+            valid_scouter_ids = list(set(valid_scouter_ids))
+
             pipeline = [
+                {
+                    "$match": {
+                        "scouter_id": {"$in": valid_scouter_ids}
+                    }
+                },
                 {
                     "$lookup": {
                         "from": "users",
@@ -162,25 +173,6 @@ class ScoutingManager(DatabaseManager):
                 },
                 {"$unwind": "$scouter"},
             ]
-
-            # Add match stage for filtering based on team number or user ID
-            if user_team_number:
-                # If user has a team number, show data from their team and their own data
-                pipeline.append({
-                    "$match": {
-                        "$or": [
-                            {"scouter.teamNumber": user_team_number},
-                            {"scouter._id": ObjectId(user_id)}
-                        ]
-                    }
-                })
-            else:
-                # If user has no team, only show their own data
-                pipeline.append({
-                    "$match": {
-                        "scouter._id": ObjectId(user_id)
-                    }
-                })
 
             # Project the needed fields
             pipeline.append({
@@ -213,7 +205,13 @@ class ScoutingManager(DatabaseManager):
                     "ferrying_did": 1,
                     "ferrying_rating": 1,
                     "robot_disabled": 1,
-                    "auto_path": 1,
+                    "has_auto_path": {
+                        "$cond": [
+                            {"$and": [{"$ne": ["$auto_path", None]}, {"$ne": ["$auto_path", ""]}]},
+                            True,
+                            False
+                        ]
+                    },
                     "auto_notes": 1,
                     "notes": 1,
                     "alliance": 1,

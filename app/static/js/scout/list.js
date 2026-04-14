@@ -61,40 +61,57 @@ function showAutoPath(pathData, autoNotes) {
     });
 
     if (pathData) {
-        try {
-            let sanitizedValue = pathData;
-            if (typeof pathData === 'string') {
-                // Remove any potential HTML entities
-                sanitizedValue = pathData.trim()
-                    .replace(/&quot;/g, '"')
-                    .replace(/&#34;/g, '"')
-                    .replace(/&#39;/g, "'")
-                    .replace(/&amp;/g, '&');
-                
-                // Convert single quotes to double quotes if needed
-                if (sanitizedValue.startsWith("'") && sanitizedValue.endsWith("'")) {
-                    sanitizedValue = sanitizedValue.slice(1, -1);
-                }
-                sanitizedValue = sanitizedValue.replace(/'/g, '"');
-                
-                // Convert Python boolean values to JSON boolean values
-                sanitizedValue = sanitizedValue
-                    .replace(/: True/g, ': true')
-                    .replace(/: False/g, ': false');
-            }
+        fetch('/scouting/api/autopath/' + pathData)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.auto_path) {
+                    try {
+                        let parsedData = data.auto_path;
+                        
+                        // Handle the case where the Python backend gave us an array with a JSON string inside
+                        if (Array.isArray(parsedData) && typeof parsedData[0] === 'string') {
+                            parsedData = parsedData[0];
+                        }
+                        
+                        if (typeof parsedData === 'string') {
+                            // Remove any potential HTML entities
+                            parsedData = parsedData.trim()
+                                .replace(/&quot;/g, '"')
+                                .replace(/&#34;/g, '"')
+                                .replace(/&#39;/g, "'")
+                                .replace(/&amp;/g, '&');
 
-            const parsedData = typeof sanitizedValue === 'string' ? JSON.parse(sanitizedValue) : sanitizedValue;
-            if (Array.isArray(parsedData)) {
-                CanvasField.drawingHistory = parsedData;
-                CanvasField.redrawCanvas();
-            }
-        } catch (error) {
-            console.error('Error loading path data:', error);
-        }
-    }
+                            // Convert single quotes to double quotes if needed
+                            if (parsedData.startsWith("'") && parsedData.endsWith("'")) {
+                                parsedData = parsedData.slice(1, -1);
+                            }
+                            parsedData = parsedData.replace(/'/g, '"');
+
+                            // Convert Python boolean values to JSON boolean values
+                            parsedData = parsedData
+                                .replace(/: True/g, ': true')
+                                .replace(/: False/g, ': false');
+
+                            parsedData = JSON.parse(parsedData);
+                        }
+
+                        if (typeof parsedData === 'string') {
+                            parsedData = JSON.parse(parsedData);
+                        }
+
+                        if (Array.isArray(parsedData)) {
+                            CanvasField.drawingHistory = parsedData;
+                            CanvasField.redrawCanvas();
+                        }
+                    } catch (error) {
+                        console.error('Error loading path data:', error);
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching path data:', error));
+    }    
     CanvasField.setReadonly(true);
 }
-
 function closeAutoPathModal() {
     const modal = document.getElementById('autoPathModal');
     if (modal) {

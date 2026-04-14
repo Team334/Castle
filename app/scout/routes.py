@@ -106,6 +106,19 @@ def home():
         return render_template("scouting/list.html", team_data=[])
 
 
+@scouting_bp.route("/scouting/api/autopath/<string:id>")
+@login_required
+def get_auto_path(id):
+    try:
+        from bson import ObjectId
+        doc = scouting_manager.db.team_data.find_one({"_id": ObjectId(id)}, {"auto_path": 1})
+        if doc and doc.get("auto_path"):
+            return jsonify({"auto_path": doc["auto_path"], "success": True})
+        return jsonify({"success": False, "message": "No path found"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])
 # @limiter.limit("15 per minute")
 @login_required

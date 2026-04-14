@@ -512,9 +512,9 @@
                 {% endif %}
               </td>
               <td class="px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {% if data.auto_path %}
+                {% if data.has_auto_path %}
                 <button
-                  onclick='showAutoPath({{ data.auto_path|tojson|safe }}, {{ data.auto_notes|default("")|tojson|safe }})'
+                  onclick='showAutoPath("{{ data._id }}", {{ data.auto_notes|default("")|tojson|safe }})'
                   class="text-blue-600 hover:text-blue-900"
                 >
                   <span class="hidden sm:inline"
@@ -687,17 +687,7 @@
 
       requestData.events = Array.from(eventsSet);
 
-      try {
-        const response = await fetch("/api/team_epa_opr", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        const results = await response.json();
-
+      function applyStats(results) {
         statsCells.forEach((cell) => {
           const teamNum = cell.getAttribute("data-team-id");
           const eventCode = cell.getAttribute("data-event-id");
@@ -727,6 +717,36 @@
           cell.querySelector(".dpr-value").innerHTML = `DPR: ${dprHtml}`;
           cell.querySelector(".ccwm-value").innerHTML = `CCWM: ${ccwmHtml}`;
         });
+      }
+
+      // Cache check for 1 hour
+      const cacheKey = `epa_opr_cache_${JSON.stringify(requestData)}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const cacheData = JSON.parse(cached);
+        if (Date.now() - cacheData.timestamp < 3600000) {
+          applyStats(cacheData.results);
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch("/api/team_epa_opr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        });
+
+        const results = await response.json();
+        
+        localStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: Date.now(),
+          results: results
+        }));
+
+        applyStats(results);
       } catch (error) {
         console.error("Failed to fetch EPA/OPR data:", error);
         statsCells.forEach((cell) => {
