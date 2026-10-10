@@ -126,6 +126,9 @@
               data-notes="{{ data.notes }}"
               data-robot-disabled="{{ data.robot_disabled }}"
               data-scouter="{{ data.scouter_name }}"
+              data-match-number="{{ data.match_number }}"
+              data-fuel-source="{{ 'Match13 estimate' if data.fuel_estimate and data.fuel_estimate.estimated else 'Awaiting estimate' if data.fuel_estimate else 'Scouted' }}"
+              {% if data.fuel_estimate %}data-fuel-estimate-id="{{ data._id }}"{% endif %}
             >
               <!-- In the team number cell -->
               <td class="px-3 sm:px-6 py-4 border-b dark:border-gray-700">
@@ -182,10 +185,14 @@
               </td>
               <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b text-gray-900 dark:text-gray-100 dark:border-gray-700">
                 {{ data.match_number }}
+                {% if data.fuel_estimate %}
+                <span class="fuel-estimate-status block text-xs text-blue-600 dark:text-blue-400"
+                  title="Approximate fuel allocation using Match13 ratings and official alliance phase totals. Ferried fuel is not estimated.">{{ data.fuel_estimate.label }}</span>
+                {% endif %}
               </td>
 
-              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {{ data.auto_fuel }}
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700" data-fuel-fields="auto_fuel">
+                {{ '…' if data.fuel_estimate and not data.fuel_estimate.estimated else data.auto_fuel or 0 }}
               </td>
               <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 {% if data.auto_climb %}
@@ -194,11 +201,11 @@
                 <span class="text-gray-400">None</span>
                 {% endif %}
               </td>
-              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {{ data.transition_fuel or 0 }}
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700" data-fuel-fields="transition_fuel">
+                {{ '…' if data.fuel_estimate and not data.fuel_estimate.estimated else data.transition_fuel or 0 }}
               </td>
-              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {{ data.ferried_fuel or 0 }}
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700" data-fuel-fields="ferried_fuel">
+                {{ '—' if data.fuel_estimate else data.ferried_fuel or 0 }}
               </td>
               <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 {{ data.herd_rating or 0 }}/10
@@ -206,12 +213,13 @@
               <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
                 {{ data.ferrying_rating or 0 }}/10
               </td>
-              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{
-                data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700" data-fuel-fields="teleop_shift_1_fuel,teleop_shift_2_fuel,teleop_shift_3_fuel,teleop_shift_4_fuel">
+                {% if data.fuel_estimate and not data.fuel_estimate.estimated %}…{% else %}
+                {{ data.teleop_shift_1_fuel }}/{{ data.teleop_shift_2_fuel }}/{{ data.teleop_shift_3_fuel }}/{{ data.teleop_shift_4_fuel }}
+                {% endif %}
               </td>
-              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">
-                {{ data.endgame_fuel }}
+              <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700" data-fuel-fields="endgame_fuel">
+                {{ '…' if data.fuel_estimate and not data.fuel_estimate.estimated else data.endgame_fuel or 0 }}
               </td>
 
               <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap border-b dark:border-gray-700">

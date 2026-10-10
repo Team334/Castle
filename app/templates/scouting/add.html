@@ -62,6 +62,12 @@
       id="scoutingForm"
       autocomplete="off"
     >
+      <input type="hidden" name="_fuel_entered" value="false" />
+      <input type="hidden" name="_event_key" value="" />
+      <p class="px-8 py-4 text-sm text-gray-600 dark:text-gray-400" id="fuelEstimateHint">
+        Leave every fuel count blank to use automatic Match13 estimates when results become available.
+        Entering any fuel count, including zero, keeps all your fuel counts as entered.
+      </p>
       <!-- Team & Event Info Section -->
       <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -666,7 +672,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="auto_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="auto_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -718,7 +724,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="transition_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="transition_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -743,7 +749,7 @@
                     <div class="counter-decrements">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="ferried_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="ferried_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                     </div>
@@ -768,7 +774,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="teleop_shift_1_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="teleop_shift_1_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -786,7 +792,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="teleop_shift_2_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="teleop_shift_2_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -804,7 +810,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="teleop_shift_3_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="teleop_shift_3_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -822,7 +828,7 @@
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                     </div>
-                    <input type="number" name="teleop_shift_4_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                    <input type="number" name="teleop_shift_4_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                     <div class="counter-increments">
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                       <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -853,7 +859,7 @@
                     <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
                     <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
                   </div>
-                  <input type="number" name="endgame_fuel" value="0" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
+                  <input type="number" name="endgame_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                   <div class="counter-increments">
                     <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
                     <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
@@ -1114,7 +1120,8 @@
   </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/scout/fuel-input.js', v='10') }}"></script>
 <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
-<script src="{{ url_for('static', filename='js/scout/add.js') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/add.js', v='10') }}"></script>
 
 {% endblock %}

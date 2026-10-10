@@ -88,6 +88,7 @@
                         {% for team in match.red_teams %}
                         <div data-team-number="{{ team.number }}" class="bg-red-50 rounded-lg p-4">
                             <div class="font-bold mb-2">Team {{ team.number }}</div>
+                            {% if team.fuel_estimate %}<p class="text-sm text-blue-600 dark:text-blue-400 mb-2">{{ team.fuel_estimate.label }}</p>{% endif %}
                             
                             <!-- Team Stats Grid -->
                             <div class="grid grid-cols-1 gap-4">
@@ -95,8 +96,8 @@
                                 <div class="bg-white dark:bg-gray-800 rounded p-3">
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
-                                        <div>Count: <span class="font-bold text-lg">{{ team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel }}</span></div>
+                                        <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
+                                        <div>Ferried: <span class="font-bold text-lg">{{ '—' if team.fuel_estimate else team.ferried_fuel }}</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -149,13 +150,14 @@
                         {% for team in match.blue_teams %}
                         <div data-team-number="{{ team.number }}" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                             <div class="font-bold mb-2">Team {{ team.number }}</div>
+                            {% if team.fuel_estimate %}<p class="text-sm text-blue-600 dark:text-blue-400 mb-2">{{ team.fuel_estimate.label }}</p>{% endif %}
                             
                             <div class="grid grid-cols-1 gap-4">
                                 <div class="bg-white dark:bg-gray-800 rounded p-3">
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
-                                        <div>Count: <span class="font-bold text-lg">{{ team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel }}</span></div>
+                                        <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
+                                        <div>Ferried: <span class="font-bold text-lg">{{ '—' if team.fuel_estimate else team.ferried_fuel }}</span></div>
                                     </div>
                                 </div>
                             </div>

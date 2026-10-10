@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 import aiohttp
@@ -14,6 +15,7 @@ from app.scout.scouting_utils import ScoutingManager
 from app.utils import async_route, handle_route_errors, limiter
 
 from .TBA import TBAInterface
+from .match13_fuel import FUEL_FIELDS, FuelEstimateService, blank_fuel
 
 scouting_bp = Blueprint("scouting", __name__)
 scouting_manager = None
@@ -38,6 +40,16 @@ def on_blueprint_init(state):
     if not hasattr(app, 'db_managers'):
         app.db_managers = {}
     app.db_managers['scouting'] = scouting_manager
+    try:
+        service = FuelEstimateService(
+            scouting_manager.db, os.getenv("MATCH13_STATE_PATH") or os.path.join(app.instance_path, "match13.sqlite"),
+            api_key=os.getenv("MATCH_13_API_KEY") or os.getenv("MATCH13_API_KEY", ""),
+            tba_key=os.getenv("TBA_AUTH_KEY", ""))
+        app.extensions["match13_fuel"] = service
+        service.start()
+    except Exception:
+        app.logger.exception("Fuel estimates unavailable; normal scouting is unaffected")
+
 
 
 @scouting_bp.route("/scouting/add", methods=["GET", "POST"])
@@ -68,7 +80,17 @@ def add():
             flash("Invalid path coordinates format", "error")
             return redirect(url_for("scouting.home"))
 
+    use_estimate = blank_fuel(data)
+    for field in FUEL_FIELDS:
+        if data.get(field) in (None, ""):
+            data[field] = 0
     success, message = scouting_manager.add_scouting_data(data, current_user.get_id())
+    service = current_app.extensions.get("match13_fuel")
+    if success and use_estimate and service:
+        try:
+            service.enroll(message, data)
+        except Exception:
+            current_app.logger.exception("Saved scouting record; could not enroll its fuel estimate")
     current_app.logger.info(f"Tried to add scouting data ({success}) {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'} - {message}")
     current_app.logger.info(f"Scouting.add Form Details {request.form} - {message}")
 
@@ -95,6 +117,11 @@ def home():
             page_size=SCOUTING_PAGE_SIZE, search=request.args.get("search", ""),
             filter_type=request.args.get("filter", "team"))
         team_data, total = result["records"], result["total"]
+        service = current_app.extensions.get("match13_fuel")
+        if service:
+            statuses = service.statuses(record["_id"] for record in team_data)
+            for record in team_data:
+                record["fuel_estimate"] = statuses.get(str(record["_id"]))
 
         # Get the user's team if they have one
         team = None
@@ -115,6 +142,32 @@ def home():
         if request.args.get("partial") == "1":
             return jsonify(error="Unable to load matches. Please try again."), 503
         return render_template("scouting/list.html", team_data=[], total=0, has_more=False)
+
+
+@scouting_bp.route("/api/fuel_estimates", methods=["POST"])
+@login_required
+def fuel_estimates():
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("ids") if isinstance(payload, dict) else None
+    if not isinstance(ids, list) or len(ids) > 100 or any(not isinstance(id, str) or not ObjectId.is_valid(id) for id in ids):
+        return jsonify(error="Provide up to 100 valid record IDs."), 400
+    service = current_app.extensions.get("match13_fuel")
+    if not service or not ids:
+        return jsonify({})
+    statuses = service.statuses(ids, include_manual=True)
+    if not statuses:
+        return jsonify({})
+    access = {"scouter._id": ObjectId(current_user.get_id())}
+    if current_user.teamNumber:
+        access = {"$or": [access, {"scouter.teamNumber": current_user.teamNumber}]}
+    records = scouting_manager.db.team_data.aggregate([
+        {"$match": {"_id": {"$in": [ObjectId(id) for id in statuses]}}},
+        {"$lookup": {"from": "users", "localField": "scouter_id", "foreignField": "_id", "as": "scouter"}},
+        {"$unwind": "$scouter"}, {"$match": access},
+        {"$project": {"_id": 1, **dict.fromkeys(FUEL_FIELDS, 1)}},
+    ])
+    return jsonify({str(record["_id"]): {**statuses[str(record["_id"])],
+                     "fuel": {field: record.get(field, 0) for field in FUEL_FIELDS}} for record in records})
 
 
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])
@@ -152,7 +205,10 @@ def edit(id):
                     flash("Invalid path coordinates format", "error")
                     return render_template("scouting/edit.html", team_data=team_data)
             
-            if scouting_manager.update_team_data(id, data, current_user.get_id()):
+            service = current_app.extensions.get("match13_fuel")
+            save = lambda: scouting_manager.update_team_data(id, data, current_user.get_id())
+            saved = service.manual_update(id, save) if service else save()
+            if saved:
                 flash("Data updated successfully", "success")
                 current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
                 return redirect(url_for("scouting.home"))
@@ -160,6 +216,9 @@ def edit(id):
             current_app.logger.info(f"Failed to update scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             flash("Unable to update data", "error")
 
+        service = current_app.extensions.get("match13_fuel")
+        if service:
+            team_data.fuel_estimate = service.statuses([id]).get(id)
         return render_template("scouting/edit.html", team_data=team_data)
     except Exception as e:
         current_app.logger.error(f"Error in edit_scouting_data: {str(e)}", exc_info=True)
@@ -852,6 +911,7 @@ def matches():
                 },
                 "teams": {
                     "$push": {
+                        "id": "$_id",
                         "number": "$team_number",
                         "alliance": "$alliance",
                         
@@ -875,6 +935,8 @@ def matches():
         ]
         
         match_data = list(scouting_manager.db.team_data.aggregate(pipeline))
+        service = current_app.extensions.get("match13_fuel")
+        statuses = service.statuses(t["id"] for match in match_data for t in match["teams"]) if service else {}
         matches = []
         
         for match in match_data:
@@ -905,6 +967,7 @@ def matches():
             # Prepare team data for template
             red_team_data = [{
                 "number": t["number"],
+                "fuel_estimate": statuses.get(str(t["id"])),
                 "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],
@@ -914,6 +977,7 @@ def matches():
 
             blue_team_data = [{
                 "number": t["number"],
+                "fuel_estimate": statuses.get(str(t["id"])),
                 "ferried_fuel": t["ferried_fuel"],
                 "fuel_total": t["auto_fuel"] + t["transition_fuel"] + t["teleop_shift_1_fuel"] + t["teleop_shift_2_fuel"] + t["teleop_shift_3_fuel"] + t["teleop_shift_4_fuel"] + t["endgame_fuel"],
                 "climb_level": t["climb_level"],

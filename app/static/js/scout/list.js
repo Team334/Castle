@@ -147,6 +147,7 @@ function exportToCSV() {
         'Robot Disabled',
         'Notes',
         'Scouter',
+        'Fuel Source',
     ];
 
     let csvContent = headers.join(',') + '\n';
@@ -157,7 +158,7 @@ function exportToCSV() {
     rows.forEach(row => {
         const {teamNumber} = row.dataset;
         const alliance = row.cells[2].innerText.trim();
-        const match = row.cells[3].innerText.trim();
+        const match = row.dataset.matchNumber || row.cells[3].innerText.trim();
         
         const autoFuel = row.cells[4].innerText.trim();
         const autoClimb = row.cells[5].innerText.trim();
@@ -186,6 +187,7 @@ function exportToCSV() {
             robotDisabled,
             notes,
             scouter,
+            row.dataset.fuelSource || 'Scouted',
         ];
 
         csvContent += rowData.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',') + '\r\n';

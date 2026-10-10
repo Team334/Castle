@@ -497,6 +497,7 @@ document.addEventListener("DOMContentLoaded", function () {
       //     console.error('Error checking team:', error);
       //     form.submit();
       // }
+      form.elements._event_key.value = eventSelect.options[eventSelect.selectedIndex]?.dataset.key || "";
       form.submit();
     });
   }

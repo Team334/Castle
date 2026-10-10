@@ -135,3 +135,104 @@ test('an unavailable match service stops polling', async () => {
   assert.equal(await loader('2026nyny', new AbortController().signal), null);
   assert.equal(calls, 1);
 });
+
+function fuelForm() {
+  const listeners = new Map();
+  const fields = ['auto_fuel', 'ferried_fuel'].map(name => ({name, value: '',
+    addEventListener: (event, handler) => listeners.set(name + ':' + event, handler)}));
+  const hint = {textContent: ''};
+  const form = {elements: {_fuel_entered: {value: 'false'}}, querySelectorAll: () => fields,
+    addEventListener: (event, handler) => listeners.set(event, handler)};
+  const scope = {document: {getElementById: () => hint, addEventListener() {}}};
+  vm.runInNewContext(fs.readFileSync('app/static/js/scout/fuel-input.js', 'utf8'), scope);
+  scope.trackFuelInput(form);
+  return {form, fields, hint, fire: name => listeners.get(name)()};
+}
+
+test('untouched blank fuel fields stay eligible for estimates', () => {
+  const {form, fields} = fuelForm();
+  assert.equal(form.elements._fuel_entered.value, 'false');
+  assert.ok(fields.every(field => field.value === ''));
+});
+
+test('typing an explicit zero protects fuel even after the input is cleared', () => {
+  const {form, fields, fire, hint} = fuelForm();
+  fields[0].value = '0';
+  fire('auto_fuel:input');
+  fields[0].value = '';
+  fire('auto_fuel:input');
+  assert.equal(form.elements._fuel_entered.value, 'true');
+  assert.match(hint.textContent, /saved as entered/);
+});
+
+test('counter changes and ferried fuel protect the entire record', () => {
+  const {form, fire} = fuelForm();
+  fire('ferried_fuel:change');
+  assert.equal(form.elements._fuel_entered.value, 'true');
+});
+
+function estimatePage(network) {
+  const timers = new Map(), events = new Map();
+  let timerId = 0;
+  const status = {textContent: 'Waiting for fuel estimate', remove() {this.removed = true;}};
+  const cells = ['auto_fuel', 'ferried_fuel'].map(field => ({dataset: {fuelFields: field}, textContent: '…'}));
+  const row = {dataset: {fuelEstimateId: 'new-record'}, querySelector: () => status, querySelectorAll: () => cells};
+  const document = {hidden: false, querySelectorAll: () => row.dataset.fuelEstimateId ? [row] : [],
+    addEventListener: (event, callback) => events.set(event, callback)};
+  const scope = {document, window: {addEventListener: (event, callback) => events.set(event, callback)},
+    fetch: network, AbortController,
+    setTimeout: callback => {timers.set(++timerId, callback); return timerId;},
+    clearTimeout: id => timers.delete(id)};
+  vm.runInNewContext(fs.readFileSync('app/static/js/scout/fuel-estimates.js', 'utf8'), scope);
+  events.get('DOMContentLoaded')();
+  async function tick() {
+    const [id, callback] = timers.entries().next().value;
+    timers.delete(id);
+    await callback();
+  }
+  return {row, status, cells, document, timers, tick, leave: () => events.get('pagehide')()};
+}
+
+test('estimate polling refreshes counts and a manual edit removes the estimate label', async () => {
+  let edited = false;
+  const page = estimatePage(async (path, options) => {
+    assert.equal(path, '/api/fuel_estimates');
+    assert.deepEqual(JSON.parse(options.body).ids, ['new-record']);
+    return Response.json({'new-record': {active: !edited, estimated: !edited,
+      label: edited ? 'Scouted' : 'Estimated · Match13', fuel: {auto_fuel: edited ? 0 : 8, ferried_fuel: 0}}});
+  });
+  await page.tick();
+  assert.equal(page.cells[0].textContent, '8');
+  assert.equal(page.cells[1].textContent, '—');
+  assert.equal(page.row.dataset.fuelSource, 'Match13 estimate');
+  edited = true;
+  await page.tick();
+  assert.equal(page.cells[0].textContent, '0');
+  assert.equal(page.cells[1].textContent, '0');
+  assert.equal(page.row.dataset.fuelSource, 'Scouted');
+  assert.equal(page.row.dataset.fuelEstimateId, undefined);
+  assert.equal(page.status.removed, true);
+});
+
+test('hidden estimate pages skip requests and leaving cancels the refresh timer', async () => {
+  let calls = 0;
+  const page = estimatePage(async () => {calls++; return Response.json({});});
+  page.document.hidden = true;
+  await page.tick();
+  assert.equal(calls, 0);
+  page.leave();
+  assert.equal(page.timers.size, 0);
+});
+
+test('a polling failure preserves displayed values but deleted records are hidden', async () => {
+  let failed = true;
+  const page = estimatePage(async () => failed ? new Response('', {status: 503}) : Response.json({}));
+  page.cells[0].textContent = '8';
+  await page.tick();
+  assert.equal(page.cells[0].textContent, '8');
+  assert.equal(page.row.hidden, undefined);
+  failed = false;
+  await page.tick();
+  assert.equal(page.row.hidden, true);
+  assert.equal(page.row.dataset.fuelEstimateId, undefined);
+});

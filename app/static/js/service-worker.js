@@ -1,9 +1,9 @@
-const CACHE_NAME = 'castle-app-v9';
-const STATIC_CACHE_NAME = 'castle-app-static-v9';
-const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v9';
-const PAGE_CACHE_NAME = 'castle-app-pages-v9';
+const CACHE_NAME = 'castle-app-v10';
+const STATIC_CACHE_NAME = 'castle-app-static-v10';
+const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v10';
+const PAGE_CACHE_NAME = 'castle-app-pages-v10';
 
-const CACHE_VERSION = '9'; // Increment this when making changes
+const CACHE_VERSION = '10'; // Increment this when making changes
 
 // Add timestamped version query parameter to bust cache 
 const CACHE_TIMESTAMP = new Date().getTime();
@@ -16,6 +16,8 @@ const STATIC_ASSETS = [
   '/static/js/team-stats.js',
   '/static/js/scout/add.js',
   '/static/js/scout/list.js',
+  '/static/js/scout/fuel-input.js',
+  '/static/js/scout/fuel-estimates.js',
   '/static/images/field-2026.png',
   '/static/images/default_profile.png',
   '/static/js/notifications.js',

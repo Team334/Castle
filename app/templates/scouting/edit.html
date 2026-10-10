@@ -28,6 +28,11 @@
 
     <!-- Form Section -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none overflow-hidden text-center">
+        {% if team_data.fuel_estimate %}
+        <p class="p-4 mb-4 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+          {{ team_data.fuel_estimate.label }}. Saving this edit keeps the fuel counts as entered and stops automatic updates for this record.
+        </p>
+        {% endif %}
         <form method="POST" class="divide-y divide-gray-200 dark:divide-gray-700" id="scoutingForm" autocomplete="off">
             <!-- Basic Info -->
             <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
