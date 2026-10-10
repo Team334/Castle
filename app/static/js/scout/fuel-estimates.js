@@ -33,8 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             status?.remove();
                         }
                         for (const cell of row.querySelectorAll('[data-fuel-fields]')) {
-                            cell.textContent = result.active && cell.dataset.fuelFields === 'ferried_fuel' ? '—'
-                                : result.active && !result.estimated ? '…'
+                            cell.textContent = cell.dataset.fuelFields !== 'ferried_fuel' && result.active && !result.estimated ? '…'
                                 : cell.dataset.fuelFields.split(',').map(field => result.fuel[field] ?? 0).join('/');
                         }
                     }

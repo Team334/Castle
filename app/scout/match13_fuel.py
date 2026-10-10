@@ -1,8 +1,8 @@
 """Event-cached fuel estimates. MongoDB keeps its existing document format.
 
-SQLite stores opt-in record IDs, provenance, ETags and account-wide request
-budgets shared by Gunicorn workers on one host. Only newly saved blank forms
-are enrolled. All network work runs in a background thread.
+SQLite stores record eligibility, provenance, ETags and account-wide request
+budgets shared by Gunicorn workers on one host. Existing zero-scored-fuel
+records are discovered in batches. All network work runs in a background thread.
 """
 import atexit
 from contextlib import contextmanager
@@ -30,10 +30,9 @@ FUEL_FIELDS = (*PHASES, "ferried_fuel")
 EVENT_PATTERN = re.compile(r"2026[a-z0-9]+\Z")
 
 
-def blank_fuel(data):
-    """An entered zero is an observation, not missing data."""
-    return (str(data.get("_fuel_entered", "false")).lower() not in ("true", "1")
-            and all(data.get(field) in (None, "") for field in FUEL_FIELDS))
+def zero_scored_fuel(data):
+    """Ferried fuel is independent; only nonzero scored counts block estimates."""
+    return all(data.get(field) in (None, "", 0, "0", "0.0") for field in PHASES)
 
 
 def match_key(event, label):
@@ -95,6 +94,7 @@ def estimate_fuel(official_match, ratings, alliance, team):
 
 class FuelEstimateService:
     REFRESH_SECONDS = 300
+    DISCOVERY_BATCH = 250
     # Leave headroom for other uses of the same Match13 account.
     BUDGETS = ((60, 30), (3600, 600), (604800, 15000))
 
@@ -120,6 +120,9 @@ class FuelEstimateService:
                 CREATE TABLE IF NOT EXISTS calls (at REAL NOT NULL);
                 CREATE INDEX IF NOT EXISTS calls_at ON calls(at);
                 CREATE INDEX IF NOT EXISTS jobs_event ON jobs(event, active);
+                CREATE TABLE IF NOT EXISTS discovery (
+                    name TEXT PRIMARY KEY, cursor TEXT, due REAL NOT NULL);
+                INSERT OR IGNORE INTO discovery VALUES ('zero-scored-v2', NULL, 0);
             """)
 
     @contextmanager
@@ -150,30 +153,109 @@ class FuelEstimateService:
     def set_control(con, name, value):
         con.execute("INSERT OR REPLACE INTO controls VALUES (?,?)", (name, value))
 
-    def enroll(self, record_id, data):
+    def _event(self, data, catalog=None):
         event = str(data.get("_event_key") or data.get("event_code") or "")
+        if EVENT_PATTERN.fullmatch(event):
+            return event
+        created = data.get("created_at")
+        year = getattr(created, "year", None)
+        if isinstance(created, str) and re.match(r"\d{4}-", created):
+            year = int(created[:4])
+        if year is not None and year != 2026:
+            # Display names repeat annually; never map an older season to 2026.
+            return ""
+        # Historical Mongo documents store display names, not canonical event keys.
+        if catalog is None:
+            with self.connect() as con:
+                row = con.execute("SELECT body FROM cache WHERE provider='tba' AND path='/events/2026/simple'").fetchone()
+            catalog = json.loads(row[0]) if row and row[0] else []
+        normalized = " ".join(event.casefold().split())
+        keys = {item.get("key") for item in catalog if isinstance(item, dict)
+                and " ".join(str(item.get("name", "")).casefold().split()) == normalized
+                and EVENT_PATTERN.fullmatch(str(item.get("key", "")))}
+        return next(iter(keys)) if len(keys) == 1 else ""
+
+    def _enroll(self, con, record_id, data, event, stored=False):
         key = match_key(event, str(data.get("match_number", "")))
         if not key or event.endswith(("test1", "test2", "test3")) or not ObjectId.is_valid(record_id):
             return False
-        identity = {field: data[field] for field in ("event_code", "match_number", "alliance")}
-        identity["team_number"] = int(data["team_number"])
-        with self.transaction() as con:
-            con.execute("INSERT OR IGNORE INTO jobs(id,event,match,identity,expected) VALUES (?,?,?,?,?)",
-                        (record_id, event, key, json.dumps(identity), json.dumps(dict.fromkeys(FUEL_FIELDS, 0))))
-            con.execute("INSERT OR REPLACE INTO events VALUES (?,0)", (event,))
-        self.wake.set()
+        try:
+            identity = {field: data[field] for field in ("event_code", "match_number", "alliance")}
+            identity["team_number"] = int(data["team_number"])
+        except (KeyError, TypeError, ValueError):
+            return False
+        old = con.execute("SELECT * FROM jobs WHERE id=?", (record_id,)).fetchone()
+        if old and old["active"] and json.loads(old["identity"]) == identity:
+            return False
+        expected = {field: data.get(field) if stored else 0 for field in PHASES}
+        con.execute("INSERT OR REPLACE INTO jobs(id,event,match,identity,expected) VALUES (?,?,?,?,?)",
+                    (record_id, event, key, json.dumps(identity), json.dumps(expected)))
+        con.execute("INSERT OR REPLACE INTO events VALUES (?,0)", (event,))
         return True
 
-    def manual_update(self, record_id, update):
-        # The writer transaction synchronizes with the background Mongo write:
-        # a manual save always wins, including a deliberate zero.
+    def enroll(self, record_id, data):
+        if not zero_scored_fuel(data):
+            return False
+        event = self._event(data)
         with self.transaction() as con:
-            row = con.execute("SELECT active FROM jobs WHERE id=?", (record_id,)).fetchone()
+            enrolled = self._enroll(con, str(record_id), data, event)
+            if not event:
+                con.execute("UPDATE discovery SET cursor=NULL,due=0 WHERE name='zero-scored-v2'")
+        self.wake.set()
+        return enrolled
+
+    def discover(self):
+        """Bounded, resumable backfill against this instance's own Mongo database."""
+        now = self.clock()
+        with self.connect() as con:
+            state = con.execute("SELECT * FROM discovery WHERE name='zero-scored-v2'").fetchone()
+        if state["due"] > now:
+            return
+        query = {"$and": [{field: {"$in": [0, "0", "0.0", "", None]}} for field in PHASES]}
+        if state["cursor"]:
+            query["_id"] = {"$gt": ObjectId(state["cursor"])}
+        projection = dict.fromkeys((*PHASES, "event_code", "match_number", "team_number", "alliance", "created_at"), 1)
+        records = list(self.db.team_data.find(query, projection).sort("_id", 1).limit(self.DISCOVERY_BATCH))
+        candidates = []
+        with self.connect() as con:
+            for data in records:
+                old = con.execute("SELECT active FROM jobs WHERE id=?", (str(data["_id"]),)).fetchone()
+                if not old or not old[0]:
+                    candidates.append(data)
+        catalog = None
+        if any(not EVENT_PATTERN.fullmatch(str(data.get("event_code", ""))) for data in candidates):
+            catalog = self._request("tba", "/events/2026/simple", ttl=86400)
+            if not isinstance(catalog, list) or not any(isinstance(item, dict) and "name" in item and "key" in item for item in catalog):
+                with self.transaction() as con:
+                    con.execute("UPDATE discovery SET due=? WHERE name='zero-scored-v2'", (now + 900,))
+                logger.warning("Fuel backfill waiting for TBA event catalog; existing records retained")
+                return
+        enrolled = 0
+        with self.transaction() as con:
+            for data in candidates:
+                # An in-flight manual save temporarily disables its job. Do not
+                # mistake that interval for an old record needing enrollment.
+                if (zero_scored_fuel(data)
+                        and self.control(con, "editing:" + str(data["_id"])) <= self.clock()):
+                    enrolled += self._enroll(con, str(data["_id"]), data, self._event(data, catalog), stored=True)
+            more = len(records) == self.DISCOVERY_BATCH
+            cursor = str(records[-1]["_id"]) if more else None
+            con.execute("UPDATE discovery SET cursor=?,due=? WHERE name='zero-scored-v2'",
+                        (cursor, now + 60 if more else now + 86400))
+        if records:
+            logger.info("Fuel backfill: scanned %s zero-scored records, enrolled %s; %s",
+                        len(records), enrolled, "continuing next minute" if more else "pass complete")
+
+    def manual_update(self, record_id, update, data=None):
+        # The writer transaction synchronizes with the background Mongo write:
+        # nonzero manual scoring wins; ferry/notes edits retain eligibility.
+        with self.transaction() as con:
+            row = con.execute("SELECT * FROM jobs WHERE id=?", (record_id,)).fetchone()
             con.execute("UPDATE jobs SET active=0 WHERE id=?", (record_id,))
             # A failed older edit must not undo a newer successful manual save.
-            ticket = self.control(con, "edit:" + record_id) + 1 if row else None
-            if row:
-                self.set_control(con, "edit:" + record_id, ticket)
+            ticket = self.control(con, "edit:" + record_id) + 1
+            self.set_control(con, "edit:" + record_id, ticket)
+            self.set_control(con, "editing:" + record_id, self.clock() + 180)
         try:
             success = update()
         except Exception:
@@ -181,12 +263,36 @@ class FuelEstimateService:
             raise
         if not success:
             self._restore(record_id, row, ticket)
+        elif data is not None:
+            # Read the saved Mongo values rather than trusting form conversions.
+            saved = self.db.team_data.find_one({"_id": ObjectId(record_id)})
+            event = self._event(saved) if saved and zero_scored_fuel(saved) else ""
+            with self.transaction() as con:
+                if self.control(con, "edit:" + record_id) == ticket and saved:
+                    self.set_control(con, "editing:" + record_id, 0)
+                    if zero_scored_fuel(saved):
+                        if row and json.loads(row["identity"])["event_code"] == saved.get("event_code"):
+                            event = row["event"]
+                        self._enroll(con, record_id, saved, event, stored=True)
+                        if not event:
+                            con.execute("UPDATE discovery SET cursor=NULL,due=0 WHERE name='zero-scored-v2'")
+                    elif row and row["active"]:
+                        expected, identity = json.loads(row["expected"]), json.loads(row["identity"])
+                        if (all(saved.get(field) == expected.get(field) for field in PHASES)
+                                and all(saved.get(field) == value for field, value in identity.items())):
+                            con.execute("UPDATE jobs SET active=1 WHERE id=?", (record_id,))
+            self.wake.set()
+        else:
+            with self.transaction() as con:
+                if self.control(con, "edit:" + record_id) == ticket:
+                    self.set_control(con, "editing:" + record_id, 0)
         return success
 
     def _restore(self, record_id, row, ticket):
-        if row and row[0]:
-            with self.transaction() as con:
-                if self.control(con, "edit:" + record_id) == ticket:
+        with self.transaction() as con:
+            if self.control(con, "edit:" + record_id) == ticket:
+                self.set_control(con, "editing:" + record_id, 0)
+                if row and row["active"]:
                     con.execute("UPDATE jobs SET active=1 WHERE id=?", (record_id,))
 
     def statuses(self, ids, include_manual=False):
@@ -197,14 +303,16 @@ class FuelEstimateService:
         with self.connect() as con:
             for offset in range(0, len(ids), 500):
                 batch = ids[offset:offset + 500]
-                rows.extend(con.execute("SELECT id,active,applied,updated FROM jobs WHERE "
-                                        + ("" if include_manual else "active=1 AND ") + "id IN ("
-                                        + ",".join("?" for _ in batch) + ")", batch).fetchall())
+                # Only generated '?' placeholders are interpolated; IDs remain bound.
+                query = ("SELECT id,active,applied,updated FROM jobs WHERE "  # nosec B608
+                         + ("" if include_manual else "active=1 AND ") + "id IN ("
+                         + ",".join("?" for _ in batch) + ")")
+                rows.extend(con.execute(query, batch).fetchall())
         return {row["id"]: {"active": bool(row["active"]), "estimated": bool(row["active"] and row["applied"]),
                             "label": "Scouted" if not row["active"] else "Estimated · Match13" if row["applied"] else "Waiting for fuel estimate",
                             "updated": row["updated"]} for row in rows}
 
-    def _request(self, provider, path):
+    def _request(self, provider, path, ttl=None):
         now = self.clock()
         with self.connect() as con:
             row = con.execute("SELECT * FROM cache WHERE provider=? AND path=?", (provider, path)).fetchone()
@@ -242,12 +350,12 @@ class FuelEstimateService:
                     with self.transaction() as con:
                         self.set_control(con, provider + "-pause", now + delay)
                 elif response.status_code == 304 and stale is not None:
-                    delay = self.REFRESH_SECONDS
+                    delay = ttl or self.REFRESH_SECONDS
                 elif response.status_code == 200:
                     candidate = response.json()
                     if (provider == "m13" and isinstance(candidate, dict) and isinstance(candidate.get("teams"), list)
                             or provider == "tba" and isinstance(candidate, list)):
-                        body, etag, delay = candidate, response.headers.get("ETag"), self.REFRESH_SECONDS
+                        body, etag, delay = candidate, response.headers.get("ETag"), ttl or self.REFRESH_SECONDS
         except (requests.RequestException, ValueError):
             logger.warning("Fuel estimate provider temporarily unavailable: %s", provider)
         with self.transaction() as con:
@@ -284,13 +392,17 @@ class FuelEstimateService:
             if self.control(con, "scheduler") > now:
                 return
             events = con.execute("SELECT event FROM events WHERE due<=? ORDER BY due LIMIT 4", (now,)).fetchall()
-            if not events:
+            discovery = con.execute("SELECT due FROM discovery WHERE name='zero-scored-v2'").fetchone()[0]
+            if not events and discovery > now:
                 return
             # One scheduler across workers; ample lease for 4 events / 8 requests.
             self.set_control(con, "scheduler", now + 180)
-            for row in events:
-                con.execute("UPDATE events SET due=? WHERE event=?", (now + 300, row[0]))
         try:
+            self.discover()
+            with self.transaction() as con:
+                events = con.execute("SELECT event FROM events WHERE due<=? ORDER BY due LIMIT 4", (now,)).fetchall()
+                for row in events:
+                    con.execute("UPDATE events SET due=? WHERE event=?", (now + 300, row[0]))
             for row in events:
                 self.refresh_event(row[0])
         finally:
@@ -330,8 +442,10 @@ class FuelEstimateService:
             if not job:
                 return
             identity, expected = json.loads(job["identity"]), json.loads(job["expected"])
+            # Also migrate guards created by older versions that included ferry.
+            expected = {field: expected.get(field) for field in PHASES}
             query = {"_id": ObjectId(record_id), **identity, **expected}
-            # Guard every fuel field, including ferried fuel. No new Mongo fields.
+            # Guard scored values only. Ferry is never read or changed by estimates.
             result = self.db.team_data.update_one(query, {"$set": fuel})
             if not result.matched_count:
                 con.execute("UPDATE jobs SET active=0 WHERE id=?", (record_id,))

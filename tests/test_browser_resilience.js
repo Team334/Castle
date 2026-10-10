@@ -146,7 +146,7 @@ function fuelForm() {
   const scope = {document: {getElementById: () => hint, addEventListener() {}}};
   vm.runInNewContext(fs.readFileSync('app/static/js/scout/fuel-input.js', 'utf8'), scope);
   scope.trackFuelInput(form);
-  return {form, fields, hint, fire: name => listeners.get(name)()};
+  return {form, fields, hint, fire: name => listeners.get(name)?.()};
 }
 
 test('untouched blank fuel fields stay eligible for estimates', () => {
@@ -155,20 +155,24 @@ test('untouched blank fuel fields stay eligible for estimates', () => {
   assert.ok(fields.every(field => field.value === ''));
 });
 
-test('typing an explicit zero protects fuel even after the input is cleared', () => {
+test('zero or cleared scored fuel stays eligible and nonzero counts are manual', () => {
   const {form, fields, fire, hint} = fuelForm();
   fields[0].value = '0';
   fire('auto_fuel:input');
+  assert.match(hint.textContent, /uses automatic Match13/);
+  fields[0].value = '8';
+  fire('auto_fuel:input');
+  assert.match(hint.textContent, /saved as entered/);
   fields[0].value = '';
   fire('auto_fuel:input');
-  assert.equal(form.elements._fuel_entered.value, 'true');
-  assert.match(hint.textContent, /saved as entered/);
+  assert.match(hint.textContent, /uses automatic Match13/);
 });
 
-test('counter changes and ferried fuel protect the entire record', () => {
-  const {form, fire} = fuelForm();
+test('ferried fuel does not block estimates', () => {
+  const {fields, hint, fire} = fuelForm();
+  fields[1].value = '53';
   fire('ferried_fuel:change');
-  assert.equal(form.elements._fuel_entered.value, 'true');
+  assert.match(hint.textContent, /uses automatic Match13/);
 });
 
 function estimatePage(network) {
@@ -199,19 +203,27 @@ test('estimate polling refreshes counts and a manual edit removes the estimate l
     assert.equal(path, '/api/fuel_estimates');
     assert.deepEqual(JSON.parse(options.body).ids, ['new-record']);
     return Response.json({'new-record': {active: !edited, estimated: !edited,
-      label: edited ? 'Scouted' : 'Estimated · Match13', fuel: {auto_fuel: edited ? 0 : 8, ferried_fuel: 0}}});
+      label: edited ? 'Scouted' : 'Estimated · Match13', fuel: {auto_fuel: edited ? 9 : 8, ferried_fuel: 35}}});
   });
   await page.tick();
   assert.equal(page.cells[0].textContent, '8');
-  assert.equal(page.cells[1].textContent, '—');
+  assert.equal(page.cells[1].textContent, '35');
   assert.equal(page.row.dataset.fuelSource, 'Match13 estimate');
   edited = true;
   await page.tick();
-  assert.equal(page.cells[0].textContent, '0');
-  assert.equal(page.cells[1].textContent, '0');
+  assert.equal(page.cells[0].textContent, '9');
+  assert.equal(page.cells[1].textContent, '35');
   assert.equal(page.row.dataset.fuelSource, 'Scouted');
   assert.equal(page.row.dataset.fuelEstimateId, undefined);
   assert.equal(page.status.removed, true);
+});
+
+test('pending scored estimates still display observed ferried fuel', async () => {
+  const page = estimatePage(async () => Response.json({'new-record': {
+    active: true, estimated: false, label: 'Waiting for fuel estimate', fuel: {auto_fuel: 0, ferried_fuel: 41}}}));
+  await page.tick();
+  assert.equal(page.cells[0].textContent, '…');
+  assert.equal(page.cells[1].textContent, '41');
 });
 
 test('hidden estimate pages skip requests and leaving cancels the refresh timer', async () => {

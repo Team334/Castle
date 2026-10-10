@@ -97,7 +97,7 @@
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
                                         <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ '—' if team.fuel_estimate else team.ferried_fuel }}</span></div>
+                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel or 0 }}</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -157,7 +157,7 @@
                                     <h4 class="font-semibold mb-2">Fuel Scoring</h4>
                                     <div class="flex justify-between items-center text-sm">
                                         <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ '—' if team.fuel_estimate else team.ferried_fuel }}</span></div>
+                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel or 0 }}</span></div>
                                     </div>
                                 </div>
                             </div>

@@ -1,10 +1,24 @@
 # Automatic fuel estimates
 
-Only newly saved scouting records with every fuel count left blank are eligible.
-Entering any fuel count, including zero or ferried fuel, keeps the entire record
-manual. Touching a fuel counter and then clearing it also keeps the record manual.
-Existing records are never enrolled. Saving an edit stops automatic updates for
-that record, including when the edit deliberately sets counts to zero.
+All 2026 scouting records whose seven scored-fuel counts are zero, blank, or
+missing qualify, including records saved before this feature existed. Any nonzero
+scored-fuel count protects the record from automatic replacement. Ferried fuel is
+independent: it never blocks estimates, is never estimated or overwritten, and
+continues to display its saved value. Entering zero or clearing a counter does
+not disable estimates.
+
+Editing only ferried fuel, notes, or other details keeps existing estimates
+running. Changing scored counts to nonzero values stops automatic updates;
+setting every scored count to zero makes the record eligible again.
+
+On startup, each installation automatically discovers eligible records in its
+own MongoDB, in batches of up to 250 per minute. The cursor persists across
+workers and restarts, and a completed scan repeats daily. No laptop state needs
+to be copied to the VPS. Historical event display names are resolved against
+TBA's 2026 event catalog, cached for a day. Unrecognized or ambiguous events are
+not guessed. Invalid identities, unavailable ratings, and unplayed matches cannot
+be filled until usable provider data is available. Backfill runs in the background
+and shares the normal per-event cache and request budgets.
 
 ## How the estimate works
 
@@ -25,8 +39,8 @@ This is Castle's approximate allocation, not a Match13 measurement of that robot
 in that match. It cannot identify unusual individual performance or when a robot
 shot within teleop. As event ratings improve, eligible records are recalculated.
 Manual scouting records are never adjusted to make totals agree with this model.
-Ferried fuel cannot be inferred; Scout displays it as unknown for estimated
-records. Estimated records are labeled in Scout and Match View, and CSV exports
+Ferried fuel cannot be inferred; Scout preserves and displays its saved value.
+Estimated records are labeled in Scout and Match View, and CSV exports
 include a Fuel Source column. Aggregate fuel statistics use the stored estimates.
 The phase mapping currently supports the 2026 game only.
 
@@ -63,8 +77,10 @@ The existing Gunicorn service can continue using its current worker configuratio
 By default, eligibility, manual overrides, cache, and request budgets are stored
 in `instance/match13.sqlite` under Castle's application root. The directory is
 ignored by Git. **Preserve this state directory when deploying or restoring** so
-estimate labels and future updates survive. Losing it does not enroll old records
-or overwrite manual counts, but previously enrolled records stop refreshing.
+estimate labels and future updates survive. Losing it causes zero-scored records
+to be rediscovered. Records with nonzero
+counts remain protected, but previously estimated nonzero records lose their
+estimate labels and stop refreshing until their counts are cleared.
 
 Optionally set `MATCH13_STATE_PATH` to a persistent absolute SQLite file path,
 such as `/var/lib/castle/match13.sqlite`. Every worker on this host must use the
@@ -76,5 +92,8 @@ scheduler.
 
 MongoDB retains its current document format, collections, and indexes. The
 background writer only updates the seven existing scored-fuel fields on enrolled
-records, guarded by their identity and every previous fuel value. Eligibility and
-provenance are stored outside MongoDB; no historical-data scan or backfill runs.
+records, guarded by their identity and seven previous scored-fuel values. Ferried fuel
+is excluded from both the guard and update. Eligibility, backfill progress, and
+provenance remain outside MongoDB. No collections or indexes are changed, and
+no metadata fields are added to scouting documents. Backfill progress appears as `Fuel backfill:` in Castle
+logs (for systemd: `journalctl -u Castle -f`).

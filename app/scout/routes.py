@@ -15,7 +15,7 @@ from app.scout.scouting_utils import ScoutingManager
 from app.utils import async_route, handle_route_errors, limiter
 
 from .TBA import TBAInterface
-from .match13_fuel import FUEL_FIELDS, FuelEstimateService, blank_fuel
+from .match13_fuel import FUEL_FIELDS, FuelEstimateService, zero_scored_fuel
 
 scouting_bp = Blueprint("scouting", __name__)
 scouting_manager = None
@@ -80,7 +80,7 @@ def add():
             flash("Invalid path coordinates format", "error")
             return redirect(url_for("scouting.home"))
 
-    use_estimate = blank_fuel(data)
+    use_estimate = zero_scored_fuel(data)
     for field in FUEL_FIELDS:
         if data.get(field) in (None, ""):
             data[field] = 0
@@ -207,7 +207,7 @@ def edit(id):
             
             service = current_app.extensions.get("match13_fuel")
             save = lambda: scouting_manager.update_team_data(id, data, current_user.get_id())
-            saved = service.manual_update(id, save) if service else save()
+            saved = service.manual_update(id, save, data) if service else save()
             if saved:
                 flash("Data updated successfully", "success")
                 current_app.logger.info(f"Successfully updated scouting data {data} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")

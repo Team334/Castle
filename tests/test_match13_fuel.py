@@ -1,5 +1,7 @@
 """No real API calls or MongoDB connections; writes use an in-memory fake."""
 import copy
+from datetime import datetime, timezone
+import json
 from concurrent.futures import ThreadPoolExecutor
 import tempfile
 import threading
@@ -14,7 +16,7 @@ import requests
 
 from app.scout import routes
 from app.scout.match13_fuel import (FUEL_FIELDS, PHASES, FuelEstimateService,
-                                   apportioned, blank_fuel, estimate_fuel, match_key)
+                                   apportioned, zero_scored_fuel, estimate_fuel, match_key)
 
 
 class Response:
@@ -32,6 +34,21 @@ class Collection:
     def __init__(self):
         self.records = {}
         self.writes = []
+    def find_one(self, query):
+        record = self.records.get(str(query['_id']))
+        return copy.deepcopy(record) if record else None
+    def find(self, query, projection):
+        selected = [copy.deepcopy(record) for record in self.records.values()
+                    if all(record.get(field) in clause[field]['$in']
+                           for clause in query.get('$and', []) for field in clause)
+                    and ('_id' not in query or record['_id'] > query['_id']['$gt'])]
+        class Cursor:
+            def sort(self, field, direction):
+                selected.sort(key=lambda item: item[field])
+                return self
+            def limit(self, count):
+                return selected[:count]
+        return Cursor()
     def update_one(self, query, update):
         self.writes.append((query, update))
         record = self.records.get(str(query['_id']))
@@ -51,13 +68,14 @@ def fixtures():
 
 
 class EstimatorTests(unittest.TestCase):
-    def test_blanks_only_and_any_entered_zero_or_ferried_value_prevents_estimates(self):
-        self.assertTrue(blank_fuel({}))
-        self.assertTrue(blank_fuel(dict.fromkeys(FUEL_FIELDS, '')))
-        for field in FUEL_FIELDS:
-            for value in ('0', 0, '1'):
-                self.assertFalse(blank_fuel({field: value}))
-        self.assertFalse(blank_fuel({'_fuel_entered': 'true'}))
+    def test_only_nonzero_scored_counts_block_estimates(self):
+        self.assertTrue(zero_scored_fuel({}))
+        for field in PHASES:
+            for value in ('', None, '0', 0, 0.0, '0.0'):
+                self.assertTrue(zero_scored_fuel({field: value, 'ferried_fuel': 90}))
+            for value in ('1', 1, -1, 'invalid'):
+                self.assertFalse(zero_scored_fuel({field: value}))
+        self.assertTrue(zero_scored_fuel({'_fuel_entered': 'true', 'ferried_fuel': 12}))
 
     def test_match_identity_includes_distinct_finals_and_semifinals(self):
         self.assertEqual(match_key('2026nyn2', 'Qual 4'), '2026nyn2_qm4')
@@ -97,7 +115,9 @@ class ServiceTests(unittest.TestCase):
         self.db = SimpleNamespace(team_data=self.collection)
         self.now = [10000.]
         self.ratings, self.match = fixtures()
-        self.network = MagicMock(side_effect=lambda url, **kw: Response(self.ratings if 'match13' in url else [self.match], headers={'ETag': 'test-etag'}))
+        self.network = MagicMock(side_effect=lambda url, **kw: Response(
+            self.ratings if 'match13' in url else [{'key': '2026nyn2', 'name': 'Gotham Regional'}]
+            if '/events/2026/simple' in url else [self.match], headers={'ETag': 'test-etag'}))
         self.service = FuelEstimateService(self.db, self.path, 'test-key', 'test-tba', clock=lambda: self.now[0], get=self.network)
         self.id = str(ObjectId())
         self.data = {'_event_key': '2026nyn2', 'event_code': 'Gotham Regional', 'match_number': 'Qual 4', 'team_number': 334, 'alliance': 'blue'}
@@ -106,22 +126,28 @@ class ServiceTests(unittest.TestCase):
     def tearDown(self):
         self.directory.cleanup()
 
-    def test_only_enrolled_new_records_update_and_later_ratings_recalculate(self):
+    def test_existing_zero_records_backfill_and_later_ratings_recalculate(self):
         old_id = str(ObjectId())
         self.collection.records[old_id] = copy.deepcopy(self.collection.records[self.id])
         self.collection.records[old_id]['_id'] = ObjectId(old_id)
-        old = copy.deepcopy(self.collection.records[old_id])
+        self.collection.records[old_id]['ferried_fuel'] = 37
+        protected_id = str(ObjectId())
+        protected = {**copy.deepcopy(self.collection.records[old_id]), '_id': ObjectId(protected_id), 'auto_fuel': 9}
+        self.collection.records[protected_id] = copy.deepcopy(protected)
         self.service.enroll(self.id, self.data)
         self.service.tick()
         self.assertEqual(self.collection.records[self.id]['auto_fuel'], 2)
-        self.assertEqual(self.collection.records[old_id], old)
+        self.assertEqual(self.collection.records[old_id]['auto_fuel'], 2)
+        self.assertEqual(self.collection.records[old_id]['ferried_fuel'], 37)
+        self.assertEqual(self.collection.records[protected_id], protected)
         self.assertTrue(self.service.statuses([self.id])[self.id]['estimated'])
         self.assertEqual(set(self.collection.writes[0][1]['$set']), set(PHASES))
         self.ratings['teams'][0]['xAuto'] = 3
         self.now[0] += 301
         self.service.tick()
         self.assertEqual(self.collection.records[self.id]['auto_fuel'], 5)
-        self.assertEqual(self.collection.records[old_id], old)
+        self.assertEqual(self.collection.records[old_id]['auto_fuel'], 5)
+        self.assertEqual(self.collection.records[protected_id], protected)
 
     def test_cache_scheduler_and_enrollment_survive_new_worker_and_restart(self):
         self.service.enroll(self.id, self.data)
@@ -162,8 +188,9 @@ class ServiceTests(unittest.TestCase):
             manual_started.set()
             def save():
                 self.collection.records[self.id].update(dict.fromkeys(FUEL_FIELDS, 0))
+                self.collection.records[self.id]['auto_fuel'] = 9
                 return True
-            return self.service.manual_update(self.id, save)
+            return self.service.manual_update(self.id, save, {'auto_fuel': '9'})
         with ThreadPoolExecutor(max_workers=2) as pool:
             background = pool.submit(self.service.tick)
             try:
@@ -175,12 +202,14 @@ class ServiceTests(unittest.TestCase):
             background.result(timeout=5)
             self.assertTrue(edited.result(timeout=5))
         self.service.refresh_event('2026nyn2')
-        self.assertTrue(all(self.collection.records[self.id][field] == 0 for field in FUEL_FIELDS))
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 9)
         self.assertFalse(self.service.statuses([self.id]))
 
     def test_idle_scheduler_and_finished_event_allow_new_enrollment_without_new_calls(self):
+        record = self.collection.records.pop(self.id)
         self.service.tick()
         self.assertEqual(self.network.call_count, 0)
+        self.collection.records[self.id] = record
         self.now[0] = 200000
         self.service.enroll(self.id, self.data)
         self.service.tick()
@@ -194,38 +223,170 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(self.service.statuses([new_id])[new_id]['estimated'])
         self.assertEqual(self.network.call_count, 2)
 
-    def test_manual_save_of_zero_wins_and_failed_save_keeps_automatic_updates(self):
+    def test_manual_nonzero_save_wins_and_failed_save_keeps_automatic_updates(self):
         self.service.enroll(self.id, self.data)
         self.service.tick()
         self.assertFalse(self.service.manual_update(self.id, lambda: False))
         self.assertIn(self.id, self.service.statuses([self.id]))
         def save():
             self.collection.records[self.id].update(dict.fromkeys(FUEL_FIELDS, 0))
+            self.collection.records[self.id]['auto_fuel'] = 9
             return True
-        self.service.manual_update(self.id, save)
+        self.service.manual_update(self.id, save, {'auto_fuel': '9'})
         self.service.refresh_event('2026nyn2')
-        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 0)
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 9)
         self.assertNotIn(self.id, self.service.statuses([self.id]))
 
-    def test_external_fuel_edit_is_protected_by_atomic_value_guard(self):
+    def test_external_ferry_edit_does_not_block_estimates_or_get_overwritten(self):
         self.service.enroll(self.id, self.data)
         self.collection.records[self.id]['ferried_fuel'] = 10
         self.service.tick()
         self.assertEqual(self.collection.records[self.id]['ferried_fuel'], 10)
-        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 0)
-        self.assertFalse(self.service.statuses([self.id]))
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 2)
+        self.assertTrue(self.service.statuses([self.id])[self.id]['estimated'])
 
-    def test_failed_older_edit_cannot_reactivate_after_a_newer_manual_zero_save(self):
+    def test_failed_older_edit_cannot_reactivate_after_a_newer_manual_nonzero_save(self):
         self.service.enroll(self.id, self.data)
         def newer_save():
             self.collection.records[self.id].update(dict.fromkeys(FUEL_FIELDS, 0))
+            self.collection.records[self.id]['auto_fuel'] = 9
             return True
         def failed_older_save():
-            self.service.manual_update(self.id, newer_save)
+            self.service.manual_update(self.id, newer_save, {'auto_fuel': '9'})
             return False
         self.assertFalse(self.service.manual_update(self.id, failed_older_save))
         self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 9)
+        self.assertFalse(self.service.statuses([self.id]))
+
+    def test_ferry_only_edit_keeps_estimate_updates_and_zero_edit_reenrolls(self):
+        self.service.enroll(self.id, self.data)
+        self.service.tick()
+        def ferry_save():
+            self.collection.records[self.id]['ferried_fuel'] = 56
+            return True
+        self.service.manual_update(self.id, ferry_save, {'ferried_fuel': '56'})
+        self.ratings['teams'][0]['xAuto'] = 3
+        self.now[0] += 301
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 5)
+        self.assertEqual(self.collection.records[self.id]['ferried_fuel'], 56)
+        def zero_save():
+            self.collection.records[self.id].update(dict.fromkeys(PHASES, 0))
+            return True
+        self.service.manual_update(self.id, zero_save, dict.fromkeys(PHASES, '0'))
+        self.service.refresh_event('2026nyn2')
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 5)
+        self.assertEqual(self.collection.records[self.id]['ferried_fuel'], 56)
+
+    def test_old_ferry_guards_migrate_without_blocking_estimates(self):
+        self.service.enroll(self.id, self.data)
+        with self.service.transaction() as con:
+            con.execute('UPDATE jobs SET expected=?', (json.dumps(dict.fromkeys(FUEL_FIELDS, 0)),))
+        self.collection.records[self.id]['ferried_fuel'] = 14
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 2)
+        self.assertEqual(self.collection.records[self.id]['ferried_fuel'], 14)
+
+    def test_external_nonzero_scoring_is_protected(self):
+        self.service.enroll(self.id, self.data)
+        self.collection.records[self.id]['teleop_shift_2_fuel'] = 7
+        self.service.tick()
         self.assertEqual(self.collection.records[self.id]['auto_fuel'], 0)
+        self.assertEqual(self.collection.records[self.id]['teleop_shift_2_fuel'], 7)
+        self.assertFalse(self.service.statuses([self.id]))
+
+    def test_backfill_resumes_on_another_instance_with_no_laptop_state(self):
+        self.service.DISCOVERY_BATCH = 1
+        second_id = str(ObjectId())
+        self.collection.records[second_id] = {**self.collection.records[self.id], '_id': ObjectId(second_id), 'ferried_fuel': 22}
+        # No enroll call, event key, or state copied from another installation.
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 2)
+        self.assertEqual(self.collection.records[second_id]['auto_fuel'], 0)
+        other = FuelEstimateService(self.db, self.path, 'key', 'tba', clock=lambda: self.now[0], get=self.network)
+        other.DISCOVERY_BATCH = 1
+        self.now[0] += 60
+        other.tick()
+        self.assertEqual(self.collection.records[second_id]['auto_fuel'], 2)
+        self.assertEqual(self.collection.records[second_id]['ferried_fuel'], 22)
+        self.assertEqual(self.network.call_count, 3)  # Catalog + one ratings/matches pair.
+        self.now[0] += 60
+        other.tick()
+        self.assertEqual(self.network.call_count, 3)
+
+    def test_legacy_missing_and_string_zero_fields_and_inactive_jobs_backfill(self):
+        self.service.enroll(self.id, self.data)
+        with self.service.transaction() as con:
+            con.execute('UPDATE jobs SET active=0')
+        record = self.collection.records[self.id]
+        record.pop('endgame_fuel')
+        record['auto_fuel'] = '0'
+        record['transition_fuel'] = None
+        record['ferried_fuel'] = 83
+        self.service.tick()
+        self.assertEqual(record['auto_fuel'], 2)
+        self.assertEqual(record['endgame_fuel'], 2)
+        self.assertEqual(record['ferried_fuel'], 83)
+
+    def test_catalog_failure_retries_without_losing_backfill_cursor(self):
+        self.network.side_effect = lambda url, **kw: Response(status=503)
+        self.service.tick()
+        self.assertFalse(self.service.statuses([self.id]))
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 0)
+        with self.service.connect() as con:
+            row = con.execute('SELECT cursor,due FROM discovery').fetchone()
+            self.assertIsNone(row['cursor'])
+            self.assertEqual(row['due'], self.now[0] + 900)
+
+    def test_ambiguous_event_names_are_not_guessed(self):
+        self.network.side_effect = lambda url, **kw: Response([
+            {'key': '2026nyn2', 'name': 'Gotham Regional'},
+            {'key': '2026other', 'name': 'Gotham Regional'}])
+        self.service.tick()
+        self.assertEqual(self.network.call_count, 1)
+        self.assertFalse(self.service.statuses([self.id]))
+
+    def test_older_season_display_name_is_not_mapped_to_2026(self):
+        self.collection.records[self.id]['created_at'] = datetime(2025, 4, 1, tzinfo=timezone.utc)
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 0)
+        self.assertFalse(self.service.statuses([self.id]))
+
+    def test_editing_an_old_zero_record_without_a_job_starts_estimates(self):
+        def save():
+            self.collection.records[self.id]['ferried_fuel'] = 28
+            return True
+        self.service.manual_update(self.id, save, {'ferried_fuel': '28'})
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 2)
+        self.assertEqual(self.collection.records[self.id]['ferried_fuel'], 28)
+
+    def test_zero_completion_of_an_older_edit_cannot_reenroll_after_newer_nonzero_save(self):
+        self.service.enroll(self.id, self.data)
+        def newer():
+            self.collection.records[self.id]['auto_fuel'] = 9
+            return True
+        def older():
+            self.collection.records[self.id].update(dict.fromkeys(PHASES, 0))
+            self.service.manual_update(self.id, newer, {'auto_fuel': '9'})
+            return True
+        self.service.manual_update(self.id, older, dict.fromkeys(PHASES, '0'))
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 9)
+        self.assertFalse(self.service.statuses([self.id]))
+
+    def test_backfill_does_not_reenroll_during_an_inflight_manual_save(self):
+        self.service.enroll(self.id, self.data)
+        def save():
+            self.service.tick()
+            self.assertFalse(self.collection.writes)
+            self.collection.records[self.id]['auto_fuel'] = 9
+            return True
+        self.service.manual_update(self.id, save, {'auto_fuel': '9'})
+        self.now[0] += 301
+        self.service.tick()
+        self.assertEqual(self.collection.records[self.id]['auto_fuel'], 9)
         self.assertFalse(self.service.statuses([self.id]))
 
     def test_unplayed_match_waits_then_fills_after_results_arrive(self):
@@ -298,7 +459,7 @@ class RouteTests(unittest.TestCase):
         self.manager = MagicMock()
         self.manager.add_scouting_data.return_value = (True, str(ObjectId()))
 
-    def test_only_new_blank_submissions_enroll_and_blanks_save_as_existing_zero_fields(self):
+    def test_zero_submissions_enroll_even_with_ferry_and_nonzero_scoring_stays_manual(self):
         with patch.object(routes, 'current_user', self.user), patch.object(routes, 'scouting_manager', self.manager):
             response = self.app.test_client().post('/scouting/add', data={'team_number': '334'})
             self.assertEqual(response.status_code, 302)
@@ -307,6 +468,11 @@ class RouteTests(unittest.TestCase):
             self.assertTrue(all(submitted[field] == 0 for field in FUEL_FIELDS))
             self.service.enroll.reset_mock()
             for data in [{'auto_fuel': '0'}, {'_fuel_entered': 'true'}, {'ferried_fuel': '2'}]:
+                self.app.test_client().post('/scouting/add', data=data)
+            self.assertEqual(self.service.enroll.call_count, 3)
+            self.assertEqual(self.manager.add_scouting_data.call_args.args[0]['ferried_fuel'], '2')
+            self.service.enroll.reset_mock()
+            for data in [{'auto_fuel': '1'}, {'teleop_shift_4_fuel': '9'}]:
                 self.app.test_client().post('/scouting/add', data=data)
             self.service.enroll.assert_not_called()
 

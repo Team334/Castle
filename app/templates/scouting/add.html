@@ -62,11 +62,10 @@
       id="scoutingForm"
       autocomplete="off"
     >
-      <input type="hidden" name="_fuel_entered" value="false" />
       <input type="hidden" name="_event_key" value="" />
       <p class="px-8 py-4 text-sm text-gray-600 dark:text-gray-400" id="fuelEstimateHint">
-        Leave every fuel count blank to use automatic Match13 estimates when results become available.
-        Entering any fuel count, including zero, keeps all your fuel counts as entered.
+        When all scored-fuel counts are zero or blank, Castle uses automatic Match13 estimates when results become available.
+        Any nonzero scored count keeps scored fuel manual. Ferried fuel is saved separately.
       </p>
       <!-- Team & Event Info Section -->
       <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
@@ -1120,8 +1119,8 @@
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/scout/fuel-input.js', v='10') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/fuel-input.js', v='11') }}"></script>
 <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
-<script src="{{ url_for('static', filename='js/scout/add.js', v='10') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/add.js', v='11') }}"></script>
 
 {% endblock %}
