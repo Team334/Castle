@@ -1,23 +1,69 @@
 let filterType;
 let searchInput;
-let eventSections;
 let modalCanvas;
 let filterTimer;
-let searchableSections = [];
+
+let listController;
+let listGeneration = 0;
+let listBusy = false;
+
+async function loadMatches(reset = false) {
+    const button = document.getElementById('loadMoreMatches');
+    const status = document.getElementById('matchListStatus');
+    const container = document.getElementById('teamDataContainer');
+    if (!button || (!reset && listBusy)) return;
+    listController?.abort();
+    const controller = listController = new AbortController();
+    const generation = ++listGeneration;
+    listBusy = true;
+    button.disabled = true;
+    status.textContent = 'Loading matches…';
+    const url = new URL(button.dataset.url, window.location.origin);
+    url.searchParams.set('partial', '1');
+    url.searchParams.set('page', reset ? '1' : button.dataset.nextPage);
+    url.searchParams.set('search', searchInput.value);
+    url.searchParams.set('filter', filterType.value);
+    try {
+        const response = await fetch(url, {signal: controller.signal});
+        if (!response.ok) throw new Error(`Matches HTTP ${response.status}`);
+        const result = await response.json();
+        if (generation !== listGeneration) return;
+        if (result.error || typeof result.html !== 'string') throw new Error('Invalid match response');
+        const template = document.createElement('template');
+        template.innerHTML = result.html;
+        const incoming = template.content.querySelector('#teamDataContainer');
+        if (!incoming) throw new Error('Missing match list');
+        if (reset) container.replaceChildren();
+        for (const section of [...incoming.querySelectorAll('.event-section')]) {
+            const existing = [...container.querySelectorAll('.event-section')]
+                .find(item => item.dataset.eventCode === section.dataset.eventCode);
+            if (existing) existing.querySelector('tbody').append(...section.querySelectorAll('.team-row'));
+            else container.append(section);
+        }
+        button.dataset.nextPage = result.next_page;
+        button.hidden = !result.has_more;
+        const count = container.querySelectorAll('.team-row').length;
+        status.textContent = count ? `Showing ${count} of ${result.total} matches` : 'No matches found.';
+        loadTeamStats(container);
+    } catch (error) {
+        if (error.name !== 'AbortError' && generation === listGeneration) {
+            status.textContent = 'Unable to load matches. Please try again.';
+            // Retrying a failed search must replace the old result set.
+            button.dataset.retryReset = reset ? 'true' : 'false';
+            button.hidden = false;
+        }
+    } finally {
+        if (generation === listGeneration) {
+            listBusy = false;
+            button.disabled = false;
+        }
+    }
+}
 
 const filterRows = () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const type = filterType.value;
-
-    searchableSections.forEach(({section, rows}) => {
-        let visibleCount = 0;
-        rows.forEach(({row, values}) => {
-            const visible = (values[type] || '').includes(searchTerm);
-            row.hidden = !visible;
-            if (visible) visibleCount++;
-        });
-        section.hidden = visibleCount === 0;
-    });
+    const button = document.getElementById('loadMoreMatches');
+    if (button) delete button.dataset.retryReset;
+    loadMatches(true);
 };
 
 function showAutoPath(pathData, autoNotes) {
@@ -161,23 +207,28 @@ function exportToCSV() {
 document.addEventListener('DOMContentLoaded', function() {
     filterType = document.getElementById('filterType');
     searchInput = document.getElementById('searchInput');
-    eventSections = document.querySelectorAll('.event-section');
-    searchableSections = [...eventSections].map(section => ({section,
-        rows: [...section.querySelectorAll('.team-row')].map(row => ({row, values: {
-            team: row.dataset.teamNumber || '',
-            match: row.cells[3].textContent.trim().toLowerCase(),
-            scouter: (row.dataset.scouter || '').toLowerCase(),
-            notes: (row.dataset.notes || '').toLowerCase(),
-        }}))
-    }));
-
     if (searchInput && filterType) {
         searchInput.addEventListener('input', () => {
             clearTimeout(filterTimer);
-            filterTimer = setTimeout(filterRows, 100);
+            listController?.abort();
+            listGeneration++;
+            const button = document.getElementById('loadMoreMatches');
+            if (button) button.disabled = true;
+            filterTimer = setTimeout(filterRows, 250);
         });
-        filterType.addEventListener('change', filterRows);
+        filterType.addEventListener('change', () => { clearTimeout(filterTimer); filterRows(); });
     }
+
+    const loadMore = document.getElementById('loadMoreMatches');
+    if (loadMore) loadMore.addEventListener('click', () => {
+        const reset = loadMore.dataset.retryReset === 'true';
+        delete loadMore.dataset.retryReset;
+        loadMatches(reset);
+    });
+    window.addEventListener('pagehide', () => {
+        clearTimeout(filterTimer);
+        listController?.abort();
+    }, {once: true});
 
     // Add CSV export button listener
     const exportButton = document.getElementById('exportCSV');

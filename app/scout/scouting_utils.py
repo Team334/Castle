@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 
 from bson import ObjectId
@@ -147,8 +148,9 @@ class ScoutingManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    def get_all_scouting_data(self, user_team_number=None, user_id=None) -> list[dict]:
-        """Get all scouting data with user information, filtered by team access"""
+    def get_all_scouting_data(self, user_team_number=None, user_id=None, *,
+                              page=None, page_size=20, search="", filter_type="team") -> list[dict] | dict:
+        """Read authorized scouting data, optionally returning a page and total."""
         try:
             # Base pipeline for user lookup
             pipeline = [
@@ -224,10 +226,32 @@ class ScoutingManager(DatabaseManager):
                 }
             })
             
-            team_data = list(self.db.team_data.aggregate(pipeline))
-            return team_data
+            if page is not None:
+                # Keep the existing visibility rules and storage format. Search
+                # precedes pagination so older records remain discoverable.
+                fields = {"team": "team_number", "match": "match_number",
+                          "scouter": "scouter_name", "notes": "notes"}
+                term = search.strip()[:200]
+                if term:
+                    field = fields.get(filter_type, "team_number")
+                    pipeline.append({"$match": {"$expr": {"$regexMatch": {
+                        "input": {"$convert": {"input": "$" + field, "to": "string",
+                                               "onError": "", "onNull": ""}},
+                        "regex": re.escape(term), "options": "i"}}}})
+                pipeline.append({"$facet": {
+                    "records": [{"$sort": {"_id": -1}},
+                                {"$skip": (max(1, page) - 1) * page_size},
+                                {"$limit": page_size}],
+                    "count": [{"$count": "total"}],
+                }})
+                result = next(iter(self.db.team_data.aggregate(pipeline)), {})
+                return {"records": result.get("records", []),
+                        "total": (result.get("count") or [{"total": 0}])[0]["total"]}
+            return list(self.db.team_data.aggregate(pipeline))
         except Exception as e:
             logger.error(f"Error fetching team data: {str(e)}")
+            if page is not None:
+                raise
             return []
 
     @with_mongodb_retry(retries=3, delay=2)

@@ -80,16 +80,21 @@ def add():
     return redirect(url_for("scouting.home"))
 
 
+SCOUTING_PAGE_SIZE = 20
+
+
 @scouting_bp.route("/scouting/list")
 @scouting_bp.route("/scouting")
 # @limiter.limit("30 per minute")
 @login_required
 def home():
     try:
-        team_data = scouting_manager.get_all_scouting_data(
-            current_user.teamNumber, 
-            current_user.get_id()
-        )
+        page = max(1, request.args.get("page", 1, type=int)) if request.args.get("partial") == "1" else 1
+        result = scouting_manager.get_all_scouting_data(
+            current_user.teamNumber, current_user.get_id(), page=page,
+            page_size=SCOUTING_PAGE_SIZE, search=request.args.get("search", ""),
+            filter_type=request.args.get("filter", "team"))
+        team_data, total = result["records"], result["total"]
 
         # Get the user's team if they have one
         team = None
@@ -98,12 +103,18 @@ def home():
             if team_doc := scouting_manager.db.teams.find_one(team_query):
                 from app.models import Team
                 team = Team.create_from_db(team_doc)
-        current_app.logger.info(f"Successfully fetched team data for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        return render_template("scouting/list.html", team_data=team_data, team=team)
+        has_more = page * SCOUTING_PAGE_SIZE < total
+        if request.args.get("partial") == "1":
+            return jsonify(html=render_template("scouting/_match_list.html", team_data=team_data, team=team),
+                           total=total, has_more=has_more, next_page=page + 1)
+        return render_template("scouting/list.html", team_data=team_data, team=team,
+                               total=total, has_more=has_more)
     except Exception as e:
         current_app.logger.error(f"Error fetching scouting data: {str(e)}", exc_info=True)
         flash("Unable to fetch scouting data. Please try again later.", "error")
-        return render_template("scouting/list.html", team_data=[])
+        if request.args.get("partial") == "1":
+            return jsonify(error="Unable to load matches. Please try again."), 503
+        return render_template("scouting/list.html", team_data=[], total=0, has_more=False)
 
 
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])

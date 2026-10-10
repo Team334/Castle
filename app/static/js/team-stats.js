@@ -1,6 +1,7 @@
 // Metric requests return immediately. Poll only unfinished, unique team/event pairs.
-document.addEventListener('DOMContentLoaded', () => {
-  const cells = [...document.querySelectorAll('.team-stats-cell')];
+function loadTeamStats(root = document) {
+  const cells = [...root.querySelectorAll('.team-stats-cell')].filter(cell => !cell.dataset.statsStarted);
+  for (const cell of cells) cell.dataset.statsStarted = 'true';
   if (!cells.length) return;
   const metrics = ['epa', 'opr', 'dpr', 'ccwm'];
   const pairs = new Map();
@@ -13,15 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const controller = new AbortController();
   let timer;
   let stopped = false;
-  window.addEventListener('pagehide', () => {
+  const stop = () => {
     stopped = true;
     clearTimeout(timer);
     controller.abort();
-  });
-  // A page restored from the back/forward cache needs a fresh controller.
-  window.addEventListener('pageshow', event => {
-    if (event.persisted) window.location.reload();
-  });
+    window.removeEventListener('pagehide', stop);
+  };
+  window.addEventListener('pagehide', stop, {once: true});
   const started = Date.now();
   function render(cell, data) {
     for (const metric of metrics) {
@@ -54,6 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   async function load() {
     if (stopped) return;
+    const connected = new Set(cells.filter(cell => cell.isConnected).map(keyFor));
+    for (const key of pairs.keys()) {
+      if (!connected.has(key)) pairs.delete(key);
+    }
+    if (!pairs.size) {
+      window.removeEventListener('pagehide', stop);
+      return;
+    }
     try {
       const response = await fetch('/api/team_epa_opr', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -76,11 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       sortLeaderboard();
       if (pairs.size && !stopped) timer = setTimeout(load, 2000);
+      else window.removeEventListener('pagehide', stop);
     } catch (error) {
       if (error.name === 'AbortError') return;
       console.warn('Scouting metrics unavailable:', error);
       for (const cell of cells) if (pairs.has(keyFor(cell))) render(cell, {});
+      window.removeEventListener('pagehide', stop);
     }
   }
   load();
+}
+document.addEventListener('DOMContentLoaded', () => loadTeamStats());
+window.addEventListener('pageshow', event => {
+  if (event.persisted) window.location.reload();
 });
