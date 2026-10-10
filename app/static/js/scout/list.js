@@ -1,41 +1,22 @@
 let filterType;
 let searchInput;
 let eventSections;
+let modalCanvas;
+let filterTimer;
+let searchableSections = [];
 
 const filterRows = () => {
     const searchTerm = searchInput.value.toLowerCase();
     const type = filterType.value;
 
-    Array.from(eventSections).forEach(section => {
-        const rows = Array.from(section.querySelectorAll('.team-row'));
-        
-        rows.forEach(row => {
-            let searchValue = '';
-            switch(type) {
-                case 'team':
-                    searchValue = row.dataset.teamNumber;
-                    break;
-                case 'match':
-                    searchValue = row.querySelector('td:nth-child(3)').textContent;
-                    break;
-                case 'scouter':
-                    searchValue = row.dataset.scouter.toLowerCase();
-                    break;
-                case 'notes':
-                    // Combine all note fields for searching
-                    searchValue = (
-                        (row.dataset.notes || '') + ' ' +
-                        (row.dataset.mobilityNotes || '') + ' ' +
-                        (row.dataset.durabilityNotes || '')
-                    ).toLowerCase();
-                    break;
-            }
-
-            row.style.display = searchValue.includes(searchTerm) ? '' : 'none';
+    searchableSections.forEach(({section, rows}) => {
+        let visibleCount = 0;
+        rows.forEach(({row, values}) => {
+            const visible = (values[type] || '').includes(searchTerm);
+            row.hidden = !visible;
+            if (visible) visibleCount++;
         });
-
-        const visibleRows = Array.from(section.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
-        section.style.display = visibleRows.length > 0 ? '' : 'none';
+        section.hidden = visibleCount === 0;
     });
 };
 
@@ -53,12 +34,14 @@ function showAutoPath(pathData, autoNotes) {
     notesElement.textContent = autoNotes;
     modal.classList.remove('hidden');
 
-    const CanvasField = new Canvas({
+    const CanvasField = modalCanvas || (modalCanvas = new Canvas({
         canvas: canvas,
         container: container,
         backgroundImage: '/static/images/field-2026.png',
         maxPanDistance: 1000
-    });
+    }));
+    CanvasField.drawingHistory = [];
+    CanvasField.resizeCanvas();
 
     if (pathData) {
         try {
@@ -123,22 +106,22 @@ function exportToCSV() {
     let csvContent = headers.join(',') + '\n';
 
     // Get all visible rows from all event sections
-    const rows = Array.from(document.querySelectorAll('.team-row')).filter(row => row.style.display !== 'none');
+    const rows = Array.from(document.querySelectorAll('.team-row')).filter(row => !row.hidden);
 
     rows.forEach(row => {
         const {teamNumber} = row.dataset;
-        const alliance = row.querySelector('td:nth-child(2) span').textContent.trim();
-        const match = row.querySelector('td:nth-child(3)').textContent.trim();
+        const alliance = row.cells[2].innerText.trim();
+        const match = row.cells[3].innerText.trim();
         
-        const autoFuel = row.querySelector('td:nth-child(4)').textContent.trim();
-        const autoClimb = row.querySelector('td:nth-child(5)').textContent.trim();
-        const transitionFuel = row.querySelector('td:nth-child(6)').textContent.trim();
-        const teleopFuel = row.querySelector('td:nth-child(8)').textContent.trim();
-        const endgameFuel = row.querySelector('td:nth-child(9)').textContent.trim();
-        const climb = row.querySelector('td:nth-child(10)').textContent.trim();
-        const defense = row.querySelector('td:nth-child(12)').textContent.trim();
-        const robotDisabled = row.querySelector('td:nth-child(13) span').textContent.trim();
-        const notes = (row.dataset.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
+        const autoFuel = row.cells[4].innerText.trim();
+        const autoClimb = row.cells[5].innerText.trim();
+        const transitionFuel = row.cells[6].innerText.trim();
+        const teleopFuel = row.cells[10].innerText.trim();
+        const endgameFuel = row.cells[11].innerText.trim();
+        const climb = row.cells[12].innerText.trim();
+        const defense = row.cells[14].innerText.trim();
+        const robotDisabled = row.cells[16].innerText.trim();
+        const notes = row.dataset.notes || '';
         const {scouter} = row.dataset;
         const {eventCode} = row.closest('.event-section').dataset;
 
@@ -155,11 +138,11 @@ function exportToCSV() {
             climb,
             defense,
             robotDisabled,
-            `"${notes}"`,
+            notes,
             scouter,
         ];
 
-        csvContent += rowData.join(',') + '\n';
+        csvContent += rowData.map(value => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',') + '\r\n';
     });
 
     // Create and trigger download
@@ -172,15 +155,27 @@ function exportToCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     filterType = document.getElementById('filterType');
     searchInput = document.getElementById('searchInput');
     eventSections = document.querySelectorAll('.event-section');
+    searchableSections = [...eventSections].map(section => ({section,
+        rows: [...section.querySelectorAll('.team-row')].map(row => ({row, values: {
+            team: row.dataset.teamNumber || '',
+            match: row.cells[3].textContent.trim().toLowerCase(),
+            scouter: (row.dataset.scouter || '').toLowerCase(),
+            notes: (row.dataset.notes || '').toLowerCase(),
+        }}))
+    }));
 
     if (searchInput && filterType) {
-        searchInput.addEventListener('input', filterRows);
+        searchInput.addEventListener('input', () => {
+            clearTimeout(filterTimer);
+            filterTimer = setTimeout(filterRows, 100);
+        });
         filterType.addEventListener('change', filterRows);
     }
 
@@ -200,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Configure Coloris
-    Coloris({
+    if (typeof Coloris === 'function') Coloris({
         theme: 'polaroid',
         themeMode: 'light',
         alpha: false,

@@ -553,7 +553,7 @@
                   {% if data.scouter_id|string == current_user.id|string or
                   (data.scouter_team and current_user.teamNumber and
                   data.scouter_team|string == current_user.teamNumber|string) %}
-                  <img
+                  <img loading="lazy"
                     src="{{ url_for('auth.profile_picture', user_id=data.scouter_id) }}"
                     alt="Profile Picture"
                     class="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
@@ -662,82 +662,7 @@
     {% endfor %}
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async function () {
-      const statsCells = document.querySelectorAll(".team-stats-cell");
-      if (!statsCells.length) return;
-
-      const requestData = {
-        events: [],
-        teams: [],
-      };
-      const eventsSet = new Set();
-
-      statsCells.forEach((cell) => {
-        const teamNum = cell.getAttribute("data-team-id");
-        const eventCode = cell.getAttribute("data-event-id");
-        if (teamNum) {
-          requestData.teams.push({
-            team_number: teamNum,
-            event_code: eventCode,
-          });
-          if (eventCode) eventsSet.add(eventCode);
-        }
-      });
-
-      requestData.events = Array.from(eventsSet);
-
-      try {
-        const response = await fetch("/api/team_epa_opr", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        const results = await response.json();
-
-        statsCells.forEach((cell) => {
-          const teamNum = cell.getAttribute("data-team-id");
-          const eventCode = cell.getAttribute("data-event-id");
-          const key = eventCode ? `${teamNum}_${eventCode}` : teamNum;
-
-          const data = results[key] || {};
-
-          const epaHtml =
-            typeof data.epa === "number" && data.epa !== 0
-              ? data.epa.toFixed(1)
-              : "N/A";
-          const oprHtml =
-            typeof data.opr === "number" && data.opr !== 0
-              ? data.opr.toFixed(1)
-              : "N/A";
-          const dprHtml =
-            typeof data.dpr === "number" && data.dpr !== 0
-              ? data.dpr.toFixed(1)
-              : "N/A";
-          const ccwmHtml =
-            typeof data.ccwm === "number" && data.ccwm !== 0
-              ? data.ccwm.toFixed(1)
-              : "N/A";
-
-          cell.querySelector(".epa-value").innerHTML = `EPA: ${epaHtml}`;
-          cell.querySelector(".opr-value").innerHTML = `OPR: ${oprHtml}`;
-          cell.querySelector(".dpr-value").innerHTML = `DPR: ${dprHtml}`;
-          cell.querySelector(".ccwm-value").innerHTML = `CCWM: ${ccwmHtml}`;
-        });
-      } catch (error) {
-        console.error("Failed to fetch EPA/OPR data:", error);
-        statsCells.forEach((cell) => {
-          cell.querySelector(".epa-value").innerHTML = "EPA: N/A";
-          cell.querySelector(".opr-value").innerHTML = "OPR: N/A";
-          cell.querySelector(".dpr-value").innerHTML = "DPR: N/A";
-          cell.querySelector(".ccwm-value").innerHTML = "CCWM: N/A";
-        });
-      }
-    });
-  </script>
+  <script src="{{ url_for('static', filename='js/team-stats.js') }}"></script>
 
   <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
   <script src="{{ url_for('static', filename='js/scout/list.js') }}"></script>

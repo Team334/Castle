@@ -66,11 +66,11 @@
     <!-- Match Cards Container -->
     <div class="space-y-6">
         {% for match in matches %}
-        <div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-lg overflow-hidden">
+        <div data-match-card class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-lg overflow-hidden">
             <!-- Match Header -->
             <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-2xl font-bold">
-                    {{ match.event_code }} - Qualification {{ match.match_number }}
+                    {{ match.event_code }} - {{ match.match_number }}
                 </h2>
             </div>
 
@@ -86,7 +86,7 @@
                         
                         <!-- Red Teams -->
                         {% for team in match.red_teams %}
-                        <div class="bg-red-50 rounded-lg p-4">
+                        <div data-team-number="{{ team.number }}" class="bg-red-50 rounded-lg p-4">
                             <div class="font-bold mb-2">Team {{ team.number }}</div>
                             
                             <!-- Team Stats Grid -->
@@ -147,7 +147,7 @@
                         </div>
                         
                         {% for team in match.blue_teams %}
-                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                        <div data-team-number="{{ team.number }}" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                             <div class="font-bold mb-2">Team {{ team.number }}</div>
                             
                             <div class="grid grid-cols-1 gap-4">
@@ -207,19 +207,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('teamSearchInput');
-    const matchCards = document.querySelectorAll('.bg-white dark:bg-gray-800.shadow-lg dark:shadow-none.rounded-lg');
+    const matchCards = [...document.querySelectorAll('[data-match-card]')].map(card => ({
+        card,
+        teamNumbers: [...card.querySelectorAll('[data-team-number]')]
+            .map(team => team.dataset.teamNumber)
+    }));
     
     searchInput.addEventListener('input', function() {
         const searchTerm = searchInput.value.trim();
         
-        matchCards.forEach(card => {
-            const teamNumbers = [
-                ...Array.from(card.querySelectorAll('.bg-red-50.rounded-lg')),
-                ...Array.from(card.querySelectorAll('.bg-blue-50 dark:bg-blue-900/20.rounded-lg'))
-            ].map(teamDiv => teamDiv.textContent.trim());
-            
-            // Check if any team number contains the search term
-            const matchFound = teamNumbers.some(text => text.toLowerCase().includes(searchTerm.toLowerCase()));
+        matchCards.forEach(({card, teamNumbers}) => {
+            const matchFound = teamNumbers.some(number => number.includes(searchTerm));
             
             // Show/hide the card based on search results
             card.style.display = searchTerm === '' || matchFound ? 'block' : 'none';
@@ -227,4 +225,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

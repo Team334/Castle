@@ -49,7 +49,7 @@ def add():
         # Get current events only
         tba = TBAInterface()
         year = datetime.now().year
-        events = tba.get_current_events(year, include_test_data=True) or {}
+        events = tba.get_current_events(year, include_test_data=True, background=True) or {}
         
         return render_template("scouting/add.html",  
                             events=events,
@@ -686,56 +686,18 @@ def leaderboard():
         current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         
         if sort_type in tba_metrics:
-            from app.scout.TBA import TBAInterface, get_team_epa
-            tba_interface = TBAInterface()
-            year = datetime.now().year
-            
-            # Replicate get_team_epa_opr's fetching to assign stats to teams
-            tba_events = tba_interface.get_current_events(year) or {}
-            name_to_key = {name: data.get('key') for name, data in tba_events.items()}
-            oprs_by_event = {}
-            
-            # Fetch for selected event or prep for 'all events'
-            if selected_event != 'all':
-                event_key = name_to_key.get(selected_event, selected_event)
-                event_stats = tba_interface.get_event_oprs(event_key)
-                oprs_by_event[selected_event] = event_stats if event_stats else {}
-                oprs_by_event[event_key] = event_stats if event_stats else {}
-                    
+            from app.scout.team_stats import team_stats_snapshot
+            snapshots = team_stats_snapshot([
+                {"team_number": team["team_number"], "event_code": selected_event}
+                for team in teams
+            ], datetime.now().year)
             for team in teams:
-                team_num = team["team_number"]
-                
-                if sort_type == 'epa':
-                    team['epa'] = get_team_epa(int(team_num), year)
-                    continue
-                    
-                # Otherwise calculate OPR/DPR/CCWM
-                stat_val = 0.0
-                if selected_event != 'all' and selected_event in oprs_by_event:
-                    event_stat = oprs_by_event[selected_event]
-                    stat_val = event_stat.get(f"{sort_type}s", {}).get(f"frc{team_num}", 0.0)
-                else:
-                    team_events = tba_interface.get_team_events(f"frc{team_num}", year) or []
-                    stat_list = []
-                    for ev in team_events:
-                        ev_key = ev.get('key')
-                        if not ev_key: continue
-                        if ev_key not in oprs_by_event:
-                            event_stats = tba_interface.get_event_oprs(ev_key)
-                            oprs_by_event[ev_key] = event_stats if event_stats else {}
-                        
-                        event_stat = oprs_by_event[ev_key]
-                        if event_stat:
-                            t_stat = event_stat.get(f"{sort_type}s", {}).get(f"frc{team_num}")
-                            if t_stat is not None: stat_list.append(t_stat)
-                    if stat_list:
-                        stat_val = sum(stat_list) / len(stat_list)
-                
-                team[sort_type] = stat_val
-            
-            # Sort in python memory with calculated stat
-            teams.sort(key=lambda x: x.get(sort_type, 0.0), reverse=True)
-            
+                snapshot = snapshots.get(f"{team['team_number']}_{selected_event}", {})
+                team[sort_type] = snapshot.get(sort_type)
+            teams.sort(key=lambda team: (team.get(sort_type) is None,
+                                         (team.get(sort_type) or 0) *
+                                         (1 if sort_type == 'dpr' else -1)))
+
         return render_template("scouting/leaderboard.html", teams=teams, current_sort=sort_type, 
                               events=events, selected_event=selected_event)
     except Exception as e:
@@ -1169,7 +1131,14 @@ def get_tba_events():
     try:
         year = request.args.get('year', default=datetime.now().year, type=int)
         tba = TBAInterface()
-        events = tba.get_current_events(year)
+        background = request.args.get('background') == '1'
+        events = tba.get_current_events(year, include_test_data=background,
+                                        background=background)
+        if background:
+            response = jsonify(events or {})
+            response.headers['X-Scouting-Pending'] = str(
+                tba.pending(f'/events/{year}/simple')).lower()
+            return response
         event_count = len(events) if events else 0
         current_app.logger.info(f"Successfully fetched {event_count} TBA events for year {year} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
         return jsonify(events)
@@ -1183,9 +1152,11 @@ def get_tba_events():
 def get_tba_matches(event_key):
     try:
         tba = TBAInterface()
-        matches = tba.get_event_matches(event_key)
-        current_app.logger.info(f"Successfully fetched TBA matches {matches} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        return jsonify(matches)
+        matches = tba.get_event_matches(event_key, background=True)
+        response = jsonify(matches)
+        response.headers['X-Scouting-Pending'] = str(
+            tba.pending(f'/event/{event_key}/matches')).lower()
+        return response
     except Exception as e:
         current_app.logger.error(f"Error getting TBA matches: {e}")
         return jsonify({"error": "Failed to fetch matches"}), 500
@@ -1377,95 +1348,29 @@ def get_alliance_rankings(event_key):
 @scouting_bp.route("/api/team_epa_opr", methods=["POST"])
 @login_required
 def get_team_epa_opr():
-    """Get EPA and OPR asynchronously for a list of teams and an event"""
+    """Public metrics must never occupy web workers waiting on upstream APIs."""
+    from app.scout.team_stats import team_stats_snapshot
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Expected a JSON object"}), 400
+    teams = data.get("teams", [])
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
-            
-        teams = data.get("teams", [])
-        events = data.get("events", [])
-        # Provide year gracefully
-        year = data.get("year", datetime.now().year)
-
-        from app.scout.TBA import TBAInterface, get_team_epa
-        tba_interface = TBAInterface()
-        
-        # We need to map event names (like "Finger Lakes Regional") to their TBA keys (like "2026nyro")
-        tba_events = tba_interface.get_current_events(year) or {}
-        name_to_key = {name: data.get('key') for name, data in tba_events.items()}
-
-        oprs_by_event = {}
-        # Fetch OPRs for any events we received
-        for event_name in events:
-            if event_name and event_name not in oprs_by_event:
-                # Fallback to event_name as key in case it's actually a key
-                event_key = name_to_key.get(event_name, event_name)
-                event_stats = tba_interface.get_event_oprs(event_key)
-                oprs_by_event[event_name] = event_stats if event_stats else {}
-                oprs_by_event[event_key] = event_stats if event_stats else {} # cache by key too
-
-        results = {}
+        year = int(data.get("year", datetime.now().year))
+        if not 1992 <= year <= datetime.now().year + 1:
+            raise ValueError()
+        if not isinstance(teams, list) or len(teams) > 2000:
+            raise ValueError()
+        normalized = []
         for item in teams:
-            team_num = item.get("team_number")
-            event_code = item.get("event_code")
-            if not team_num:
-                continue
-                
-            epa = get_team_epa(int(team_num), int(year))
-            
-            opr = 0.0
-            dpr = 0.0
-            ccwm = 0.0
-            if event_code and event_code in oprs_by_event:
-                event_stat = oprs_by_event[event_code]
-                opr = event_stat.get('oprs', {}).get(f"frc{team_num}", 0.0)
-                dpr = event_stat.get('dprs', {}).get(f"frc{team_num}", 0.0)
-                ccwm = event_stat.get('ccwms', {}).get(f"frc{team_num}", 0.0)
-            elif not event_code or event_code == 'all':
-                # Average OPRs across all regionals for the team
-                team_events = tba_interface.get_team_events(f"frc{team_num}", year) or []
-                oprs_list, dprs_list, ccwms_list = [], [], []
-                
-                for ev in team_events:
-                    ev_key = ev.get('key')
-                    if not ev_key:
-                        continue
-                    if ev_key not in oprs_by_event:
-                        event_stats = tba_interface.get_event_oprs(ev_key)
-                        oprs_by_event[ev_key] = event_stats if event_stats else {}
-                    
-                    event_stat = oprs_by_event[ev_key]
-                    if event_stat:
-                        t_opr = event_stat.get('oprs', {}).get(f"frc{team_num}")
-                        t_dpr = event_stat.get('dprs', {}).get(f"frc{team_num}")
-                        t_ccwm = event_stat.get('ccwms', {}).get(f"frc{team_num}")
-                        
-                        if t_opr is not None: oprs_list.append(t_opr)
-                        if t_dpr is not None: dprs_list.append(t_dpr)
-                        if t_ccwm is not None: ccwms_list.append(t_ccwm)
-                
-                if oprs_list:
-                    opr = sum(oprs_list) / len(oprs_list)
-                if dprs_list:
-                    dpr = sum(dprs_list) / len(dprs_list)
-                if ccwms_list:
-                    ccwm = sum(ccwms_list) / len(ccwms_list)
-
-            # We key results by team_number_event_code to uniquely identify the row if needed,
-            # or just by team_number if we want to generalise.
-            key = f"{team_num}_{event_code}" if event_code else str(team_num)
-            
-            results[key] = {
-                "epa": epa,
-                "opr": opr,
-                "dpr": dpr,
-                "ccwm": ccwm
-            }
-            
-        return jsonify(results)
-
-    except Exception as e:
-        current_app.logger.error(f"Error in get_team_epa_opr: {str(e)}", exc_info=True)
-        return jsonify({"error": "Failed to process EPA/OPR request"}), 500
-
+            if not isinstance(item, dict):
+                raise ValueError()
+            number = int(item.get("team_number", 0))
+            event = item.get("event_code")
+            if not 1 <= number <= 999999 or (event is not None and
+                    (not isinstance(event, str) or len(event) > 200)):
+                raise ValueError()
+            normalized.append({"team_number": number, "event_code": event})
+    except (ValueError, TypeError, OverflowError):
+        return jsonify({"error": "Invalid teams, event codes, or year"}), 400
+    return jsonify(team_stats_snapshot(normalized, year))

@@ -1,17 +1,21 @@
-const CACHE_NAME = 'castle-app-v4';
-const STATIC_CACHE_NAME = 'castle-app-static-v4';
-const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v4';
-const PAGE_CACHE_NAME = 'castle-app-pages-v4';
+const CACHE_NAME = 'castle-app-v8';
+const STATIC_CACHE_NAME = 'castle-app-static-v8';
+const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v8';
+const PAGE_CACHE_NAME = 'castle-app-pages-v8';
 
-const CACHE_VERSION = '4'; // Increment this when making changes
+const CACHE_VERSION = '8'; // Increment this when making changes
 
 // Add timestamped version query parameter to bust cache 
 const CACHE_TIMESTAMP = new Date().getTime();
 
 const STATIC_ASSETS = [
+  '/static/css/tailwind.css',
   '/static/css/global.css',
   '/static/css/index.css',
   '/static/js/Canvas.js',
+  '/static/js/team-stats.js',
+  '/static/js/scout/add.js',
+  '/static/js/scout/list.js',
   '/static/images/field-2026.png',
   '/static/images/default_profile.png',
   '/static/js/notifications.js',
@@ -20,13 +24,6 @@ const STATIC_ASSETS = [
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',
   '/offline.html', // Critical for offline support
-];
-
-// Files that should not be cached
-const NO_CACHE_URLS = [
-  '/auth/login',
-  '/auth/register',
-  '/',  // Home page
 ];
 
 // Make sure offline page is cached first during installation
@@ -51,8 +48,8 @@ function checkConnectivityAndNotify() {
     method: 'HEAD',
     cache: 'no-store'
   })
-  .then(() => {
-    isOnline = true;
+  .then(response => {
+    isOnline = response.ok;
   })
   .catch(() => {
     isOnline = false;
@@ -129,9 +126,9 @@ function handleFetchError(error, request) {
   if (request.headers.get('accept')?.includes('application/json')) {
     return new Response(JSON.stringify({
       error: 'offline',
-      message: 'You are offline. This action will be synced when you reconnect.'
+      message: 'You are offline. Please retry when you reconnect.'
     }), {
-      status: 200,
+      status: 503,
       headers: { 'Content-Type': 'application/json' }
     });
   }
@@ -187,22 +184,11 @@ function handleFetchError(error, request) {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Bypass service worker for auth endpoints and all POST requests
-  if (url.pathname.startsWith('/auth/') || event.request.method === 'POST') {
-    console.log('[ServiceWorker] Bypassing service worker for auth or POST request:', url.pathname);
+  // Authenticated API snapshots and connectivity probes must always be fresh.
+  // Failed writes must stay failed so the page cannot mistake them for a save.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') ||
+      url.searchParams.has('checkOnline') || event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
-    return;
-  }
-
-  // Skip non-GET requests - this now only handles non-POST requests like PUT, DELETE, etc.
-  if (event.request.method !== 'GET') {
-    // For non-GET requests, try network with graceful offline handling
-    event.respondWith(
-      fetch(event.request).catch(error => {
-        console.log('[ServiceWorker] Non-GET request failed:', event.request.url, error);
-        return handleFetchError(error, event.request);
-      })
-    );
     return;
   }
 
@@ -241,44 +227,9 @@ self.addEventListener('fetch', (event) => {
        event.request.headers.get('accept') && 
        event.request.headers.get('accept').includes('text/html'))) {
     
-    // Skip URLs that shouldn't be cached
-    if (NO_CACHE_URLS.some(nocacheUrl => event.request.url.includes(nocacheUrl))) {
-      event.respondWith(
-        fetch(event.request).catch(() => {
-          return handleFetchError(new Error('Network failed'), event.request);
-        })
-      );
-      return;
-    }
-
-    // For HTML pages, use network-first strategy for authenticated pages
-    event.respondWith(
-      fetch(event.request)
-        .then(networkResponse => {
-          // Only cache if it's not an authenticated page
-          if (networkResponse.ok && !networkResponse.headers.get('Set-Cookie')) {
-            const responseToCache = networkResponse.clone();
-            caches.open(PAGE_CACHE_NAME)
-              .then(cache => {
-                console.log('[ServiceWorker] Caching page:', event.request.url);
-                cache.put(event.request, responseToCache);
-              });
-          }
-          return networkResponse;
-        })
-        .catch(error => {
-          console.error('[ServiceWorker] Fetch failed:', error);
-          // If network fails, try cache
-          return caches.match(event.request)
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              // If no cache, show offline page
-              return handleFetchError(error, event.request);
-            });
-        })
-    );
+    // Keep account-specific HTML out of shared browser caches.
+    event.respondWith(fetch(event.request).catch(error =>
+      handleFetchError(error, event.request)));
     return;
   }
 
@@ -314,56 +265,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For all other GET requests - API calls, JSON, etc.
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          // Update the cache in the background
-          fetch(event.request)
-            .then(networkResponse => {
-              caches.open(DYNAMIC_CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, networkResponse.clone());
-                });
-            })
-            .catch(() => {
-              // Silent catch - no need to do anything if background update fails
-            });
-          return cachedResponse;
-        }
-
-        // Nothing in cache, try network
-        return fetch(event.request)
-          .then(networkResponse => {
-            // Clone the response
-            const responseToCache = networkResponse.clone();
-            caches.open(DYNAMIC_CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          })
-          .catch(error => {
-            console.error('[ServiceWorker] Fetch failed:', error);
-            
-            // For API requests that failed, return a valid offline response
-            if (event.request.url.includes('/api/') || 
-                event.request.headers.get('accept')?.includes('application/json')) {
-              return new Response(JSON.stringify({
-                error: 'offline',
-                message: 'You are offline. This action will be synced when you reconnect.'
-              }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            }
-            
-            // For other failed requests, try to match a cached response
-            return caches.match('/offline.html');
-          });
-      })
-  );
+  // Other responses can contain account-specific data; do not cache them.
+  event.respondWith(fetch(event.request).catch(error =>
+    handleFetchError(error, event.request)));
 });
 
 // Activate event to clean up old caches

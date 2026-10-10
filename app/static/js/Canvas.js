@@ -2535,6 +2535,8 @@ class Canvas {
   // Add method to toggle readonly mode
   setReadonly(readonly) {
     this.readonly = readonly;
+    clearInterval(this.autoSaveInterval);
+    this.autoSaveInterval = readonly ? null : setInterval(() => this.autoSave(), 30000);
     if (readonly) {
       // Clear any ongoing operations
       this.isDrawing = false;

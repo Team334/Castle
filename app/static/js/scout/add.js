@@ -1,3 +1,31 @@
+async function loadEventMatches(eventKey, signal) {
+  const started = Date.now();
+  while (true) {
+    signal.throwIfAborted();
+    const response = await fetch(`/api/tba/matches/${encodeURIComponent(eventKey)}`, {
+      signal, cache: "no-store"
+    });
+    if (!response.ok) throw new Error("Failed to fetch matches");
+    const matches = await response.json();
+    if (matches?.error) throw new Error(matches.error);
+    if (matches !== null || response.headers.get("X-Scouting-Pending") !== "true") return matches;
+    if (Date.now() - started >= 60000) throw new Error("Match loading timed out");
+    // Wait in the browser rather than occupying a server request thread.
+    await new Promise((resolve, reject) => {
+      const abort = () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", abort);
+        resolve();
+      }, 2000);
+      signal.addEventListener("abort", abort, {once: true});
+      if (signal.aborted) abort();
+    });
+  }
+}
+
 const updateMatchResult = () => {
   const allianceScore = parseInt(allianceScoreInput.value) || 0;
   const opponentScore = parseInt(opponentScoreInput.value) || 0;
@@ -634,23 +662,69 @@ document.addEventListener("DOMContentLoaded", function () {
   const eventSearchable = createSearchableDropdown(eventSelect, "Events");
   const matchSearchable = createSearchableDropdown(matchSelect, "Matches");
 
-  // Load events from server-side data
-  const events = JSON.parse(document.getElementById("events").textContent);
-
-  // Use Object.entries to maintain server-side ordering
-  Object.entries(events).forEach(([name, data]) => {
-    const option = document.createElement("option");
-    option.value = name; // Use event name as value for the server
-    option.dataset.key = data.key; // Store TBA key in dataset for API calls
-    option.textContent = name; // Name already includes the time indicator
-    eventSelect.appendChild(option);
+  const eventStatus = document.createElement("p");
+  eventStatus.className = "text-sm text-gray-500 mt-1";
+  eventStatus.setAttribute("role", "status");
+  eventSelect.parentElement.appendChild(eventStatus);
+  const matchStatus = document.createElement("p");
+  matchStatus.className = "text-sm text-gray-500 mt-1";
+  matchStatus.setAttribute("role", "status");
+  matchSelect.parentElement.appendChild(matchStatus);
+  const eventsController = new AbortController();
+  let eventTimer;
+  let matchesController;
+  window.addEventListener("pagehide", () => {
+    clearTimeout(eventTimer);
+    eventsController.abort();
+    matchesController?.abort();
   });
-
-  // Update event searchable options after populating
-  eventSearchable.updateOptions();
+  window.addEventListener("pageshow", event => {
+    if (event.persisted) window.location.reload();
+  });
+  function populateEvents(events) {
+    const existing = new Map([...eventSelect.options].map(option => [option.value, option]));
+    Object.entries(events).forEach(([name, data]) => {
+      if (!data?.key) return;
+      const option = existing.get(name) || document.createElement("option");
+      option.value = name;
+      option.dataset.key = data.key;
+      option.textContent = name;
+      if (!existing.has(name)) eventSelect.appendChild(option);
+    });
+    eventSearchable.updateOptions();
+  }
+  populateEvents(JSON.parse(document.getElementById("events").textContent));
+  const eventsStarted = Date.now();
+  async function refreshEvents() {
+    try {
+      const response = await fetch("/api/tba/events?background=1", {
+        signal: eventsController.signal, cache: "no-store"
+      });
+      if (!response.ok) throw new Error("Events unavailable");
+      const events = await response.json();
+      if (events.error) throw new Error(events.error);
+      populateEvents(events);
+      const pending = response.headers.get("X-Scouting-Pending") === "true";
+      if (pending && Date.now() - eventsStarted < 60000) {
+        eventStatus.textContent = "Loading events…";
+        eventTimer = setTimeout(refreshEvents, 2000);
+      } else {
+        eventStatus.textContent = Object.keys(events).some(name => !name.startsWith("Testing Regional"))
+          ? "" : "Event service unavailable. Testing events are still available; reload to retry.";
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") eventStatus.textContent = "Unable to load events. Reload to retry.";
+    }
+  }
+  refreshEvents();
 
   // Load matches when event is selected
   eventSelect.addEventListener("change", async function () {
+    matchesController?.abort();
+    const controller = matchesController = new AbortController();
+    currentMatches = null;
+    matchStatus.textContent = "";
+    matchSelect.disabled = false;
     const selectedOption = this.options[this.selectedIndex];
     const selectedEventKey = selectedOption?.dataset.key;
     matchSelect.innerHTML = '<option value="">Select Match</option>';
@@ -665,18 +739,18 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       // Show loading state
       matchSelect.disabled = true;
+      matchStatus.textContent = "Loading matches…";
       matchSearchable.clear();
 
       // Fetch matches for selected event
-      const response = await fetch(`/api/tba/matches/${selectedEventKey}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch matches");
-      }
-
-      const matches = await response.json();
+      const matches = await loadEventMatches(selectedEventKey, controller.signal);
+      if (controller.signal.aborted || matchesController !== controller) return;
       if (!matches) {
+        matchStatus.textContent = "Match service unavailable. Select the event again to retry.";
         return;
       }
+
+      matchStatus.textContent = Object.keys(matches).length ? "" : "No matches available for this event.";
 
       currentMatches = matches;
       matchSelect.innerHTML = '<option value="">Select Match</option>';
@@ -722,7 +796,7 @@ document.addEventListener("DOMContentLoaded", function () {
               if (level === "qm") {
                 option.textContent = `Qual ${match.match_number}`;
               } else if (level === "sf") {
-                option.textContent = `Semi-Finals ${match.set_number}`;
+                option.textContent = `Semi-Finals ${match.set_number}-${match.match_number}`;
               } else if (level === "f") {
                 option.textContent = `Finals ${match.match_number}`;
               }
@@ -738,9 +812,16 @@ document.addEventListener("DOMContentLoaded", function () {
       matchSearchable.updateOptions();
       matchSelect.disabled = false;
     } catch (error) {
+      if (error.name === "AbortError" || matchesController !== controller) return;
       console.error("Error fetching matches:", error);
+      matchStatus.textContent = "Unable to load matches. Select the event again to retry.";
       matchSelect.innerHTML = '<option value="">Error loading matches</option>';
       matchSearchable.clear();
+    } finally {
+      if (matchesController === controller) {
+        matchSelect.disabled = false;
+        matchSearchable.updateOptions();
+      }
     }
   });
 

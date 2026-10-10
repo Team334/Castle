@@ -259,7 +259,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody data-metric-sort="{{ current_sort }}" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {% for team in teams %}
             <tr class="hover:bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
@@ -462,76 +462,6 @@
     });
   };
 
-  document.addEventListener("DOMContentLoaded", async function () {
-    const statsCells = document.querySelectorAll(".team-stats-cell");
-    if (!statsCells.length) return;
-
-    const requestData = {
-      events: [],
-      teams: [],
-    };
-    const eventsSet = new Set();
-
-    statsCells.forEach((cell) => {
-      const teamNum = cell.getAttribute("data-team-id");
-      const eventCode = cell.getAttribute("data-event-id");
-      if (teamNum) {
-        requestData.teams.push({ team_number: teamNum, event_code: eventCode });
-        if (eventCode) eventsSet.add(eventCode);
-      }
-    });
-
-    requestData.events = Array.from(eventsSet);
-
-    try {
-      const response = await fetch("/api/team_epa_opr", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      const results = await response.json();
-
-      statsCells.forEach((cell) => {
-        const teamNum = cell.getAttribute("data-team-id");
-        const eventCode = cell.getAttribute("data-event-id");
-        const key = eventCode ? `${teamNum}_${eventCode}` : teamNum;
-
-        const data = results[key] || {};
-
-        const epaHtml =
-          typeof data.epa === "number" && data.epa !== 0
-            ? data.epa.toFixed(1)
-            : "N/A";
-        const oprHtml =
-          typeof data.opr === "number" && data.opr !== 0
-            ? data.opr.toFixed(1)
-            : "N/A";
-        const dprHtml =
-          typeof data.dpr === "number" && data.dpr !== 0
-            ? data.dpr.toFixed(1)
-            : "N/A";
-        const ccwmHtml =
-          typeof data.ccwm === "number" && data.ccwm !== 0
-            ? data.ccwm.toFixed(1)
-            : "N/A";
-
-        cell.querySelector(".epa-value").innerHTML = `EPA: ${epaHtml}`;
-        cell.querySelector(".opr-value").innerHTML = `OPR: ${oprHtml}`;
-        cell.querySelector(".dpr-value").innerHTML = `DPR: ${dprHtml}`;
-        cell.querySelector(".ccwm-value").innerHTML = `CCWM: ${ccwmHtml}`;
-      });
-    } catch (error) {
-      console.error("Failed to fetch EPA/OPR data:", error);
-      statsCells.forEach((cell) => {
-        cell.querySelector(".epa-value").innerHTML = "EPA: N/A";
-        cell.querySelector(".opr-value").innerHTML = "OPR: N/A";
-        cell.querySelector(".dpr-value").innerHTML = "DPR: N/A";
-        cell.querySelector(".ccwm-value").innerHTML = "CCWM: N/A";
-      });
-    }
-  });
 </script>
+<script src="{{ url_for('static', filename='js/team-stats.js') }}"></script>
 {% endblock %}

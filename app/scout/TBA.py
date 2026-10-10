@@ -1,27 +1,31 @@
 import logging
+import math
 import os
 from datetime import datetime
-from functools import lru_cache
 
-import requests
-import statbotics
+from .api_cache import public_api_cache
 
 from .artificial_data import (_generate_test_matches, _generate_test_rankings,
                               _generate_test_teams)
 
 logger = logging.getLogger(__name__)
 
-sb = statbotics.Statbotics()
+STATBOTICS_URL = "https://api.statbotics.io/v3"
 
-@lru_cache(maxsize=1000)
-def get_team_epa(team_number: int, year: int) -> float:
-    try:
-        data = sb.get_team_year(team=team_number, year=year)
-        if data and 'epa' in data and data['epa']:
-            return data['epa'].get('total_points', {}).get('mean', 0.0)
-    except Exception as e:
-        logger.error(f"Error fetching statbotics EPA for {team_number}: {e}")
-    return 0.0
+
+def get_team_epa(team_number: int, year: int, background=False):
+    data = public_api_cache.get(
+        f"{STATBOTICS_URL}/team_year/{team_number}/{year}",
+        ttl=900, background=background,
+    )
+    if isinstance(data, dict):
+        epa = data.get('epa')
+        points = epa.get('total_points') if isinstance(epa, dict) else None
+        value = points.get('mean') if isinstance(points, dict) else None
+        if isinstance(value, (int, float)) and math.isfinite(value):
+            return value
+    return None
+
 
 class TBAInterface:
     def __init__(self, api_key=None):
@@ -36,9 +40,18 @@ class TBAInterface:
             "X-TBA-Auth-Key": self.api_key,
             "accept": "application/json"
         }
-        self.timeout = 5  # Reduced timeout
 
-    @lru_cache(maxsize=100)
+    def _get_json(self, path, background=False):
+        if not self.api_key:
+            return None
+        ttl = 3600 if path.startswith("/events/") else 300
+        return public_api_cache.get(self.base_url + path, self.headers,
+                                    ttl=ttl, background=background)
+
+    def pending(self, path):
+        return bool(self.api_key) and public_api_cache.pending(
+            self.base_url + path, self.headers)
+
     def get_team(self, team_key: str) -> dict | None:
         """Get team information from TBA"""
         # Check for test teams 1-15
@@ -61,32 +74,23 @@ class TBAInterface:
                 pass
 
         try:
-            response = requests.get(
-                f"{self.base_url}/team/{team_key}",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            return response.json() if response.status_code == 200 else None
+            data = self._get_json(f"/team/{team_key}")
+            return data
         except Exception as e:
             logger.error(f"Error fetching team from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=5)
-    def get_event_matches(self, event_key: str) -> dict[str, dict] | None:
+    def get_event_matches(self, event_key: str, background=False) -> dict[str, dict] | None:
         """Get matches for an event and format them by match number"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
              return _generate_test_matches(event_key)
 
         try:
-            response = requests.get(
-                f"{self.base_url}/event/{event_key}/matches",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            if response.status_code != 200:
+            data = self._get_json(f"/event/{event_key}/matches", background=background)
+            if data is None:
                 return None
 
-            matches = response.json()
+            matches = data
             formatted_matches = {}
 
             for match in matches:
@@ -96,9 +100,9 @@ class TBAInterface:
                     if comp_level == 'qm':
                         match_key = f"Qual {match_number}"
                     elif comp_level == 'sf':
-                        match_key = f"Semifinal {set_number}"
+                        match_key = f"Semifinal {set_number}-{match_number}"
                     elif comp_level == 'f':
-                        match_key = f"Final {set_number}"
+                        match_key = f"Final {match_number}"
                     else:
                         match_key = f"{comp_level}{match_number}"
 
@@ -115,20 +119,14 @@ class TBAInterface:
             logger.error(f"Error fetching event matches from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=20)
-    def get_current_events(self, year: int, include_test_data: bool = False) -> dict | None:
+    def get_current_events(self, year: int, include_test_data: bool = False, background=False) -> dict | None:
         """Get all events for the specified year"""
         try:
-            response = requests.get(
-                f"{self.base_url}/events/{year}/simple",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            if response.status_code != 200:
+            data = self._get_json(f"/events/{year}/simple", background=background)
+            if data is None and not include_test_data:
                 return None
+            events = sorted(data or [], key=lambda event: event['name'])
 
-            events = response.json()
-            
             # No date filtering - include all events
             # Convert to dictionary, maintaining alphabetical order
             current_events = {}
@@ -150,7 +148,6 @@ class TBAInterface:
                 })
             
             # Sort events alphabetically by name
-            events.sort(key=lambda x: x['name'])
             
             # Add all events
             for event in events:
@@ -165,24 +162,18 @@ class TBAInterface:
             logger.error(f"Error fetching events from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=10)
-    def get_event_oprs(self, event_key: str) -> dict | None:
+    def get_event_oprs(self, event_key: str, background=False) -> dict | None:
         """Get event OPRs"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
              return {"oprs": {}, "dprs": {}, "ccwms": {}}
 
         try:
-            response = requests.get(
-                f"{self.base_url}/event/{event_key}/oprs",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            return response.json() if response.status_code == 200 else None
+            data = self._get_json(f"/event/{event_key}/oprs", background=background)
+            return data
         except Exception as e:
             logger.error(f"Error fetching event OPRs from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=20)
     def get_team_status_at_event(self, team_key: str, event_key: str) -> dict | None:
         """Get team status and ranking at a specific event"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
@@ -211,17 +202,12 @@ class TBAInterface:
                 logger.error(f"Error generating test rankings: {e}")
 
         try:
-            response = requests.get(
-                f"{self.base_url}/team/{team_key}/event/{event_key}/status",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            return response.json() if response.status_code == 200 else None
+            data = self._get_json(f"/team/{team_key}/event/{event_key}/status")
+            return data
         except Exception as e:
             logger.error(f"Error fetching team status from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=20)
     def get_team_matches_at_event(self, team_key: str, event_key: str) -> dict[str, list] | None:
         """Get a team's matches at a specific event with previous and upcoming separation"""
         if str(event_key).endswith("test1") or str(event_key).endswith("test2") or str(event_key).endswith("test3"):
@@ -241,16 +227,12 @@ class TBAInterface:
              return {'previous': team_matches, 'upcoming': []}
 
         try:
-            response = requests.get(
-                f"{self.base_url}/team/{team_key}/event/{event_key}/matches",
-                headers=self.headers,
-                timeout=self.timeout
-            )
+            data = self._get_json(f"/team/{team_key}/event/{event_key}/matches")
 
-            if response.status_code != 200:
+            if data is None:
                 return None
 
-            matches = response.json()
+            matches = data
             current_time = datetime.now().timestamp()
 
             previous_matches = []
@@ -310,8 +292,7 @@ class TBAInterface:
             logger.error(f"Error fetching team matches from TBA: {e}")
             return None
             
-    @lru_cache(maxsize=20)
-    def get_team_events(self, team_key: str, year: int | None = None) -> list[dict] | None:
+    def get_team_events(self, team_key: str, year: int | None = None, background=False) -> list[dict] | None:
         """Get all events a team is participating in for the given year"""
         if year is None:
             year = datetime.now().year
@@ -330,16 +311,12 @@ class TBAInterface:
                 pass
 
         try:
-            response = requests.get(
-                f"{self.base_url}/team/{team_key}/events/{year}/simple",
-                headers=self.headers,
-                timeout=self.timeout
-            )
+            data = self._get_json(f"/team/{team_key}/events/{year}/simple", background=background)
             
-            if response.status_code != 200:
+            if data is None:
                 return None
                 
-            events = response.json()
+            events = list(data)
             # Sort by start date, most recent first
             events.sort(key=lambda e: e.get('start_date', ''), reverse=True)
             
@@ -369,7 +346,6 @@ class TBAInterface:
         # If no current events, get the most recent event (events are already sorted by date, most recent first)
         return events[0]
     
-    @lru_cache(maxsize=5)
     def get_event_teams(self, event_key: str) -> list[dict] | None:
         """
         Retrieve a list of teams attending a specific event.
@@ -384,21 +360,16 @@ class TBAInterface:
              return _generate_test_teams(event_key)
 
         try:
-            response = requests.get(
-                f"{self.base_url}/event/{event_key}/teams",
-                headers=self.headers,
-                timeout=self.timeout
-            )
+            data = self._get_json(f"/event/{event_key}/teams")
             
-            if response.status_code != 200:
+            if data is None:
                 return None
                 
-            return response.json()
+            return data
         except Exception as e:
             logger.error(f"Error fetching event teams from TBA: {e}")
             return None
 
-    @lru_cache(maxsize=5)
     def get_event_rankings(self, event_key: str) -> list[dict] | None:
         """
         Retrieve the team rankings for a given event, including ranking points and match records.
@@ -423,16 +394,12 @@ class TBAInterface:
              return _generate_test_rankings(event_key)
 
         try:
-            response = requests.get(
-                f"{self.base_url}/event/{event_key}/rankings",
-                headers=self.headers,
-                timeout=self.timeout
-            )
+            data = self._get_json(f"/event/{event_key}/rankings")
             
-            if response.status_code != 200:
+            if data is None:
                 return None
             
-            data = response.json()
+            data = data
             if not data:
                 return []
 
@@ -457,24 +424,4 @@ class TBAInterface:
             
         except Exception as e:
             logger.error(f"Error fetching event rankings from TBA: {e}")
-            return None
-
-    @lru_cache(maxsize=20)
-    def get_event_oprs(self, event_key: str) -> dict | None:
-        """Get OPR, DPR, and CCWM for all teams at an event from TBA.
-
-        Returns:
-            dict or None: Keys are 'oprs', 'dprs', 'ccwms', each mapping team_key -> float.
-        """
-        try:
-            response = requests.get(
-                f"{self.base_url}/event/{event_key}/oprs",
-                headers=self.headers,
-                timeout=self.timeout
-            )
-            if response.status_code != 200:
-                return None
-            return response.json()  # {'oprs': {...}, 'dprs': {...}, 'ccwms': {...}}
-        except Exception as e:
-            logger.error(f"Error fetching OPRs from TBA: {e}")
             return None
