@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import time
@@ -202,13 +201,6 @@ def with_mongodb_retry(retries=3, delay=2):
 
 # ============ Route Utilities ============
 
-def async_route(f):
-    """Decorator to handle async routes"""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        return asyncio.run(f(*args, **kwargs))
-    return wrapper
-
 def handle_route_errors(f):
     """Decorator to handle common route errors"""
     @wraps(f)
@@ -298,7 +290,7 @@ def is_safe_url(target: str) -> bool:
         and all(c not in target for c in ['\\', '//', '..'])
     )
 
-async def check_password_strength(password: str) -> tuple[bool, str]:
+def check_password_strength(password: str) -> tuple[bool, str]:
     """
     Check if password meets minimum requirements:
     - At least 8 characters

@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 
-from app.utils import async_route, limiter
+from app.utils import limiter
 
 from .notification_manager import NotificationManager
 
@@ -46,8 +46,7 @@ def get_vapid_public_key():
 @notifications_bp.route("/subscribe", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def create_subscription():
+def create_subscription():
     """Create or update a push notification subscription"""
     try:
         data = request.get_json()
@@ -69,7 +68,7 @@ async def create_subscription():
         assignment_id = data.get("assignment_id")
         reminder_time = data.get("reminder_time", 1440)  # Default: 1 day
         
-        success, message = await notification_manager.create_subscription(
+        success, message = notification_manager.create_subscription(
             user_id=current_user.get_id(),
             team_number=team_number,
             subscription_json=subscription_json,
@@ -100,15 +99,14 @@ async def create_subscription():
 @notifications_bp.route("/unsubscribe", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def delete_subscription():
+def delete_subscription():
     """Delete a push notification subscription"""
     try:
         data = request.get_json()
         team_number = current_user.teamNumber
         assignment_id = data.get("assignment_id") if data else None
         
-        success, message = await notification_manager.delete_subscription(
+        success, message = notification_manager.delete_subscription(
             user_id=current_user.get_id(),
             team_number=team_number,
             assignment_id=assignment_id
@@ -129,11 +127,10 @@ async def delete_subscription():
 # @notifications_bp.route("/test", methods=["POST"])
 # @login_required
 # @limiter.limit("3 per minute")
-# @async_route
-# async def test_notification():
+# def test_notification():
 #     """Send a test notification to the current user"""
 #     try:
-#         success, message = await notification_manager.test_notification(
+#         success, message = notification_manager.test_notification(
 #             user_id=current_user.get_id()
 #         )
         

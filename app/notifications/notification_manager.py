@@ -284,7 +284,7 @@ class NotificationManager(DatabaseManager):
             return False
     
     @with_mongodb_retry()
-    async def create_subscription(self, user_id: str, team_number: int, 
+    def create_subscription(self, user_id: str, team_number: int, 
                                 subscription_json: Dict, 
                                 assignment_id: Optional[str] = None,
                                 reminder_time: int = 1440) -> Tuple[bool, str]:
@@ -387,7 +387,7 @@ class NotificationManager(DatabaseManager):
             return False, "An internal error has occurred."
     
     @with_mongodb_retry()
-    async def delete_subscription(self, user_id: str, team_number: int = None, 
+    def delete_subscription(self, user_id: str, team_number: int = None, 
                                  assignment_id: Optional[str] = None) -> Tuple[bool, str]:
         """Delete a push notification subscription
         
@@ -422,7 +422,7 @@ class NotificationManager(DatabaseManager):
             return False, "An internal error has occurred."
     
     # @with_mongodb_retry()
-    # async def test_notification(self, user_id: str) -> Tuple[bool, str]:
+    # def test_notification(self, user_id: str) -> Tuple[bool, str]:
     #     """Send a test notification to a user
         
     #     Args:
@@ -465,7 +465,7 @@ class NotificationManager(DatabaseManager):
     #         logger.error(f"Error sending test notification: {str(e)}")
     #         return False, "An internal error has occurred." 
 
-    async def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
+    def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
         """Send instant notifications to users when they are assigned to a new assignment
         
         Args:

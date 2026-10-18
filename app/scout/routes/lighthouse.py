@@ -1,16 +1,16 @@
 """Lighthouse pages and their team compare / search / auto path APIs."""
 from __future__ import annotations
 
-import aiohttp
+import requests
 from bson import json_util
 from flask import current_app, jsonify, render_template, request
 from flask_login import current_user, login_required
 
-from app.utils import async_route
-
 from ..TBA import TBAInterface
 from . import common
 from .common import SCOUTER_LOOKUP, actor_name, scouting_bp, team_access_match
+
+SEARCH_TIMEOUT = 10  # seconds; aiohttp's default was 5 minutes
 
 
 @scouting_bp.route("/lighthouse")
@@ -142,8 +142,7 @@ def compare_teams():
 @scouting_bp.route("/api/search")
 @login_required
 # @limiter.limit("30 per minute")
-@async_route
-async def search_teams():
+def search_teams():
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify([])
@@ -154,25 +153,18 @@ async def search_teams():
 
         # Handle both numeric and text searches
         if query.isdigit():
-            team_key = f"frc{query}"
-            url = f"{tba.base_url}/team/{team_key}"
-
-            async with aiohttp.ClientSession(headers=tba.headers) as session:
-                async with session.get(url) as response:
-                    if response.status != 200:
-                        return jsonify([])
-                    team = await response.json()
+            url = f"{tba.base_url}/team/frc{query}"
         else:
             # Search by team name/nickname
             url = f"{tba.base_url}/teams/search/{query}"
-            async with aiohttp.ClientSession(headers=tba.headers) as session:
-                async with session.get(url) as response:
-                    if response.status != 200:
-                        return jsonify([])
-                    teams = await response.json()
-                    if not teams:
-                        return jsonify([])
-                    team = teams[0]  # Take the first match
+        response = requests.get(url, headers=tba.headers, timeout=SEARCH_TIMEOUT)
+        if response.status_code != 200:
+            return jsonify([])
+        team = response.json()
+        if not query.isdigit():
+            if not team:
+                return jsonify([])
+            team = team[0]  # Take the first match
 
         # Get team number from the response
         team_number = team.get("team_number")

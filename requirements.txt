@@ -1,7 +1,6 @@
-flask[async]
+Flask
 Flask-Login
 python-dotenv
-aiohttp
 pymongo
 waitress
 Flask-WTF
