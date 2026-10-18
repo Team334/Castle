@@ -1442,6 +1442,7 @@ class Canvas {
     if (e.key === "Escape" && (this.previewShape || this.selectionRect)) {
       this.previewShape = null;
       this.selectionRect = null;
+      this.isSelecting = false;
       this.startX = null;
       this.startY = null;
       this.selectedStrokes = [];
