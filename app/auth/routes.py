@@ -1,107 +1,26 @@
 from __future__ import annotations
 
-import asyncio
 import os
-from functools import wraps
-from urllib.parse import urljoin, urlparse
 
-from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, send_file, url_for)
 from flask_login import current_user, login_required, login_user, logout_user
-from flask_pymongo import PyMongo
-from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
-from app.utils import (async_route, get_gridfs, handle_route_errors,
-                       is_safe_url, limiter, send_gridfs_file)
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def save_profile_picture(file):
-    """Save profile picture to GridFS"""
-    if file and allowed_file(file.filename):
-        return get_gridfs().put(
-            file.stream.read(),
-            filename=secure_filename(file.filename),
-            content_type=file.content_type,
-        )
-    return None
-
-def send_profile_picture(file_id):
-    """Retrieve profile picture from GridFS"""
-    try:
-        # Convert string ID to ObjectId if necessary
-        if isinstance(file_id, str):
-            file_id = ObjectId(file_id)
-            
-        # Get the file from GridFS
-        file_data = get_gridfs().get(file_id)
-        
-        return send_file(
-            file_data,
-            mimetype=file_data.content_type,
-            download_name=file_data.filename
-        )
-    except Exception as e:
-        # Log the error and return default profile picture
-        print(f"Error retrieving profile picture: {e}")
-        return send_file("static/images/default_profile.png")
-
-
-def run_async(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-
-def async_route(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        return run_async(f(*args, **kwargs))
-
-    return wrapper
-
+from app.utils import (async_route, handle_route_errors, is_safe_url, limiter,
+                       send_gridfs_file)
 
 auth_bp = Blueprint("auth", __name__)
 user_manager = None
-mongo = None
 
 
 @auth_bp.record
 def on_blueprint_init(state):
-    global user_manager, mongo
+    global user_manager
     app = state.app
-    mongo = PyMongo(app)
     
     # Create the UserManager with the singleton connection
     user_manager = UserManager(app.config["MONGO_URI"])
-    
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['auth'] = user_manager
-
-
-def is_safe_url(target):
-    if not target:
-        return False
-
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-
-    return (
-        test_url.scheme in ('http', 'https')
-        and ref_url.netloc == test_url.netloc
-        and all(c not in target for c in ['\\', '//', '..'])
-    )
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

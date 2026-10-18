@@ -26,12 +26,7 @@ def on_blueprint_init(state) -> None:
         vapid_private_key=vapid_private_key,
         vapid_claims=vapid_claims
     )
-    
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['notification'] = notification_manager
-    
+
     # Start the notification service
     notification_manager.start_notification_service()
     

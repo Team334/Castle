@@ -36,10 +36,6 @@ def on_blueprint_init(state):
     # Create ScoutingManager with the singleton connection
     scouting_manager = ScoutingManager(app.config["MONGO_URI"])
 
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['scouting'] = scouting_manager
     try:
         service = FuelEstimateService(
             scouting_manager.db, os.getenv("MATCH13_STATE_PATH") or os.path.join(app.instance_path, "match13.sqlite"),

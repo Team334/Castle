@@ -8,19 +8,13 @@ from flask import (Flask, make_response, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_cors import CORS
 from flask_login import LoginManager, current_user
-from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 
 from app.auth.auth_utils import UserManager
-from app.utils import close_mongodb_connection, get_mongodb_instance, limiter
+from app.utils import limiter
 
 csrf = CSRFProtect()
-mongo = PyMongo()
 login_manager = LoginManager()
-
-# Global variable to control notification thread
-notification_thread = None
-stop_notification_thread = False
 
 logger = logging.getLogger(__name__)
 
@@ -46,50 +40,17 @@ def create_app():
     else:
         app.logger.info("VAPID keys configured properly.")
 
-    mongo.init_app(app)
-    app.mongo = mongo
     # csrf.init_app(app)
     limiter.init_app(app)
     CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE"]}})
-    # Initialize db_managers dictionary to store all database managers for proper cleanup
-    app.db_managers = {}
 
-    with app.app_context():
-        # Get the singleton MongoDB instance
-        mongodb = get_mongodb_instance(app.config["MONGO_URI"])
-        db = mongodb.get_db()
-        
-        # Initialize collections
-        if "users" not in db.list_collection_names():
-            db.create_collection("users")
-            logger.info("Created 'users' collection in MongoDB.")
-        if "teams" not in db.list_collection_names():
-            db.create_collection("teams")
-            logger.info("Created 'teams' collection in MongoDB.")
-        if "team_data" not in db.list_collection_names():
-            db.create_collection("team_data")
-            logger.info("Created 'team_data' collection in MongoDB.")
-        if "pit_scouting" not in db.list_collection_names():
-            db.create_collection("pit_scouting")
-            logger.info("Created 'pit_scouting' collection in MongoDB.")
-        if "assignments" not in db.list_collection_names():
-            db.create_collection("assignments")
-            logger.info("Created 'assignments' collection in MongoDB.")
-        if "assignment_subscriptions" not in db.list_collection_names():
-            db.create_collection("assignment_subscriptions")
-            logger.info("Created 'assignment_subscriptions' collection in MongoDB.")
-            
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "error"
 
-    # Initialize UserManager with the singleton connection
+    # First DatabaseManager opens the singleton connection with MONGO_URI
     try:
-        # Create user manager with singleton connection
         user_manager = UserManager(app.config["MONGO_URI"])
-        
-        # Store in app context for proper cleanup
-        app.user_manager = user_manager
     except Exception as e:
         app.logger.error(f"Failed to initialize UserManager: {e}")
         raise
@@ -184,15 +145,6 @@ def create_app():
     @app.route('/offline.html')
     def offline():
         return render_template('offline.html')
-
-    # Handle application shutdown to close the singleton MongoDB connection
-    @app.teardown_appcontext
-    def teardown_db_connection(exception=None):
-        """Close the singleton MongoDB connection only during application shutdown"""
-        if exception is not None and isinstance(exception, Exception):
-            # Only close during actual application shutdown, not regular request teardown
-            close_mongodb_connection()
-            logger.info("Closed singleton MongoDB connection during application shutdown")
 
     return app
 

@@ -27,11 +27,6 @@ def on_blueprint_init(state) -> None:
     
     # Create TeamManager with the singleton connection
     team_manager = TeamManager(app.config["MONGO_URI"])
-    
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['team'] = team_manager
 
 @team_bp.route("/join", methods=["GET", "POST"])
 @login_required

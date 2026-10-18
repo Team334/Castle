@@ -3,7 +3,6 @@ Flask-Login
 python-dotenv
 aiohttp
 pymongo
-flask_pymongo
 waitress
 Flask-WTF
 requests

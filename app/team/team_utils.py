@@ -33,9 +33,11 @@ class TeamManager(DatabaseManager):
 
     def _ensure_collections(self) -> None:
         """Ensure required collections exist"""
-        if "teams" not in self.db.list_collection_names():
-            self.db.create_collection("teams")
-            logger.info("Created teams collection")
+        collections = self.db.list_collection_names()
+        for name in ("teams", "assignments"):
+            if name not in collections:
+                self.db.create_collection(name)
+                logger.info(f"Created {name} collection")
 
     def generate_join_code(self) -> str:
         """Generate a unique 6-character join code"""
