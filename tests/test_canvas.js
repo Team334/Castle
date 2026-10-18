@@ -17,7 +17,7 @@ function whiteboard(options = {}) {
   const statuses = [];
   const Canvas = vm.runInNewContext(`${SOURCE}\nCanvas;`, {
     window: {devicePixelRatio: 1, addEventListener: on('window')},
-    document: {getElementById: () => null},
+    document: {getElementById: () => null, createElement: () => ({getContext: () => ctx})},
     matchMedia: () => ({addEventListener() {}}),
     localforage: {createInstance: () => ({setItem: async () => {}})},
     Image: class {}, setInterval: () => 0, clearInterval() {}, setTimeout() {},
@@ -344,6 +344,52 @@ test('keyboard shortcuts edit, select tools, and stay off in read-only mode', ()
   page.board.setReadonly(true);
   key(page, 'z', {ctrlKey: true});
   assert.equal(page.board.drawingHistory.length, length);
+});
+
+// Count how often strokes already on the board are drawn
+function countSceneDraws(page) {
+  const draws = {count: 0};
+  const drawStroke = page.board.drawStroke.bind(page.board);
+  page.board.drawStroke = (stroke, ...rest) => {
+    if (stroke !== page.board.currentStroke) draws.count++;
+    drawStroke(stroke, ...rest);
+  };
+  return draws;
+}
+
+test('dragging draws the existing strokes once, not on every move', () => {
+  const page = whiteboard();
+  const input = devices.mouse(page);
+  drag(input, [10, 10], [20, 10]);
+  drag(input, [10, 30], [20, 30]);
+  const scene = countSceneDraws(page);
+  input.down(50, 50);
+  for (let x = 51; x <= 70; x++) input.move(x, 50);
+  assert.equal(scene.count, 2);
+  input.up(70, 50);
+  input.down(80, 80);
+  input.move(90, 90);
+  assert.equal(scene.count, 5, 'a new drag redraws the scene with the previous stroke');
+});
+
+test('a full redraw during a drag discards the cached scene', () => {
+  const page = whiteboard();
+  const input = devices.mouse(page);
+  drag(input, [10, 10], [20, 10]);
+  const scene = countSceneDraws(page);
+  input.down(50, 50);
+  input.move(55, 50);
+  input.move(60, 50);
+  assert.equal(scene.count, 1);
+  key(page, 'z', {ctrlKey: true});
+  const afterUndo = scene.count;
+  input.move(65, 50);
+  input.move(70, 50);
+  assert.equal(afterUndo, 1, 'nothing left on the board after undo');
+  assert.equal(page.board.gestureLayerValid, true);
+  drag(input, [100, 100], [110, 110]);
+  page.board.flipHorizontal();
+  assert.equal(page.board.gestureLayerValid, false);
 });
 
 test('Escape cancels a selection box mid-drag', () => {

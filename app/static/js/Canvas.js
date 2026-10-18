@@ -56,6 +56,10 @@ class Canvas {
     this.isDrawing = false;
     this.previewShape = null; // Add preview shape state
 
+    // Copy of the field and unselected strokes reused while dragging
+    this.gestureLayer = null;
+    this.gestureLayerValid = false;
+
     // Pan and zoom state
     this.isPanning = false;
     this.startPanX = 0;
@@ -400,7 +404,64 @@ class Canvas {
   }
 
   redrawCanvas() {
-    // Ensure canvas context is valid
+    this.gestureLayerValid = false;
+    if (!this.ensureContext()) {
+      return;
+    }
+    this.drawScene();
+    this.drawOverlay();
+  }
+
+  // Redraw during a drag. The field and unselected strokes do not change
+  // until the gesture ends, so they are drawn once into an offscreen copy and
+  // blitted on later moves; only the selection, the stroke being drawn and
+  // previews are redrawn. Any full redrawCanvas() (undo, pan, zoom, load...)
+  // discards the copy.
+  redrawGesture() {
+    if (!this.ensureContext()) {
+      return;
+    }
+
+    if (!this.gestureLayerValid) {
+      this.renderGestureLayer();
+    }
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.drawImage(this.gestureLayer, 0, 0);
+    this.applyViewTransform();
+    this.drawOverlay();
+  }
+
+  // Draw the scene into the offscreen copy. It is drawn there directly rather
+  // than copied from the board: a desynchronized canvas is read when the copy
+  // is flushed, which can already include the overlay.
+  renderGestureLayer() {
+    this.gestureLayer ||= document.createElement("canvas");
+    const layer = this.gestureLayer;
+    if (layer.width !== this.canvas.width) {
+      layer.width = this.canvas.width;
+    }
+    if (layer.height !== this.canvas.height) {
+      layer.height = this.canvas.height;
+    }
+
+    const board = this.ctx;
+    const layerCtx = layer.getContext("2d");
+    // Shapes inherit line caps and joins from earlier drawing; match the board
+    layerCtx.lineCap = board.lineCap;
+    layerCtx.lineJoin = board.lineJoin;
+    this.ctx = layerCtx;
+    try {
+      this.drawScene();
+    } finally {
+      this.ctx = board;
+    }
+    board.lineCap = layerCtx.lineCap;
+    board.lineJoin = layerCtx.lineJoin;
+    this.gestureLayerValid = true;
+  }
+
+  // Ensure canvas context is valid
+  ensureContext() {
     if (!this.ctx) {
       this.ctx = this.canvas.getContext("2d", {
         desynchronized: true,
@@ -408,45 +469,22 @@ class Canvas {
       });
       if (!this.ctx) {
         this.showStatus("Error: Could not restore canvas context");
-        return;
+        return false;
       }
     }
+    return true;
+  }
 
+  // Background, field image and unselected strokes; leaves the view
+  // transform applied for drawOverlay()
+  drawScene() {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
 
     // Set white background
     this.ctx.fillStyle = "#ffffff";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Apply transformations with safety checks
-    const safeOffsetX = isFinite(this.offsetX) ? this.offsetX : 0;
-    const safeOffsetY = isFinite(this.offsetY) ? this.offsetY : 0;
-    this.ctx.translate(safeOffsetX, safeOffsetY);
-
-    // Apply scale for drawing with safety check
-    const safeScale = Math.min(
-      Math.max(this.scale, this.MIN_SCALE),
-      this.MAX_SCALE,
-    );
-    if (this.scale !== safeScale) {
-      this.scale = safeScale;
-      this.showStatus(`Scale limited to ${this.scale.toFixed(2)}`);
-    }
-    this.ctx.scale(this.scale, this.scale);
-
-    // Apply flip transformations
-    if (this.flipX) {
-      this.ctx.scale(-1, 1);
-    }
-    if (this.flipY) {
-      this.ctx.scale(1, -1);
-    }
-
-    // Apply rotation
-    if (this.rotation !== 0) {
-      const rotationRadians = (this.rotation * Math.PI) / 180;
-      this.ctx.rotate(rotationRadians);
-    }
+    this.applyViewTransform();
 
     // Draw the field image first if loaded
     if (this.backgroundLoaded) {
@@ -483,7 +521,43 @@ class Canvas {
         }
       }
     });
+  }
 
+  // Pan, zoom, flip and rotation, applied on top of the identity transform
+  applyViewTransform() {
+    // Apply transformations with safety checks
+    const safeOffsetX = isFinite(this.offsetX) ? this.offsetX : 0;
+    const safeOffsetY = isFinite(this.offsetY) ? this.offsetY : 0;
+    this.ctx.translate(safeOffsetX, safeOffsetY);
+
+    // Apply scale for drawing with safety check
+    const safeScale = Math.min(
+      Math.max(this.scale, this.MIN_SCALE),
+      this.MAX_SCALE,
+    );
+    if (this.scale !== safeScale) {
+      this.scale = safeScale;
+      this.showStatus(`Scale limited to ${this.scale.toFixed(2)}`);
+    }
+    this.ctx.scale(this.scale, this.scale);
+
+    // Apply flip transformations
+    if (this.flipX) {
+      this.ctx.scale(-1, 1);
+    }
+    if (this.flipY) {
+      this.ctx.scale(1, -1);
+    }
+
+    // Apply rotation
+    if (this.rotation !== 0) {
+      const rotationRadians = (this.rotation * Math.PI) / 180;
+      this.ctx.rotate(rotationRadians);
+    }
+  }
+
+  // Selected strokes, the stroke being drawn, shape preview and selection box
+  drawOverlay() {
     // Draw selected strokes with highlight
     this.ctx.save();
     this.ctx.strokeStyle = "#0066ff";
@@ -1219,6 +1293,7 @@ class Canvas {
   // Tool handling shared by mouse and touch. `additive` is Ctrl/Cmd: add to or
   // remove from the selection instead of replacing it.
   pointerDown(pos, additive = false) {
+    this.gestureLayerValid = false;
     this.startX = pos.x;
     this.startY = pos.y;
 
@@ -1246,7 +1321,7 @@ class Canvas {
       );
       this.startX = pos.x;
       this.startY = pos.y;
-      this.redrawCanvas();
+      this.redrawGesture();
     } else if (this.isDrawing && this.currentTool === "pen") {
       this.currentStroke.push({
         x: pos.x,
@@ -1254,11 +1329,11 @@ class Canvas {
         color: this.currentColor,
         thickness: this.currentThickness,
       });
-      this.redrawCanvas();
+      this.redrawGesture();
     } else if (this.isSelecting) {
       this.selectionRect.width = pos.x - this.selectionRect.x;
       this.selectionRect.height = pos.y - this.selectionRect.y;
-      this.redrawCanvas();
+      this.redrawGesture();
     } else if (this.moveSelection.active) {
       this.moveSelectedStrokes(
         pos.x - this.moveSelection.startX,
@@ -1266,7 +1341,7 @@ class Canvas {
       );
       this.moveSelection.startX = pos.x;
       this.moveSelection.startY = pos.y;
-      this.redrawCanvas();
+      this.redrawGesture();
     } else if (
       this.startX !== null &&
       this.currentTool !== "pen" &&
@@ -1282,7 +1357,7 @@ class Canvas {
         thickness: this.currentThickness,
         isFilled: this.isFilled,
       };
-      this.redrawCanvas();
+      this.redrawGesture();
     }
   }
 
