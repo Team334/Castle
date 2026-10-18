@@ -2,7 +2,7 @@
   "name": "castle-styles",
   "private": true,
   "scripts": {
-    "test": "node --test tests/test_browser_resilience.js",
+    "test": "node --test tests/test_browser_resilience.js tests/test_canvas.js",
     "build:css": "tailwindcss -i app/static/css/tailwind.input.css -o app/static/css/tailwind.css --minify"
   },
   "devDependencies": {

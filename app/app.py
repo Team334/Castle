@@ -2,7 +2,6 @@ import logging
 import os
 import traceback
 from time import strftime
-from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from flask import (Flask, flash, jsonify, make_response, redirect,
@@ -12,7 +11,7 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.exceptions import HTTPException
 
 from app.auth.auth_utils import UserManager
-from app.utils import is_safe_url, limiter
+from app.utils import limiter
 
 csrf = CSRFProtect()
 login_manager = LoginManager()

@@ -54,9 +54,11 @@ class Canvas {
 
     // Drawing state
     this.isDrawing = false;
-    this.lastX = 0;
-    this.lastY = 0;
     this.previewShape = null; // Add preview shape state
+
+    // Copy of the field and unselected strokes reused while dragging
+    this.gestureLayer = null;
+    this.gestureLayerValid = false;
 
     // Pan and zoom state
     this.isPanning = false;
@@ -114,18 +116,8 @@ class Canvas {
     });
 
     // Perfect freehand settings
-    this.pressure = 0.5;
     this.thinning = 0.5;
     this.smoothing = 0.5;
-    this.streamline = 0.5;
-    this.points = [];
-
-    // Stroke settings
-    this.minWidth = 0.5;
-    this.maxWidth = 4;
-    this.lastVelocity = 0;
-    this.lastWidth = 0;
-    this.velocityFilterWeight = 0.7;
 
     // Auto-save interval (every 30 seconds)
     this.autoSaveInterval = setInterval(() => this.autoSave(), 30000);
@@ -412,7 +404,64 @@ class Canvas {
   }
 
   redrawCanvas() {
-    // Ensure canvas context is valid
+    this.gestureLayerValid = false;
+    if (!this.ensureContext()) {
+      return;
+    }
+    this.drawScene();
+    this.drawOverlay();
+  }
+
+  // Redraw during a drag. The field and unselected strokes do not change
+  // until the gesture ends, so they are drawn once into an offscreen copy and
+  // blitted on later moves; only the selection, the stroke being drawn and
+  // previews are redrawn. Any full redrawCanvas() (undo, pan, zoom, load...)
+  // discards the copy.
+  redrawGesture() {
+    if (!this.ensureContext()) {
+      return;
+    }
+
+    if (!this.gestureLayerValid) {
+      this.renderGestureLayer();
+    }
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.drawImage(this.gestureLayer, 0, 0);
+    this.applyViewTransform();
+    this.drawOverlay();
+  }
+
+  // Draw the scene into the offscreen copy. It is drawn there directly rather
+  // than copied from the board: a desynchronized canvas is read when the copy
+  // is flushed, which can already include the overlay.
+  renderGestureLayer() {
+    this.gestureLayer ||= document.createElement("canvas");
+    const layer = this.gestureLayer;
+    if (layer.width !== this.canvas.width) {
+      layer.width = this.canvas.width;
+    }
+    if (layer.height !== this.canvas.height) {
+      layer.height = this.canvas.height;
+    }
+
+    const board = this.ctx;
+    const layerCtx = layer.getContext("2d");
+    // Shapes inherit line caps and joins from earlier drawing; match the board
+    layerCtx.lineCap = board.lineCap;
+    layerCtx.lineJoin = board.lineJoin;
+    this.ctx = layerCtx;
+    try {
+      this.drawScene();
+    } finally {
+      this.ctx = board;
+    }
+    board.lineCap = layerCtx.lineCap;
+    board.lineJoin = layerCtx.lineJoin;
+    this.gestureLayerValid = true;
+  }
+
+  // Ensure canvas context is valid
+  ensureContext() {
     if (!this.ctx) {
       this.ctx = this.canvas.getContext("2d", {
         desynchronized: true,
@@ -420,45 +469,22 @@ class Canvas {
       });
       if (!this.ctx) {
         this.showStatus("Error: Could not restore canvas context");
-        return;
+        return false;
       }
     }
+    return true;
+  }
 
+  // Background, field image and unselected strokes; leaves the view
+  // transform applied for drawOverlay()
+  drawScene() {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
 
     // Set white background
     this.ctx.fillStyle = "#ffffff";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Apply transformations with safety checks
-    const safeOffsetX = isFinite(this.offsetX) ? this.offsetX : 0;
-    const safeOffsetY = isFinite(this.offsetY) ? this.offsetY : 0;
-    this.ctx.translate(safeOffsetX, safeOffsetY);
-
-    // Apply scale for drawing with safety check
-    const safeScale = Math.min(
-      Math.max(this.scale, this.MIN_SCALE),
-      this.MAX_SCALE,
-    );
-    if (this.scale !== safeScale) {
-      this.scale = safeScale;
-      this.showStatus(`Scale limited to ${this.scale.toFixed(2)}`);
-    }
-    this.ctx.scale(this.scale, this.scale);
-
-    // Apply flip transformations
-    if (this.flipX) {
-      this.ctx.scale(-1, 1);
-    }
-    if (this.flipY) {
-      this.ctx.scale(1, -1);
-    }
-
-    // Apply rotation
-    if (this.rotation !== 0) {
-      const rotationRadians = (this.rotation * Math.PI) / 180;
-      this.ctx.rotate(rotationRadians);
-    }
+    this.applyViewTransform();
 
     // Draw the field image first if loaded
     if (this.backgroundLoaded) {
@@ -495,7 +521,43 @@ class Canvas {
         }
       }
     });
+  }
 
+  // Pan, zoom, flip and rotation, applied on top of the identity transform
+  applyViewTransform() {
+    // Apply transformations with safety checks
+    const safeOffsetX = isFinite(this.offsetX) ? this.offsetX : 0;
+    const safeOffsetY = isFinite(this.offsetY) ? this.offsetY : 0;
+    this.ctx.translate(safeOffsetX, safeOffsetY);
+
+    // Apply scale for drawing with safety check
+    const safeScale = Math.min(
+      Math.max(this.scale, this.MIN_SCALE),
+      this.MAX_SCALE,
+    );
+    if (this.scale !== safeScale) {
+      this.scale = safeScale;
+      this.showStatus(`Scale limited to ${this.scale.toFixed(2)}`);
+    }
+    this.ctx.scale(this.scale, this.scale);
+
+    // Apply flip transformations
+    if (this.flipX) {
+      this.ctx.scale(-1, 1);
+    }
+    if (this.flipY) {
+      this.ctx.scale(1, -1);
+    }
+
+    // Apply rotation
+    if (this.rotation !== 0) {
+      const rotationRadians = (this.rotation * Math.PI) / 180;
+      this.ctx.rotate(rotationRadians);
+    }
+  }
+
+  // Selected strokes, the stroke being drawn, shape preview and selection box
+  drawOverlay() {
     // Draw selected strokes with highlight
     this.ctx.save();
     this.ctx.strokeStyle = "#0066ff";
@@ -1044,742 +1106,498 @@ class Canvas {
 
   // Event binding
   bindEvents() {
-    // Resize handler
     window.addEventListener("resize", () => this.resizeCanvas());
+    this.container.addEventListener("wheel", (e) => this.onWheel(e));
+    this.canvas.addEventListener("mousedown", (e) => this.onMouseDown(e));
+    this.canvas.addEventListener("mousemove", (e) => this.onMouseMove(e));
+    this.canvas.addEventListener("mouseup", () => this.onMouseUp());
+    this.canvas.addEventListener("mouseleave", () => this.onMouseLeave());
+    this.canvas.addEventListener("touchstart", (e) => this.onTouchStart(e));
+    this.canvas.addEventListener("touchmove", (e) => this.onTouchMove(e));
+    this.canvas.addEventListener("touchend", (e) => this.onTouchEnd(e));
+    window.addEventListener("keydown", (e) => this.onKeyDown(e));
+  }
 
-    // Mouse wheel for zooming
-    this.container.addEventListener("wheel", (e) => {
-      e.preventDefault();
+  // Mouse wheel zooms around the pointer
+  onWheel(e) {
+    e.preventDefault();
 
-      const mouseX = e.clientX;
-      const mouseY = e.clientY;
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
 
-      // Calculate position before zoom
-      const pointBeforeZoomX = (mouseX - this.offsetX) / this.scale;
-      const pointBeforeZoomY = (mouseY - this.offsetY) / this.scale;
+    // Calculate position before zoom
+    const pointBeforeZoomX = (mouseX - this.offsetX) / this.scale;
+    const pointBeforeZoomY = (mouseY - this.offsetY) / this.scale;
 
-      // Adjust zoom level
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      this.scale *= zoomFactor;
+    // Adjust zoom level
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    this.scale *= zoomFactor;
 
-      // Limit zoom
-      this.scale = Math.min(Math.max(0.1, this.scale), 10);
+    // Limit zoom
+    this.scale = Math.min(Math.max(0.1, this.scale), 10);
 
-      // Calculate position after zoom
-      const pointAfterZoomX = (mouseX - this.offsetX) / this.scale;
-      const pointAfterZoomY = (mouseY - this.offsetY) / this.scale;
+    // Calculate position after zoom
+    const pointAfterZoomX = (mouseX - this.offsetX) / this.scale;
+    const pointAfterZoomY = (mouseY - this.offsetY) / this.scale;
 
-      // Adjust offset to keep mouse position fixed
-      this.offsetX += (pointAfterZoomX - pointBeforeZoomX) * this.scale;
-      this.offsetY += (pointAfterZoomY - pointBeforeZoomY) * this.scale;
+    // Adjust offset to keep mouse position fixed
+    this.offsetX += (pointAfterZoomX - pointBeforeZoomX) * this.scale;
+    this.offsetY += (pointAfterZoomY - pointBeforeZoomY) * this.scale;
 
-      // Apply pan limits
-      this.applyPanLimits();
+    this.applyPanLimits();
+    this.redrawCanvas();
+  }
 
-      // Redraw
-      this.redrawCanvas();
+  // Mouse: shift or middle-button drag pans (also in readonly mode); the left
+  // button uses the current tool.
+  onMouseDown(e) {
+    if (e.shiftKey || e.button === 1) {
+      this.startPan(e.clientX, e.clientY);
+      this.canvas.style.cursor = "grabbing";
+    } else if (!this.readonly) {
+      const pos = this.getTransformedPosition(e.clientX, e.clientY);
+      this.pointerDown(pos, e.ctrlKey || e.metaKey);
+    }
+  }
 
-      // Show zoom level
-      // this.showStatus(`Zoom: ${Math.round(this.scale * 100)}%`);
-    });
+  onMouseMove(e) {
+    if (this.isPanning) {
+      this.panTo(e.clientX, e.clientY);
+      return;
+    }
+    // Hovering does nothing unless the select tool shows handle cursors
+    const idle =
+      this.startX === null &&
+      !this.isDrawing &&
+      !this.isSelecting &&
+      !this.moveSelection.active &&
+      !this.resizeHandles.active;
+    if (this.readonly || (idle && this.currentTool !== "select")) {
+      return;
+    }
 
-    // Mouse events for drawing and panning
-    this.canvas.addEventListener("mousedown", (e) => {
-      if (this.readonly && !e.shiftKey && e.button !== 1) {
-        return;
-      } // Only allow panning in readonly mode
+    const pos = this.getTransformedPosition(e.clientX, e.clientY);
 
-      this.lastEvent = e;
-      if (e.shiftKey || e.button === 1) {
-        this.isPanning = true;
-        this.startPanX = e.clientX - this.offsetX;
-        this.startPanY = e.clientY - this.offsetY;
-        this.canvas.style.cursor = "grabbing";
-      } else if (!this.readonly) {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-        this.startX = pos.x;
-        this.startY = pos.y;
+    // Show the resize cursor when hovering a selection handle
+    if (
+      this.currentTool === "select" &&
+      !this.isSelecting &&
+      !this.moveSelection.active &&
+      !this.resizeHandles.active
+    ) {
+      const handle = this.getResizeHandleAtPoint(pos);
+      this.canvas.style.cursor = handle ? handle.cursor : "default";
+    }
 
-        if (this.currentTool === "select") {
-          // First check if clicking on a resize handle
-          const handle = this.getResizeHandleAtPoint(pos);
-          if (handle) {
-            this.resizeHandles.active = true;
-            this.resizeHandles.activeHandle = handle;
-            this.canvas.style.cursor = handle.cursor;
-            return;
-          }
+    this.pointerMove(pos);
+  }
 
-          // Then check if clicking inside selection area
-          if (this.selectedStrokes.length > 0 && this.selectionRect) {
-            const clickPoint = { x: pos.x, y: pos.y };
-            if (this.isPointInRect(clickPoint, this.selectionRect)) {
-              // Start moving the selection
-              this.moveSelection.active = true;
-              this.moveSelection.startX = pos.x;
-              this.moveSelection.startY = pos.y;
-              this.canvas.style.cursor = "move";
-              return;
-            }
-          }
-
-          // Check if clicking on any stroke
-          const clickedPoint = { x: pos.x, y: pos.y };
-          let clickedIndex = -1;
-
-          // Check selected strokes first
-          for (const index of this.selectedStrokes) {
-            if (
-              this.isPointInStroke(clickedPoint, this.drawingHistory[index])
-            ) {
-              clickedIndex = index;
-              break;
-            }
-          }
-
-          // If not clicking on selected stroke, check others
-          if (clickedIndex === -1) {
-            for (let i = this.drawingHistory.length - 1; i >= 0; i--) {
-              if (this.isPointInStroke(clickedPoint, this.drawingHistory[i])) {
-                clickedIndex = i;
-                break;
-              }
-            }
-          }
-
-          if (clickedIndex >= 0) {
-            // Clicked on a stroke
-            if (
-              !e.ctrlKey &&
-              !e.metaKey &&
-              !this.selectedStrokes.includes(clickedIndex)
-            ) {
-              // New selection if not holding Ctrl/Cmd
-              this.selectedStrokes = [clickedIndex];
-            } else if (
-              (e.ctrlKey || e.metaKey) &&
-              this.selectedStrokes.includes(clickedIndex)
-            ) {
-              // Deselect if holding Ctrl/Cmd and clicking on selected stroke
-              this.selectedStrokes = this.selectedStrokes.filter(
-                (i) => i !== clickedIndex,
-              );
-            } else if (e.ctrlKey || e.metaKey) {
-              // Add to selection if holding Ctrl/Cmd
-              this.selectedStrokes.push(clickedIndex);
-            }
-
-            // Start move operation if clicked on selected stroke
-            if (this.selectedStrokes.includes(clickedIndex)) {
-              this.moveSelection.active = true;
-              this.moveSelection.startX = pos.x;
-              this.moveSelection.startY = pos.y;
-              this.canvas.style.cursor = "move";
-            }
-          } else if (!e.ctrlKey && !e.metaKey) {
-            // Start selection rectangle if not clicking on any stroke and not holding modifier keys
-            this.isSelecting = true;
-            this.selectionRect = {
-              x: pos.x,
-              y: pos.y,
-              width: 0,
-              height: 0,
-            };
-            this.selectedStrokes = [];
-          }
-
-          this.redrawCanvas();
-        } else if (this.currentTool === "pen") {
-          this.isDrawing = true;
-          this.currentStroke = [
-            {
-              x: pos.x,
-              y: pos.y,
-              color: this.currentColor,
-              thickness: this.currentThickness,
-            },
-          ];
-        }
-      }
-    });
-
-    this.canvas.addEventListener("mousemove", (e) => {
-      if (this.readonly && !this.isPanning) {
-        return;
-      } // Only handle panning in readonly mode
-
-      // Update cursor based on resize handles when in select mode
-      if (
-        this.currentTool === "select" &&
-        !this.isSelecting &&
-        !this.moveSelection.active &&
-        !this.resizeHandles.active
-      ) {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-        const handle = this.getResizeHandleAtPoint(pos);
-        this.canvas.style.cursor = handle ? handle.cursor : "default";
-      }
-
-      if (this.isPanning) {
-        this.offsetX = e.clientX - this.startPanX;
-        this.offsetY = e.clientY - this.startPanY;
-        this.applyPanLimits();
-        this.redrawCanvas();
-      } else if (this.resizeHandles.active) {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-        const dx = pos.x - this.startX;
-        const dy = pos.y - this.startY;
-
-        // Resize the shapes
-        this.resizeSelectedShapes(this.resizeHandles.activeHandle, dx, dy);
-
-        this.startX = pos.x;
-        this.startY = pos.y;
-        this.redrawCanvas();
-      } else if (this.isDrawing && this.currentTool === "pen") {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-
-        // Calculate velocity for pressure
-        const velocity = Math.sqrt(
-          Math.pow(pos.x - this.lastX, 2) + Math.pow(pos.y - this.lastY, 2),
-        );
-
-        // Smooth velocity
-        this.lastVelocity = this.lastVelocity
-          ? this.lastVelocity * this.velocityFilterWeight +
-            velocity * (1 - this.velocityFilterWeight)
-          : velocity;
-
-        // Add point with pressure data
-        this.currentStroke.push({
-          x: pos.x,
-          y: pos.y,
-          color: this.currentColor,
-          pressure: Math.max(0.1, 1 - this.lastVelocity / 4),
-          thickness: this.currentThickness,
-        });
-
-        this.redrawCanvas();
-
-        this.lastX = pos.x;
-        this.lastY = pos.y;
-      } else if (this.isSelecting) {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-        this.selectionRect.width = pos.x - this.selectionRect.x;
-        this.selectionRect.height = pos.y - this.selectionRect.y;
-        this.redrawCanvas();
-      } else if (this.moveSelection.active) {
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-        const dx = pos.x - this.moveSelection.startX;
-        const dy = pos.y - this.moveSelection.startY;
-        this.moveSelectedStrokes(dx, dy);
-        this.moveSelection.startX = pos.x;
-        this.moveSelection.startY = pos.y;
-        this.redrawCanvas();
-      } else if (
-        this.startX !== null &&
-        this.currentTool !== "pen" &&
-        this.currentTool !== "select"
-      ) {
-        // Update preview shape
-        const pos = this.getTransformedPosition(e.clientX, e.clientY);
-
-        this.previewShape = {
-          type: this.currentTool,
-          x: this.startX,
-          y: this.startY,
-          width: pos.x - this.startX,
-          height: pos.y - this.startY,
-          color: this.currentColor,
-          thickness: this.currentThickness,
-          isFilled: this.isFilled,
-        };
-
-        this.redrawCanvas();
-      }
-    });
-
-    this.canvas.addEventListener("mouseup", (e) => {
-      if (this.readonly && !this.isPanning) {
-        return;
-      } // Only handle panning in readonly mode
-
-      if (this.resizeHandles.active) {
-        this.resizeHandles.active = false;
-        this.resizeHandles.activeHandle = null;
-        this.canvas.style.cursor = "default";
-        // Record resize operation in history
-        // You might want to add a specific resize operation type
-      } else if (this.isPanning) {
-        this.isPanning = false;
-        this.canvas.style.cursor = "default";
-      } else if (this.currentTool === "select") {
-        if (this.isSelecting && !this.moveSelection.active) {
-          this.selectStrokesInRect(this.selectionRect);
-        }
-
-        // Record the move operation in history only when the move is complete
-        if (
-          this.moveSelection.active &&
-          this.moveSelection.totalDx !== undefined
-        ) {
-          const moveOp = {
-            type: "move",
-            strokes: [...this.selectedStrokes],
-            dx: this.moveSelection.totalDx,
-            dy: this.moveSelection.totalDy,
-          };
-          this.drawingHistory.push(moveOp);
-          this.redoHistory = [];
-        }
-
-        this.isSelecting = false;
-        this.moveSelection.active = false;
-        this.moveSelection.totalDx = undefined;
-        this.moveSelection.totalDy = undefined;
-        this.canvas.style.cursor = "default";
-
-        // Keep the selection rectangle for the selected strokes
-        if (this.selectedStrokes.length > 0) {
-          // Update selection rectangle to encompass all selected strokes
-          let minX = Infinity,
-            minY = Infinity,
-            maxX = -Infinity,
-            maxY = -Infinity;
-          this.selectedStrokes.forEach((index) => {
-            const stroke = this.drawingHistory[index];
-            if (Array.isArray(stroke) && !stroke[0]?.type) {
-              // For freehand strokes
-              stroke.forEach((point) => {
-                minX = Math.min(minX, point.x);
-                minY = Math.min(minY, point.y);
-                maxX = Math.max(maxX, point.x);
-                maxY = Math.max(maxY, point.y);
-              });
-            } else if (stroke[0]?.type) {
-              // For shapes
-              const bounds = this.getShapeBounds(stroke[0]);
-              minX = Math.min(minX, bounds.x);
-              minY = Math.min(minY, bounds.y);
-              maxX = Math.max(maxX, bounds.x + bounds.width);
-              maxY = Math.max(maxY, bounds.y + bounds.height);
-            }
-          });
-
-          this.selectionRect = {
-            x: minX,
-            y: minY,
-            width: maxX - minX,
-            height: maxY - minY,
-          };
-        } else {
-          this.selectionRect = null;
-        }
-
-        this.redrawCanvas();
-      } else if (this.currentTool === "pen" && this.isDrawing) {
-        this.isDrawing = false;
-        if (this.currentStroke.length > 1) {
-          this.drawingHistory.push(this.currentStroke);
-          this.redoHistory = []; // Clear redo history on new stroke
-        }
-        this.currentStroke = [];
-      } else if (this.startX !== null && this.previewShape) {
-        // Add the final shape to history
-        this.drawingHistory.push([this.previewShape]);
-        this.redoHistory = []; // Clear redo history on new shape
-        this.previewShape = null; // Clear preview shape
-        this.redrawCanvas();
-      }
-
+  onMouseUp() {
+    if (this.isPanning) {
+      this.isPanning = false;
+      this.canvas.style.cursor = "default";
       this.startX = null;
       this.startY = null;
-    });
+    } else if (!this.readonly) {
+      this.pointerUp();
+    }
+  }
 
-    this.canvas.addEventListener("mouseleave", () => {
-      if (this.isDrawing) {
-        this.isDrawing = false;
-        if (this.currentStroke.length > 1) {
-          this.drawingHistory.push(this.currentStroke);
+  onMouseLeave() {
+    if (this.isDrawing) {
+      this.finishStroke();
+      this.redrawCanvas();
+    }
+    if (this.isPanning) {
+      this.isPanning = false;
+      this.canvas.style.cursor = "default";
+    }
+  }
+
+  // Touch: one finger uses the current tool; two fingers pan and pinch-zoom
+  // (also in readonly mode).
+  onTouchStart(e) {
+    if (this.readonly && e.touches.length !== 2) {
+      return;
+    }
+    e.preventDefault();
+
+    const [first, second] = [e.touches[0], e.touches[1]];
+    if (e.touches.length === 2) {
+      this.startPan(
+        (first.clientX + second.clientX) / 2,
+        (first.clientY + second.clientY) / 2,
+      );
+      return;
+    }
+
+    this.pointerDown(this.getTransformedPosition(first.clientX, first.clientY));
+  }
+
+  onTouchMove(e) {
+    if (this.readonly && e.touches.length !== 2) {
+      return;
+    }
+    e.preventDefault();
+
+    const [first, second] = [e.touches[0], e.touches[1]];
+    if (e.touches.length === 2) {
+      // Pinch-to-zoom: compare finger distance with the previous move
+      const distance = Math.hypot(
+        first.clientX - second.clientX,
+        first.clientY - second.clientY,
+      );
+      if (e.target === this.canvas) {
+        if (typeof this.lastDistance === "number") {
+          const zoomFactor = distance > this.lastDistance ? 1.01 : 0.99;
+          this.scale = Math.min(Math.max(0.1, this.scale * zoomFactor), 10);
         }
-        this.currentStroke = [];
-        this.redrawCanvas();
-      }
-      if (this.isPanning) {
-        this.isPanning = false;
-        this.canvas.style.cursor = "default";
-      }
-    });
-
-    // Touch events for mobile
-    this.canvas.addEventListener("touchstart", (e) => {
-      if (this.readonly && e.touches.length !== 2) {
-        return;
-      } // Only allow two-finger pan/zoom in readonly mode
-
-      e.preventDefault();
-
-      if (e.touches.length === 2) {
-        // Two fingers for panning
-        this.isPanning = true;
-        this.startPanX =
-          (e.touches[0].clientX + e.touches[1].clientX) / 2 - this.offsetX;
-        this.startPanY =
-          (e.touches[0].clientY + e.touches[1].clientY) / 2 - this.offsetY;
-        return;
-      }
-
-      const touch = e.touches[0];
-      const pos = this.getTransformedPosition(touch.clientX, touch.clientY);
-
-      if (this.currentTool === "select") {
-        // First check if clicking on a resize handle
-        const handle = this.getResizeHandleAtPoint(pos);
-        if (handle) {
-          this.resizeHandles.active = true;
-          this.resizeHandles.activeHandle = handle;
-          return;
-        }
-
-        // Then check if clicking inside selection area
-        if (this.selectedStrokes.length > 0 && this.selectionRect) {
-          const clickPoint = { x: pos.x, y: pos.y };
-          if (this.isPointInRect(clickPoint, this.selectionRect)) {
-            // Start moving the selection
-            this.moveSelection.active = true;
-            this.moveSelection.startX = pos.x;
-            this.moveSelection.startY = pos.y;
-            return;
-          }
-        }
-
-        // Check if clicking on any stroke
-        const clickedPoint = { x: pos.x, y: pos.y };
-        let clickedIndex = -1;
-
-        // Check selected strokes first
-        for (const index of this.selectedStrokes) {
-          if (this.isPointInStroke(clickedPoint, this.drawingHistory[index])) {
-            clickedIndex = index;
-            break;
-          }
-        }
-
-        // If not clicking on selected stroke, check others
-        if (clickedIndex === -1) {
-          for (let i = this.drawingHistory.length - 1; i >= 0; i--) {
-            if (this.isPointInStroke(clickedPoint, this.drawingHistory[i])) {
-              clickedIndex = i;
-              break;
-            }
-          }
-        }
-
-        if (clickedIndex >= 0) {
-          // Clicked on a stroke
-          this.selectedStrokes = [clickedIndex];
-          this.moveSelection.active = true;
-          this.moveSelection.startX = pos.x;
-          this.moveSelection.startY = pos.y;
-        } else {
-          // Start selection rectangle
-          this.isSelecting = true;
-          this.selectionRect = {
-            x: pos.x,
-            y: pos.y,
-            width: 0,
-            height: 0,
-          };
-          this.selectedStrokes = [];
-        }
-
-        this.redrawCanvas();
-      } else if (this.currentTool === "pen") {
-        this.isDrawing = true;
-        this.lastX = pos.x;
-        this.lastY = pos.y;
-
-        this.currentStroke = [
-          {
-            x: pos.x,
-            y: pos.y,
-            color: this.currentColor,
-            thickness: this.currentThickness,
-          },
-        ];
-      } else {
-        // For shapes, store the starting position
-        this.startX = pos.x;
-        this.startY = pos.y;
-      }
-    });
-
-    this.canvas.addEventListener("touchmove", (e) => {
-      if (this.readonly && e.touches.length !== 2) {
-        return;
-      } // Only allow two-finger pan/zoom in readonly mode
-
-      e.preventDefault();
-
-      if (e.touches.length === 2) {
-        // Two fingers for panning/zooming
-        const currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-        // Calculate distance between fingers for pinch-to-zoom
-        const initialDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
-        );
-
-        if (e.touches.length === 2 && e.target === this.canvas) {
-          if (typeof this.lastDistance === "number") {
-            const delta = initialDistance - this.lastDistance;
-            const zoomFactor = delta > 0 ? 1.01 : 0.99;
-            this.scale *= zoomFactor;
-            this.scale = Math.min(Math.max(0.1, this.scale), 10);
-          }
-          this.lastDistance = initialDistance;
-        }
-
-        this.offsetX = currentX - this.startPanX;
-        this.offsetY = currentY - this.startPanY;
-
-        // Apply pan limits
-        this.applyPanLimits();
-
-        this.redrawCanvas();
-        return;
+        this.lastDistance = distance;
       }
 
-      const touch = e.touches[0];
-      const pos = this.getTransformedPosition(touch.clientX, touch.clientY);
+      this.panTo(
+        (first.clientX + second.clientX) / 2,
+        (first.clientY + second.clientY) / 2,
+      );
+      return;
+    }
 
-      if (this.currentTool === "select") {
-        if (this.resizeHandles.active && this.resizeHandles.activeHandle) {
-          // Handle resize operation
-          const dx = pos.x - this.startX;
-          const dy = pos.y - this.startY;
-          this.resizeSelectedShapes(this.resizeHandles.activeHandle, dx, dy);
-          this.startX = pos.x;
-          this.startY = pos.y;
-        } else if (this.moveSelection.active) {
-          // Handle move operation
-          const dx = pos.x - this.moveSelection.startX;
-          const dy = pos.y - this.moveSelection.startY;
-          this.moveSelectedStrokes(dx, dy);
-          this.moveSelection.startX = pos.x;
-          this.moveSelection.startY = pos.y;
-        } else if (this.isSelecting) {
-          // Update selection rectangle
-          this.selectionRect.width = pos.x - this.selectionRect.x;
-          this.selectionRect.height = pos.y - this.selectionRect.y;
-        }
-        this.redrawCanvas();
-      } else if (this.isDrawing && this.currentTool === "pen") {
-        // Add to current stroke for pen tool
-        this.currentStroke.push({
+    this.pointerMove(this.getTransformedPosition(first.clientX, first.clientY));
+  }
+
+  onTouchEnd(e) {
+    if (e.touches.length > 0) {
+      return;
+    }
+    this.isPanning = false;
+    this.lastDistance = null;
+    // A gesture can begin with one finger and add a second; finish it either way
+    if (!this.readonly) {
+      this.pointerUp();
+    }
+  }
+
+  startPan(clientX, clientY) {
+    this.isPanning = true;
+    this.startPanX = clientX - this.offsetX;
+    this.startPanY = clientY - this.offsetY;
+  }
+
+  panTo(clientX, clientY) {
+    this.offsetX = clientX - this.startPanX;
+    this.offsetY = clientY - this.startPanY;
+    this.applyPanLimits();
+    this.redrawCanvas();
+  }
+
+  // Tool handling shared by mouse and touch. `additive` is Ctrl/Cmd: add to or
+  // remove from the selection instead of replacing it.
+  pointerDown(pos, additive = false) {
+    this.gestureLayerValid = false;
+    this.startX = pos.x;
+    this.startY = pos.y;
+
+    if (this.currentTool === "select") {
+      this.selectAt(pos, additive);
+    } else if (this.currentTool === "pen") {
+      this.isDrawing = true;
+      this.currentStroke = [
+        {
           x: pos.x,
           y: pos.y,
           color: this.currentColor,
           thickness: this.currentThickness,
+        },
+      ];
+    }
+  }
+
+  pointerMove(pos) {
+    if (this.resizeHandles.active) {
+      this.resizeSelectedShapes(
+        this.resizeHandles.activeHandle,
+        pos.x - this.startX,
+        pos.y - this.startY,
+      );
+      this.startX = pos.x;
+      this.startY = pos.y;
+      this.redrawGesture();
+    } else if (this.isDrawing && this.currentTool === "pen") {
+      this.currentStroke.push({
+        x: pos.x,
+        y: pos.y,
+        color: this.currentColor,
+        thickness: this.currentThickness,
+      });
+      this.redrawGesture();
+    } else if (this.isSelecting) {
+      this.selectionRect.width = pos.x - this.selectionRect.x;
+      this.selectionRect.height = pos.y - this.selectionRect.y;
+      this.redrawGesture();
+    } else if (this.moveSelection.active) {
+      this.moveSelectedStrokes(
+        pos.x - this.moveSelection.startX,
+        pos.y - this.moveSelection.startY,
+      );
+      this.moveSelection.startX = pos.x;
+      this.moveSelection.startY = pos.y;
+      this.redrawGesture();
+    } else if (
+      this.startX !== null &&
+      this.currentTool !== "pen" &&
+      this.currentTool !== "select"
+    ) {
+      this.previewShape = {
+        type: this.currentTool,
+        x: this.startX,
+        y: this.startY,
+        width: pos.x - this.startX,
+        height: pos.y - this.startY,
+        color: this.currentColor,
+        thickness: this.currentThickness,
+        isFilled: this.isFilled,
+      };
+      this.redrawGesture();
+    }
+  }
+
+  pointerUp() {
+    if (this.resizeHandles.active) {
+      this.resizeHandles.active = false;
+      this.resizeHandles.activeHandle = null;
+      this.canvas.style.cursor = "default";
+    } else if (this.currentTool === "select") {
+      this.finishSelection();
+    } else if (this.currentTool === "pen" && this.isDrawing) {
+      this.finishStroke();
+    } else if (this.startX !== null && this.previewShape) {
+      this.drawingHistory.push([this.previewShape]);
+      this.redoHistory = [];
+      this.previewShape = null;
+      this.redrawCanvas();
+    }
+
+    this.startX = null;
+    this.startY = null;
+  }
+
+  // Select tool press: grab a resize handle, start moving the selection, pick
+  // the stroke under the pointer, or start a selection box.
+  selectAt(pos, additive) {
+    const handle = this.getResizeHandleAtPoint(pos);
+    if (handle) {
+      this.resizeHandles.active = true;
+      this.resizeHandles.activeHandle = handle;
+      this.canvas.style.cursor = handle.cursor;
+      return;
+    }
+
+    if (
+      this.selectedStrokes.length > 0 &&
+      this.selectionRect &&
+      this.isPointInRect(pos, this.selectionRect)
+    ) {
+      this.startMove(pos);
+      return;
+    }
+
+    // Prefer already-selected strokes, then the topmost stroke
+    let clickedIndex = this.selectedStrokes.find((index) =>
+      this.isPointInStroke(pos, this.drawingHistory[index]),
+    );
+    if (clickedIndex === undefined) {
+      clickedIndex = -1;
+      for (let i = this.drawingHistory.length - 1; i >= 0; i--) {
+        if (this.isPointInStroke(pos, this.drawingHistory[i])) {
+          clickedIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (clickedIndex >= 0) {
+      const wasSelected = this.selectedStrokes.includes(clickedIndex);
+      if (!additive && !wasSelected) {
+        this.selectedStrokes = [clickedIndex];
+      } else if (additive && wasSelected) {
+        this.selectedStrokes = this.selectedStrokes.filter(
+          (i) => i !== clickedIndex,
+        );
+      } else if (additive) {
+        this.selectedStrokes.push(clickedIndex);
+      }
+
+      if (this.selectedStrokes.includes(clickedIndex)) {
+        this.startMove(pos);
+      }
+    } else if (!additive) {
+      this.isSelecting = true;
+      this.selectionRect = { x: pos.x, y: pos.y, width: 0, height: 0 };
+      this.selectedStrokes = [];
+    }
+
+    this.redrawCanvas();
+  }
+
+  startMove(pos) {
+    this.moveSelection.active = true;
+    this.moveSelection.startX = pos.x;
+    this.moveSelection.startY = pos.y;
+    this.canvas.style.cursor = "move";
+  }
+
+  // Select tool release: apply the selection box, record a finished move, and
+  // fit the selection rectangle to the selected strokes.
+  finishSelection() {
+    if (this.isSelecting && !this.moveSelection.active) {
+      this.selectStrokesInRect(this.selectionRect);
+    }
+
+    // Record the move in history only once it is complete
+    if (this.moveSelection.active && this.moveSelection.totalDx !== undefined) {
+      this.drawingHistory.push({
+        type: "move",
+        strokes: [...this.selectedStrokes],
+        dx: this.moveSelection.totalDx,
+        dy: this.moveSelection.totalDy,
+      });
+      this.redoHistory = [];
+    }
+
+    this.isSelecting = false;
+    this.moveSelection.active = false;
+    this.moveSelection.totalDx = undefined;
+    this.moveSelection.totalDy = undefined;
+    this.canvas.style.cursor = "default";
+    this.selectionRect = this.selectedStrokesBounds();
+    this.redrawCanvas();
+  }
+
+  // Bounding box of the selected strokes and shapes, or null if none
+  selectedStrokesBounds() {
+    if (this.selectedStrokes.length === 0) {
+      return null;
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    this.selectedStrokes.forEach((index) => {
+      const stroke = this.drawingHistory[index];
+      if (Array.isArray(stroke) && !stroke[0]?.type) {
+        // Freehand stroke
+        stroke.forEach((point) => {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x);
+          maxY = Math.max(maxY, point.y);
         });
-
-        this.redrawCanvas();
-
-        this.lastX = pos.x;
-        this.lastY = pos.y;
-      } else if (
-        this.startX !== null &&
-        this.currentTool !== "pen" &&
-        this.currentTool !== "select"
-      ) {
-        // Update preview shape for shape tools
-        this.previewShape = {
-          type: this.currentTool,
-          x: this.startX,
-          y: this.startY,
-          width: pos.x - this.startX,
-          height: pos.y - this.startY,
-          color: this.currentColor,
-          thickness: this.currentThickness,
-          isFilled: this.isFilled,
-        };
-
-        this.redrawCanvas();
+      } else if (stroke[0]?.type) {
+        // Shape
+        const bounds = this.getShapeBounds(stroke[0]);
+        minX = Math.min(minX, bounds.x);
+        minY = Math.min(minY, bounds.y);
+        maxX = Math.max(maxX, bounds.x + bounds.width);
+        maxY = Math.max(maxY, bounds.y + bounds.height);
       }
     });
 
-    this.canvas.addEventListener("touchend", (e) => {
-      if (e.touches.length === 0) {
-        this.isPanning = false;
-        this.lastDistance = null;
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
 
-        if (this.currentTool === "select") {
-          if (this.isSelecting) {
-            this.selectStrokesInRect(this.selectionRect);
-            this.isSelecting = false;
-          }
+  // End the pen stroke; a single point is a tap, not a stroke
+  finishStroke() {
+    this.isDrawing = false;
+    if (this.currentStroke.length > 1) {
+      this.drawingHistory.push(this.currentStroke);
+      this.redoHistory = [];
+    }
+    this.currentStroke = [];
+  }
 
-          // Record the move operation in history only when the move is complete
-          if (
-            this.moveSelection.active &&
-            this.moveSelection.totalDx !== undefined
-          ) {
-            const moveOp = {
-              type: "move",
-              strokes: [...this.selectedStrokes],
-              dx: this.moveSelection.totalDx,
-              dy: this.moveSelection.totalDy,
-            };
-            this.drawingHistory.push(moveOp);
-            this.redoHistory = [];
-          }
+  onKeyDown(e) {
+    if (this.readonly) {
+      return;
+    }
 
-          this.moveSelection.active = false;
-          this.moveSelection.totalDx = undefined;
-          this.moveSelection.totalDy = undefined;
-          this.resizeHandles.active = false;
-          this.resizeHandles.activeHandle = null;
+    if (e.key === "Escape" && (this.previewShape || this.selectionRect)) {
+      this.previewShape = null;
+      this.selectionRect = null;
+      this.isSelecting = false;
+      this.startX = null;
+      this.startY = null;
+      this.selectedStrokes = [];
+      this.redrawCanvas();
+      this.showStatus("Operation cancelled");
+      return;
+    }
 
-          // Update selection rectangle for selected strokes
-          if (this.selectedStrokes.length > 0) {
-            let minX = Infinity,
-              minY = Infinity,
-              maxX = -Infinity,
-              maxY = -Infinity;
-            this.selectedStrokes.forEach((index) => {
-              const stroke = this.drawingHistory[index];
-              if (Array.isArray(stroke) && !stroke[0]?.type) {
-                stroke.forEach((point) => {
-                  minX = Math.min(minX, point.x);
-                  minY = Math.min(minY, point.y);
-                  maxX = Math.max(maxX, point.x);
-                  maxY = Math.max(maxY, point.y);
-                });
-              } else if (stroke[0]?.type) {
-                const bounds = this.getShapeBounds(stroke[0]);
-                minX = Math.min(minX, bounds.x);
-                minY = Math.min(minY, bounds.y);
-                maxX = Math.max(maxX, bounds.x + bounds.width);
-                maxY = Math.max(maxY, bounds.y + bounds.height);
-              }
-            });
-
-            this.selectionRect = {
-              x: minX,
-              y: minY,
-              width: maxX - minX,
-              height: maxY - minY,
-            };
-          }
-        } else if (this.isDrawing && this.currentTool === "pen") {
-          this.isDrawing = false;
-          if (this.currentStroke.length > 1) {
-            this.drawingHistory.push(this.currentStroke);
-          }
-          this.currentStroke = [];
-        } else if (this.startX !== null && this.previewShape) {
-          // Add the final shape to history
-          this.drawingHistory.push([this.previewShape]);
-          this.previewShape = null;
-        }
-
-        this.startX = null;
-        this.startY = null;
-        this.redrawCanvas();
-      }
-    });
-
-    // Add keyboard shortcuts
-    window.addEventListener("keydown", (e) => {
-      if (this.readonly) {
-        return;
-      } // Disable keyboard shortcuts in readonly mode
-
-      if (e.key === "Escape" && (this.previewShape || this.selectionRect)) {
-        this.previewShape = null;
-        this.selectionRect = null;
-        this.startX = null;
-        this.startY = null;
-        this.selectedStrokes = [];
-        this.redrawCanvas();
-        this.showStatus("Operation cancelled");
-        return;
-      }
-
-      if (e.ctrlKey || e.metaKey) {
-        // Support both Windows/Linux and Mac
-        switch (e.key.toLowerCase()) {
-          case "z":
-            e.preventDefault();
-            if (e.shiftKey) {
-              this.redo();
-            } else {
-              this.undo();
-            }
-            break;
-          case "y":
-            e.preventDefault();
-            this.redo();
-            break;
-          case "a":
-            e.preventDefault();
-            this.setTool("select");
-            break;
-          case "p":
-            e.preventDefault();
-            this.setTool("pen");
-            break;
-          case "r":
-            e.preventDefault();
-            this.setTool("rectangle");
-            break;
-          case "c":
-            if (!e.shiftKey) {
-              e.preventDefault();
-              if (e.altKey) {
-                this.setTool("circle");
-              } else {
-                this.copySelectedStrokes();
-              }
-            }
-            break;
-          case "x":
-            e.preventDefault();
-            this.cutSelectedStrokes();
-            break;
-          case "v":
-            e.preventDefault();
-            this.pasteStrokes();
-            break;
-          case "l":
-            e.preventDefault();
-            this.setTool("line");
-            break;
-          case "h":
-            e.preventDefault();
-            this.setTool("hexagon");
-            break;
-          case "s":
-            if (!e.shiftKey) {
-              e.preventDefault();
-              this.setTool("star");
-            }
-            break;
-          case "f":
-            e.preventDefault();
-            this.setFill(!this.isFilled);
-            break;
-        }
-      } else if (
-        (e.key === "Backspace" || e.key === "Delete") &&
-        this.selectedStrokes.length > 0
-      ) {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl on Windows/Linux, Cmd on Mac
+      const key = e.key.toLowerCase();
+      const tool = {
+        a: "select",
+        p: "pen",
+        r: "rectangle",
+        l: "line",
+        h: "hexagon",
+      }[key];
+      if (tool) {
         e.preventDefault();
-        this.deleteSelectedStrokes();
+        this.setTool(tool);
+        return;
       }
-    });
+
+      switch (key) {
+        case "z":
+          e.preventDefault();
+          if (e.shiftKey) {
+            this.redo();
+          } else {
+            this.undo();
+          }
+          break;
+        case "y":
+          e.preventDefault();
+          this.redo();
+          break;
+        case "c":
+          if (!e.shiftKey) {
+            e.preventDefault();
+            if (e.altKey) {
+              this.setTool("circle");
+            } else {
+              this.copySelectedStrokes();
+            }
+          }
+          break;
+        case "x":
+          e.preventDefault();
+          this.cutSelectedStrokes();
+          break;
+        case "v":
+          e.preventDefault();
+          this.pasteStrokes();
+          break;
+        case "s":
+          if (!e.shiftKey) {
+            e.preventDefault();
+            this.setTool("star");
+          }
+          break;
+        case "f":
+          e.preventDefault();
+          this.setFill(!this.isFilled);
+          break;
+      }
+    } else if (
+      (e.key === "Backspace" || e.key === "Delete") &&
+      this.selectedStrokes.length > 0
+    ) {
+      e.preventDefault();
+      this.deleteSelectedStrokes();
+    }
   }
 
   // Perfect freehand drawing helper methods
@@ -1969,10 +1787,7 @@ class Canvas {
       height: Math.abs(rect.height),
     };
 
-    // Don't clear previous selection if Ctrl/Cmd is held
-    if (!this.lastEvent?.ctrlKey && !this.lastEvent?.metaKey) {
-      this.selectedStrokes = [];
-    }
+    this.selectedStrokes = [];
 
     // Keep track of newly selected strokes
     const newlySelected = [];
