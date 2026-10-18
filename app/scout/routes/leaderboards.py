@@ -15,6 +15,7 @@ TBA_METRICS = {'epa', 'opr', 'dpr', 'ccwm'}
 
 
 @scouting_bp.route("/leaderboard")
+@login_required
 def leaderboard():
     try:
         sort_type = request.args.get('sort', 'fuel')

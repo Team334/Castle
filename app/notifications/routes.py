@@ -1,3 +1,5 @@
+import atexit
+
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 
@@ -30,11 +32,8 @@ def on_blueprint_init(state) -> None:
     # Start the notification service
     notification_manager.start_notification_service()
     
-    # Register shutdown function
-    @app.teardown_appcontext
-    def shutdown_notification_service(exception=None):
-        if notification_manager:
-            notification_manager.stop_notification_service()
+    # Stop at process exit; teardown_appcontext runs after every request
+    atexit.register(notification_manager.stop_notification_service)
 
 @notifications_bp.route("/vapid-public-key")
 def get_vapid_public_key():

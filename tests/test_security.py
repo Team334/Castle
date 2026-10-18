@@ -1,31 +1,15 @@
 """App-level security settings through create_app(); MongoDB and background services are mocked."""
 import os
-import re
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from bson import ObjectId
-
-from app.models import User
-
-USER_ID = "6ac99468539dec0f82df2c4e"
-MOCKED = ("app.utils.MongoDB._connect", "app.utils.GridFS", "app.utils.MongoDB.get_db", "app.utils.MongoDB.get_client",
-          "app.scout.match13_fuel.FuelEstimateService.start",
-          "app.notifications.notification_manager.NotificationManager.start_notification_service")
+from tests.app_harness import USER_ID, logged_in_client, start_app
 
 
 class SecurityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.patches = [patch(target, MagicMock()) for target in MOCKED]
-        user = User.create_from_db({"_id": ObjectId(USER_ID), "username": "tester", "teamNumber": 334})
-        cls.patches.append(patch("app.auth.auth_utils.UserManager.get_user_by_id", return_value=user))
-        cls.patches.append(patch.dict(os.environ, {"SECRET_KEY": "test-only"}))
-        for item in cls.patches:
-            item.start()
-        from app.app import create_app
-        cls.app = create_app()
-        cls.app.config.update(RATELIMIT_ENABLED=False)
+        cls.app, cls.patches = start_app()
 
     @classmethod
     def tearDownClass(cls):
@@ -33,13 +17,7 @@ class SecurityTests(unittest.TestCase):
             item.stop()
 
     def client(self):
-        client = self.app.test_client()
-        with client.session_transaction() as session:
-            session["_user_id"] = USER_ID
-            session["_fresh"] = True
-        page = client.get("/auth/settings").get_data(as_text=True)
-        token = re.search(r'name="csrf-token" content="([^"]+)"', page).group(1)
-        return client, token
+        return logged_in_client(self.app)
 
     def test_writes_without_token_are_rejected(self):
         client, token = self.client()

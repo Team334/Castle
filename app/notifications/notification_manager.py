@@ -421,6 +421,11 @@ class NotificationManager(DatabaseManager):
             logger.error(f"Error deleting subscription: {str(e)}")
             return False, "An internal error has occurred."
     
+    def notify_assignment_created(self, assignment_data: Dict, team_number: int) -> None:
+        """Push to the assignees in the background so creating an assignment never waits on push services."""
+        threading.Thread(target=self.send_instant_assignment_notification,
+                         args=(assignment_data, team_number), daemon=True).start()
+
     def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
         """Send instant notifications to users when they are assigned to a new assignment
         

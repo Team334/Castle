@@ -366,7 +366,7 @@ class TeamManager(DatabaseManager):
                 {"$addToSet": {"assignments": str(result.inserted_id)}},
             )
 
-            return True, "Assignment created successfully"
+            return True, assignment
         except Exception as e:
             logger.error(f"Error creating/updating assignment: {str(e)}")
             return False, "An internal error has occurred."

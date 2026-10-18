@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from app.notifications import routes as notifications
 from app.team.team_utils import TeamManager
 from app.utils import (allowed_file, error_response, get_gridfs,
                        handle_route_errors, limiter, save_file_to_gridfs,
@@ -207,20 +208,22 @@ def create_assignment(team_number):
 
     try:
         data = request.get_json()
-        success, message = team_manager.create_or_update_assignment(
+        success, result = team_manager.create_or_update_assignment(
             team_number, data, current_user.get_id()
         )
 
         current_app.logger.info(f"Tried to create assignment ({success}) for team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         if success:
+            if notifications.notification_manager:
+                notifications.notification_manager.notify_assignment_created(result, team_number)
             return (
                 jsonify(
                     {"success": True, "message": "Assignment created successfully"}
                 ),
                 200,
             )
-        return jsonify({"success": False, "message": message}), 400
+        return jsonify({"success": False, "message": result}), 400
 
     except Exception as e:
         current_app.logger.error(f"Error creating assignment: {str(e)}")

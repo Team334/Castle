@@ -171,9 +171,10 @@ def profile_picture(user_id):
 @login_required
 def check_username():
     """Check if a username is available"""
+    username = ""
     try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
+        data = request.get_json(silent=True) or {}
+        username = str(data.get('username', '')).strip()
         current_app.logger.info(f"Checking username {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         # Don't query if it's the user's current username
