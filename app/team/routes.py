@@ -10,8 +10,9 @@ from flask_login import current_user, login_required
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from app.notifications import routes as notifications
 from app.team.team_utils import TeamManager
-from app.utils import (allowed_file, async_route, error_response, get_gridfs,
+from app.utils import (allowed_file, error_response, get_gridfs,
                        handle_route_errors, limiter, save_file_to_gridfs,
                        success_response)
 
@@ -27,30 +28,23 @@ def on_blueprint_init(state) -> None:
     
     # Create TeamManager with the singleton connection
     team_manager = TeamManager(app.config["MONGO_URI"])
-    
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['team'] = team_manager
 
 @team_bp.route("/join", methods=["GET", "POST"])
 @login_required
-@async_route
-async def join():
+def join():
     try:
         if current_user.teamNumber:
             return redirect(url_for("team.manage"))
 
         if request.method == "POST":
             join_code = request.form.get("join_code")
-            current_app.logger.info(f"Team.join Form Details {request.form}")
 
             if not join_code:
                 flash("Join code is required", "error")
                 return redirect(url_for("team.join"))
 
-            success, result = await team_manager.join_team(current_user.get_id(), join_code)
-            current_app.logger.info(f"Tried to join team ({success}) {join_code} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            success, result = team_manager.join_team(current_user.get_id(), join_code)
+            current_app.logger.info(f"Tried to join team ({success}) for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
             if success:
                 team, updated_user = result
@@ -71,8 +65,7 @@ async def join():
 @team_bp.route("/create", methods=["GET", "POST"])
 @login_required
 @limiter.limit("15 per minute")
-@async_route
-async def create():
+def create():
     """Handle team creation"""
     if current_user.teamNumber:
         return redirect(url_for("team.manage"))
@@ -106,7 +99,7 @@ async def create():
                 )
 
             # Create the team
-            success, result = await team_manager.create_team(
+            success, result = team_manager.create_team(
                 team_number=form.team_number.data,
                 creator_id=current_user.id,
                 team_name=form.team_name.data,
@@ -130,14 +123,13 @@ async def create():
     return render_template("team/create.html", form=form)
 
 
-@team_bp.route("/<int:team_number>/leave", methods=["GET", "POST"])
+@team_bp.route("/<int:team_number>/leave", methods=["POST"])
 @login_required
 @limiter.limit("5 per minute")
-@async_route
-async def leave(team_number):
+def leave(team_number):
     """Leave a team"""
 
-    success, message = await team_manager.leave_team(current_user.get_id(), team_number)
+    success, message = team_manager.leave_team(current_user.get_id(), team_number)
 
     current_app.logger.info(f"Tried to leave team ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
@@ -157,10 +149,9 @@ async def leave(team_number):
 
 @team_bp.route("/<int:team_number>/members", methods=["GET"])
 @login_required
-@async_route
-async def get_team_members(team_number):
+def get_team_members(team_number):
     """Get all members of a team"""
-    members = await team_manager.get_team_members(team_number)
+    members = team_manager.get_team_members(team_number)
 
     return (
         jsonify({"success": True, "members": [member.to_dict() for member in members]}),
@@ -171,8 +162,7 @@ async def get_team_members(team_number):
 @team_bp.route("/<int:team_number>/admin/add", methods=["POST"])
 @login_required
 @limiter.limit("5 per minute")
-@async_route
-async def add_admin(team_number):
+def add_admin(team_number):
     """Add a new admin to the team"""
 
     data = request.get_json()
@@ -181,7 +171,7 @@ async def add_admin(team_number):
     if not user_id:
         return jsonify({"success": False, "message": "User ID is required"}), 400
 
-    success, message = await team_manager.add_admin(
+    success, message = team_manager.add_admin(
         team_number, user_id, current_user.get_id()
     )
 
@@ -193,8 +183,7 @@ async def add_admin(team_number):
 @team_bp.route("/<int:team_number>/admin/remove", methods=["POST"])
 @login_required
 @limiter.limit("5 per minute")
-@async_route
-async def remove_admin(team_number):
+def remove_admin(team_number):
     """Remove an admin from the team"""
 
     data = request.get_json()
@@ -203,7 +192,7 @@ async def remove_admin(team_number):
     if not user_id:
         return jsonify({"success": False, "message": "User ID is required"}), 400
 
-    success, message = await team_manager.remove_admin(
+    success, message = team_manager.remove_admin(
         team_number, user_id, current_user.get_id()
     )
     current_app.logger.info(f"Tried to remove admin ({success}) {user_id} from team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -213,27 +202,27 @@ async def remove_admin(team_number):
 
 @team_bp.route("/<int:team_number>/assignments", methods=["POST"])
 @login_required
-# @limiter.limit("10 per minute")
-@async_route
-async def create_assignment(team_number):
+def create_assignment(team_number):
     """Create a new assignment"""
 
     try:
         data = request.get_json()
-        success, message = await team_manager.create_or_update_assignment(
+        success, result = team_manager.create_or_update_assignment(
             team_number, data, current_user.get_id()
         )
 
         current_app.logger.info(f"Tried to create assignment ({success}) for team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         if success:
+            if notifications.notification_manager:
+                notifications.notification_manager.notify_assignment_created(result, team_number)
             return (
                 jsonify(
                     {"success": True, "message": "Assignment created successfully"}
                 ),
                 200,
             )
-        return jsonify({"success": False, "message": message}), 400
+        return jsonify({"success": False, "message": result}), 400
 
     except Exception as e:
         current_app.logger.error(f"Error creating assignment: {str(e)}")
@@ -242,7 +231,6 @@ async def create_assignment(team_number):
 
 @team_bp.route("/assignments/<assignment_id>/status", methods=["PUT"])
 @login_required
-# @limiter.limit("5 per minute")
 def update_assignment_status(assignment_id):
     """Update assignment status"""
 
@@ -261,13 +249,11 @@ def update_assignment_status(assignment_id):
 
 @team_bp.route("/assignments/<assignment_id>/update", methods=["PUT"])
 @login_required
-# @limiter.limit("15 per minute")
-@async_route
-async def update_assignment(assignment_id):
+def update_assignment(assignment_id):
 
     """Update assignment"""
     data = request.get_json()
-    success, message = await team_manager.update_assignment(
+    success, message = team_manager.update_assignment(
         assignment_id, current_user.get_id(), data
     )
     current_app.logger.info(f"Tried to update assignment ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -276,12 +262,10 @@ async def update_assignment(assignment_id):
 
 @team_bp.route("/assignments/<assignment_id>/delete", methods=["DELETE"])
 @login_required
-# @limiter.limit("10 per minute")
-@async_route
-async def delete_assignment(assignment_id):
+def delete_assignment(assignment_id):
 
     """Delete assignment"""
-    success, message = await team_manager.delete_assignment(
+    success, message = team_manager.delete_assignment(
         assignment_id, current_user.get_id()
     )
     current_app.logger.info(f"Tried to delete assignment ({success}) {assignment_id} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -292,15 +276,13 @@ async def delete_assignment(assignment_id):
 @team_bp.route("/manage/<int:team_number>", methods=["GET", "POST"])
 @team_bp.route("/", methods=["GET", "POST"])
 @login_required
-# @limiter.limit("30 per minute")
-@async_route
-async def manage(team_number=None):
+def manage(team_number=None):
     """Manage team"""
 
     if not current_user.teamNumber:
         return redirect(url_for("team.join"))
 
-    success, result = await team_manager.validate_user_team(
+    success, result = team_manager.validate_user_team(
         current_user.get_id(), current_user.teamNumber
     )
     current_app.logger.info(f"Tried to validate user team ({success}) {current_user.teamNumber} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -311,8 +293,8 @@ async def manage(team_number=None):
 
     team = result  # result is the team object if validation succeeded
     # Get team members and assignments
-    team_members = await team_manager.get_team_members(team.team_number)
-    assignments = await team_manager.get_team_assignments(team.team_number)
+    team_members = team_manager.get_team_members(team.team_number)
+    assignments = team_manager.get_team_assignments(team.team_number)
 
     # Create a dictionary of user IDs to usernames for easier lookup
     user_dict = {str(member.get_id()): member for member in team_members}
@@ -346,11 +328,10 @@ async def manage(team_number=None):
 @team_bp.route("/<int:team_number>/user/<user_id>/remove", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def remove_user(team_number, user_id):
+def remove_user(team_number, user_id):
     """Remove a user from the team (admin only)"""
 
-    success, message = await team_manager.remove_user(
+    success, message = team_manager.remove_user(
         team_number, user_id, current_user.get_id()
     )
     current_app.logger.info(f"Tried to remove user ({success}) {user_id} from team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -373,11 +354,10 @@ async def remove_user(team_number, user_id):
 @team_bp.route("/<int:team_number>/assignments/clear", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def clear_assignments(team_number):
+def clear_assignments(team_number):
     """Clear all assignments for a team (admin only)"""
 
-    success, message = await team_manager.clear_assignments(
+    success, message = team_manager.clear_assignments(
         team_number, current_user.get_id()
     )
     current_app.logger.info(f"Tried to clear assignments ({success}) for team {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
@@ -399,10 +379,9 @@ async def clear_assignments(team_number):
 @team_bp.route("/<int:team_number>/delete", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def delete_team(team_number):
+def delete_team(team_number):
     """Delete team (owner only)"""
-    success, message = await team_manager.delete_team(team_number, current_user.get_id())
+    success, message = team_manager.delete_team(team_number, current_user.get_id())
     current_app.logger.info(f"Tried to delete team ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -439,13 +418,12 @@ def team_logo(team_number):
 @team_bp.route("/assignments/<assignment_id>/edit", methods=["PUT"])
 @login_required
 @limiter.limit("15 per minute")
-@async_route
-async def edit_assignment(assignment_id):
+def edit_assignment(assignment_id):
     """Edit an existing assignment"""
 
     try:
         data = request.get_json()
-        success, result = await team_manager.update_assignment(
+        success, result = team_manager.update_assignment(
             assignment_id=assignment_id,
             user_id=current_user.get_id(),
             assignment_data=data,
@@ -460,17 +438,16 @@ async def edit_assignment(assignment_id):
 
 
 @team_bp.route("/view/<int:team_number>")
-@async_route
-async def view(team_number):
+def view(team_number):
     """Public view of team with limited information"""
-    team = await team_manager.get_team_by_number(team_number)
+    team = team_manager.get_team_by_number(team_number)
     
     if not team:
         flash("Team not found", "error")
         return redirect(url_for("index"))
     
     # Get team members
-    team_members = await team_manager.get_team_members(team_number)
+    team_members = team_manager.get_team_members(team_number)
     
     # Check if current user is a member
     is_member = False
@@ -487,11 +464,10 @@ async def view(team_number):
 
 @team_bp.route("/<int:team_number>/update_logo", methods=["POST"])
 @login_required
-@async_route
 @handle_route_errors
-async def update_team_logo(team_number):
+def update_team_logo(team_number):
     """Update team logo"""
-    team = await team_manager.get_team_by_number(team_number)
+    team = team_manager.get_team_by_number(team_number)
     
     if not team or not team.is_admin(current_user.get_id()):
         return error_response("Unauthorized to update team logo")
@@ -503,11 +479,11 @@ async def update_team_logo(team_number):
     if file.filename == '':
         return error_response("No file selected")
         
-    new_logo_id = await save_file_to_gridfs(file)
+    new_logo_id = save_file_to_gridfs(file)
     if not new_logo_id:
         return error_response("Invalid file type")
         
-    success, message = await team_manager.update_team_logo(team_number, new_logo_id)
+    success, message = team_manager.update_team_logo(team_number, new_logo_id)
     current_app.logger.info(f"Tried to update team logo ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
     if not success:
         get_gridfs().delete(new_logo_id)
@@ -518,10 +494,9 @@ async def update_team_logo(team_number):
 @team_bp.route("/<int:team_number>/settings")
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def settings(team_number):
+def settings(team_number):
     """Team settings page for admins"""
-    team = await team_manager.get_team_by_number(team_number)
+    team = team_manager.get_team_by_number(team_number)
     
     if not team or not team.is_admin(current_user.get_id()):
         flash("Unauthorized to access team settings", "error")
@@ -534,10 +509,9 @@ async def settings(team_number):
 @team_bp.route("/<int:team_number>/update_team_info", methods=["POST"])
 @login_required
 @limiter.limit("10 per minute")
-@async_route
-async def update_team_info(team_number):
+def update_team_info(team_number):
     """Update team information including logo and description"""
-    team = await team_manager.get_team_by_number(team_number)
+    team = team_manager.get_team_by_number(team_number)
     
     if not team or not team.is_admin(current_user.get_id()):
         flash("Unauthorized to update team information", "error")
@@ -582,9 +556,8 @@ async def update_team_info(team_number):
         updates['description'] = description
         
         # Update team information
-        success, message = await team_manager.update_team_info(team_number, updates)
+        success, message = team_manager.update_team_info(team_number, updates)
         current_app.logger.info(f"Tried to update team info ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        current_app.logger.info(f"Team.update_team_info Form Details {request.form}")
         flash(message, "success" if success else "error")
         return redirect(url_for("team.manage", team_number=team_number))
         

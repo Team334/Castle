@@ -15,7 +15,7 @@ from app.utils import (DatabaseManager, allowed_file, get_gridfs,
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def check_password_strength(password):
+def check_password_strength(password):
     """
     Check if password meets minimum requirements:
     - At least 8 characters
@@ -37,7 +37,7 @@ class UserManager(DatabaseManager):
             logger.info("Created users collection")
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def create_user(
+    def create_user(
         self,
         email,
         username,
@@ -56,7 +56,7 @@ class UserManager(DatabaseManager):
                 return False, "Username already taken"
 
             # Check password strength
-            password_valid, message = await check_password_strength(password)
+            password_valid, message = check_password_strength(password)
             if not password_valid:
                 return False, message
 
@@ -81,7 +81,7 @@ class UserManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def authenticate_user(self, login: str, password: str) -> tuple[bool, User | None]:
+    def authenticate_user(self, login: str, password: str) -> tuple[bool, User | None]:
         """Authenticate user with retry mechanism"""
         
         try:
@@ -117,7 +117,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_user_profile(self, user_id: str, updates: dict) -> tuple[bool, str]:
+    def update_user_profile(self, user_id: str, updates: dict) -> tuple[bool, str]:
         """Update user profile information"""
         
         try:
@@ -160,7 +160,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_profile_picture(self, user_id: str, file_id: str) -> tuple[bool, str]:
+    def update_profile_picture(self, user_id: str, file_id: str) -> tuple[bool, str]:
         """Update user's profile picture and clean up old one"""
         
         try:
@@ -203,7 +203,7 @@ class UserManager(DatabaseManager):
             return None
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def delete_user(self, user_id: str) -> tuple[bool, str]:
+    def delete_user(self, user_id: str) -> tuple[bool, str]:
         """Delete a user account and all associated data"""
         
         try:
@@ -233,7 +233,7 @@ class UserManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def change_password(self, user_id: str, current_password: str, new_password: str) -> tuple[bool, str]:
+    def change_password(self, user_id: str, current_password: str, new_password: str) -> tuple[bool, str]:
         """Change user password after verifying current password"""
         
         try:            
@@ -267,7 +267,7 @@ class UserManager(DatabaseManager):
                 return False, "Current password is incorrect"
             
             # Check new password strength
-            password_valid, message = await check_password_strength(new_password)
+            password_valid, message = check_password_strength(new_password)
             if not password_valid:
                 return False, message
             
@@ -294,7 +294,7 @@ class UserManager(DatabaseManager):
             return False, "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
-    async def update_user_settings(self, user_id: str, form_data: dict, profile_picture=None) -> tuple[bool, Optional[str]]:
+    def update_user_settings(self, user_id: str, form_data: dict, profile_picture=None) -> tuple[bool, Optional[str]]:
         """Update user settings including profile picture"""
         
         try:
@@ -325,7 +325,7 @@ class UserManager(DatabaseManager):
                     updates['profile_picture_id'] = file_id
 
             if updates:
-                success, message = await self.update_user_profile(user_id, updates)
+                success, message = self.update_user_profile(user_id, updates)
                 return success, message
 
             return True, "Profile updated successfully"

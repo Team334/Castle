@@ -284,7 +284,7 @@ class NotificationManager(DatabaseManager):
             return False
     
     @with_mongodb_retry()
-    async def create_subscription(self, user_id: str, team_number: int, 
+    def create_subscription(self, user_id: str, team_number: int, 
                                 subscription_json: Dict, 
                                 assignment_id: Optional[str] = None,
                                 reminder_time: int = 1440) -> Tuple[bool, str]:
@@ -387,7 +387,7 @@ class NotificationManager(DatabaseManager):
             return False, "An internal error has occurred."
     
     @with_mongodb_retry()
-    async def delete_subscription(self, user_id: str, team_number: int = None, 
+    def delete_subscription(self, user_id: str, team_number: int = None, 
                                  assignment_id: Optional[str] = None) -> Tuple[bool, str]:
         """Delete a push notification subscription
         
@@ -421,51 +421,12 @@ class NotificationManager(DatabaseManager):
             logger.error(f"Error deleting subscription: {str(e)}")
             return False, "An internal error has occurred."
     
-    # @with_mongodb_retry()
-    # async def test_notification(self, user_id: str) -> Tuple[bool, str]:
-    #     """Send a test notification to a user
-        
-    #     Args:
-    #         user_id: The user ID
-            
-    #     Returns:
-    #         Tuple[bool, str]: Success status and message
-    #     """
-    #     
+    def notify_assignment_created(self, assignment_data: Dict, team_number: int) -> None:
+        """Push to the assignees in the background so creating an assignment never waits on push services."""
+        threading.Thread(target=self.send_instant_assignment_notification,
+                         args=(assignment_data, team_number), daemon=True).start()
 
-    #     try:
-    #         # Get the user's subscriptions
-    #         subscriptions = self.db.assignment_subscriptions.find({
-    #             "user_id": user_id,
-    #             "subscription_json": {"$exists": True, "$ne": {}}
-    #         })
-
-    #         if not subscriptions:
-    #             return False, "No subscription found for this user"
-
-    #         for sub_data in subscriptions:
-    #             subscription = AssignmentSubscription.create_from_db(sub_data)
-
-    #             # Override notification data for test
-    #             subscription.title = "Test Notification"
-    #             subscription.body = "This is a test notification from the Scouting App"
-    #             subscription.url = "/team/manage"
-    #             subscription.data = {
-    #                 "test": True, 
-    #                 "type": "test_notification",
-    #                 "timestamp": datetime.now().isoformat()
-    #             }
-
-    #             if _ := self._send_push_notification(subscription):
-    #                 return True, "Test notification sent successfully"
-
-    #         return False, "Failed to send test notification"
-
-    #     except Exception as e:
-    #         logger.error(f"Error sending test notification: {str(e)}")
-    #         return False, "An internal error has occurred." 
-
-    async def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
+    def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
         """Send instant notifications to users when they are assigned to a new assignment
         
         Args:

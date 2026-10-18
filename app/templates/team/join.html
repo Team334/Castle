@@ -6,6 +6,7 @@
         <h1 class="text-2xl font-bold mb-6">Join a Team</h1>
         
         <form method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label class="block text-sm font-medium mb-2">Team Join Code</label>
                 <input type="text" name="join_code" required autocomplete="off"

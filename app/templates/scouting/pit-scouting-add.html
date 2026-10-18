@@ -23,6 +23,7 @@
     <!-- Form Section -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none overflow-hidden">
         <form method="POST" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <!-- Basic Info -->
             <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Basic Information</h3>

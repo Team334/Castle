@@ -21,6 +21,7 @@
         <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div class="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg dark:shadow-none sm:rounded-xl sm:px-10">
                 <form method="POST" autocomplete="off" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
                         <div class="mt-1">

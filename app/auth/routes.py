@@ -1,114 +1,30 @@
 from __future__ import annotations
 
-import asyncio
 import os
-from functools import wraps
-from urllib.parse import urljoin, urlparse
 
-from bson import ObjectId
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, send_file, url_for)
 from flask_login import current_user, login_required, login_user, logout_user
-from flask_pymongo import PyMongo
-from werkzeug.utils import secure_filename
 
 from app.auth.auth_utils import UserManager
-from app.utils import (async_route, get_gridfs, handle_route_errors,
-                       is_safe_url, limiter, send_gridfs_file)
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def save_profile_picture(file):
-    """Save profile picture to GridFS"""
-    if file and allowed_file(file.filename):
-        return get_gridfs().put(
-            file.stream.read(),
-            filename=secure_filename(file.filename),
-            content_type=file.content_type,
-        )
-    return None
-
-def send_profile_picture(file_id):
-    """Retrieve profile picture from GridFS"""
-    try:
-        # Convert string ID to ObjectId if necessary
-        if isinstance(file_id, str):
-            file_id = ObjectId(file_id)
-            
-        # Get the file from GridFS
-        file_data = get_gridfs().get(file_id)
-        
-        return send_file(
-            file_data,
-            mimetype=file_data.content_type,
-            download_name=file_data.filename
-        )
-    except Exception as e:
-        # Log the error and return default profile picture
-        print(f"Error retrieving profile picture: {e}")
-        return send_file("static/images/default_profile.png")
-
-
-def run_async(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-
-def async_route(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        return run_async(f(*args, **kwargs))
-
-    return wrapper
-
+from app.utils import handle_route_errors, is_safe_url, limiter, send_gridfs_file
 
 auth_bp = Blueprint("auth", __name__)
 user_manager = None
-mongo = None
 
 
 @auth_bp.record
 def on_blueprint_init(state):
-    global user_manager, mongo
+    global user_manager
     app = state.app
-    mongo = PyMongo(app)
     
     # Create the UserManager with the singleton connection
     user_manager = UserManager(app.config["MONGO_URI"])
-    
-    # Store in app context for proper cleanup
-    if not hasattr(app, 'db_managers'):
-        app.db_managers = {}
-    app.db_managers['auth'] = user_manager
-
-
-def is_safe_url(target):
-    if not target:
-        return False
-
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-
-    return (
-        test_url.scheme in ('http', 'https')
-        and ref_url.netloc == test_url.netloc
-        and all(c not in target for c in ['\\', '//', '..'])
-    )
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-# @limiter.limit("8 per minute")
-@async_route
 @handle_route_errors
-async def login():
+def login():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
 
@@ -122,7 +38,7 @@ async def login():
             flash("Please provide login and password", "error")
             return render_template("auth/login.html", form_data={"login": login})
 
-        success, user = await user_manager.authenticate_user(login, password)
+        success, user = user_manager.authenticate_user(login, password)
         if success and user:
             current_app.logger.info(f"Successfully authenticated user {user.username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             login_user(user, remember=remember)
@@ -147,8 +63,7 @@ def forgot_password():
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("8 per minute")
-@async_route
-async def register():
+def register():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
 
@@ -172,7 +87,7 @@ async def register():
             return render_template("auth/register.html", form_data=form_data)
 
         try:
-            success, message = await user_manager.create_user(
+            success, message = user_manager.create_user(
                 email=email,
                 username=username,
                 password=password
@@ -201,15 +116,14 @@ def logout():
 @auth_bp.route("/settings", methods=["GET", "POST"])
 @limiter.limit("15 per minute")
 @login_required
-@async_route
-async def settings():
+def settings():
     try:
         if request.method == "POST":
             # Handle form submission
             form_data = request.form
             file = request.files.get("profile_picture")
             
-            success = await user_manager.update_user_settings(
+            success = user_manager.update_user_settings(
                 current_user.get_id(),
                 form_data,
                 file
@@ -255,12 +169,12 @@ def profile_picture(user_id):
 
 @auth_bp.route("/check_username", methods=["POST"])
 @login_required
-@async_route
-async def check_username():
+def check_username():
     """Check if a username is available"""
+    username = ""
     try:
-        data = request.get_json()
-        username = data.get('username', '').strip()
+        data = request.get_json(silent=True) or {}
+        username = str(data.get('username', '')).strip()
         current_app.logger.info(f"Checking username {username} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
         # Don't query if it's the user's current username
@@ -284,8 +198,7 @@ async def check_username():
 @auth_bp.route("/change_password", methods=["POST"])
 @limiter.limit("5 per minute")
 @login_required
-@async_route
-async def change_password():
+def change_password():
     """Change user password"""
     try:
         if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
@@ -308,7 +221,7 @@ async def change_password():
             return jsonify({"success": False, "message": "New password must be different from current password"}), 400
 
         # Change password
-        success, message = await user_manager.change_password(
+        success, message = user_manager.change_password(
             current_user.get_id(),
             current_password,
             new_password
@@ -331,13 +244,12 @@ async def change_password():
 
 @auth_bp.route("/delete_account", methods=["POST"])
 @login_required
-@async_route
-async def delete_account():
+def delete_account():
     """Delete user account"""
     try:
         # Create a UserManager with the singleton connection
         user_manager = UserManager(current_app.config["MONGO_URI"])
-        success, message = await user_manager.delete_user(current_user.get_id())
+        success, message = user_manager.delete_user(current_user.get_id())
 
         if success:
             logout_user()

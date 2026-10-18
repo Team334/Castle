@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import time
@@ -10,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 import colorlog
 from bson import ObjectId
 from dotenv import load_dotenv
-from flask import flash, g, jsonify, render_template, request, send_file
+from flask import flash, jsonify, render_template, request, send_file
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from gridfs import GridFS
@@ -169,27 +168,9 @@ def get_mongodb_instance(mongo_uri=None):
         _mongodb_instance = MongoDB(mongo_uri)
         # Initialize GridFS with the singleton connection
         fs = GridFS(_mongodb_instance.get_db())
-    # Mark the database as accessed for the current request
-    _mark_db_accessed()
     return _mongodb_instance
 
-def _mark_db_accessed():
-    """Mark this request as having accessed the database"""
-    try:
-        if hasattr(g, '_get_current_object'):
-            g.db_accessed = True
-    except (RuntimeError, ImportError):
-        # Not in a Flask context
-        pass
-
-def close_mongodb_connection():
-    """Close the MongoDB connection at application shutdown"""
-    global _mongodb_instance
-    if _mongodb_instance:
-        _mongodb_instance.close()
-        _mongodb_instance = None
-
-class DBManager:
+class DatabaseManager:
     """Base database manager that uses the singleton MongoDB connection"""
     
     def __init__(self, mongo_uri=None):
@@ -197,21 +178,6 @@ class DBManager:
         mongodb = get_mongodb_instance(mongo_uri)
         self.client = mongodb.get_client()
         self.db = mongodb.get_db()
-
-DatabaseManager = DBManager
-
-def get_database_connection(mongo_uri=None):
-    """Legacy function for backward compatibility"""
-    mongodb = get_mongodb_instance(mongo_uri)
-    return {'client': mongodb.get_client(), 'db': mongodb.get_db()}
-
-def release_connection():
-    """Legacy function for backward compatibility - now a no-op"""
-    pass
-
-def force_close_connection():
-    """Legacy function for backward compatibility"""
-    close_mongodb_connection()
 
 def with_mongodb_retry(retries=3, delay=2):
     """Decorator for retrying MongoDB operations"""
@@ -233,18 +199,7 @@ def with_mongodb_retry(retries=3, delay=2):
         return wrapper
     return decorator
 
-def mark_db_accessed():
-    """Mark the current request as having accessed the database"""
-    _mark_db_accessed()
-
 # ============ Route Utilities ============
-
-def async_route(f):
-    """Decorator to handle async routes"""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        return asyncio.run(f(*args, **kwargs))
-    return wrapper
 
 def handle_route_errors(f):
     """Decorator to handle common route errors"""
@@ -324,12 +279,18 @@ def error_response(message: str = "Error", status_code: int = 400, log_message: 
 # ============ Security Utilities ============
 
 def is_safe_url(target: str) -> bool:
-    """Verify URL is safe for redirects"""
+    """Verify URL is a same-host http(s) target safe for redirects"""
+    if not target:
+        return False
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+    return (
+        test_url.scheme in ('http', 'https')
+        and ref_url.netloc == test_url.netloc
+        and all(c not in target for c in ['\\', '//', '..'])
+    )
 
-async def check_password_strength(password: str) -> tuple[bool, str]:
+def check_password_strength(password: str) -> tuple[bool, str]:
     """
     Check if password meets minimum requirements:
     - At least 8 characters
@@ -340,7 +301,6 @@ async def check_password_strength(password: str) -> tuple[bool, str]:
 
 def get_gridfs() -> GridFS | None:
     """Get the GridFS instance"""
-    global fs
     if fs is None:
         get_mongodb_instance()  # This will initialize both MongoDB and GridFS
     return fs 

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from bson import ObjectId
 from flask import Flask
 from app.scout.scouting_utils import ScoutingManager
-from app.scout import routes
+from app.scout.routes import common, records
 
 
 class PaginationTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class PaginationTests(unittest.TestCase):
         self.manager.db.team_data.aggregate.return_value = iter([{'records': [], 'count': []}])
         self.manager.get_all_scouting_data(334, self.user_id, page=1)
         pipeline = self.manager.db.team_data.aggregate.call_args.args[0]
-        self.assertEqual(pipeline[2]['$match']['$or'], [
+        self.assertCountEqual(pipeline[2]['$match']['$or'], [
             {'scouter.teamNumber': 334}, {'scouter._id': ObjectId(self.user_id)}])
 
     def test_search_is_literal_and_runs_before_pagination(self):
@@ -52,10 +52,10 @@ class PaginationTests(unittest.TestCase):
     def test_route_page_boundaries_and_failed_page_retry(self):
         app = Flask(__name__)
         app.config.update(LOGIN_DISABLED=True, SECRET_KEY='test-only')
-        app.add_url_rule('/scouting', view_func=routes.home)
+        app.add_url_rule('/scouting', view_func=records.home)
         user = SimpleNamespace(teamNumber=None, get_id=lambda: self.user_id)
-        with patch.object(routes, 'current_user', user), patch.object(routes, 'scouting_manager', self.manager), \
-                patch.object(routes, 'render_template', return_value='<div id="teamDataContainer"></div>'):
+        with patch.object(records, 'current_user', user), patch.object(common, 'scouting_manager', self.manager), \
+                patch.object(records, 'render_template', return_value='<div id="teamDataContainer"></div>'):
             for page, size, more in [(1, 20, True), (2, 20, True), (3, 5, False), (4, 0, False)]:
                 self.manager.get_all_scouting_data = MagicMock(return_value={'records': [{}] * size, 'total': 45})
                 response = app.test_client().get(f'/scouting?partial=1&page={page}')

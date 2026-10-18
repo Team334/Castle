@@ -1,9 +1,7 @@
-flask[async]
+Flask
 Flask-Login
 python-dotenv
-aiohttp
 pymongo
-flask_pymongo
 waitress
 Flask-WTF
 requests
@@ -12,6 +10,5 @@ Flask-Limiter[mongodb]
 pywebpush
 py-vapid
 cachetools
-Flask-CORS
 colorlog
 statbotics
