@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import os
 
-from bson import ObjectId
 from flask import Blueprint
 
 from app.scout.scouting_utils import ScoutingManager
@@ -19,13 +18,6 @@ logger = logging.getLogger(__name__)
 
 TELEOP_SHIFT_FIELDS = ("teleop_shift_1_fuel", "teleop_shift_2_fuel",
                        "teleop_shift_3_fuel", "teleop_shift_4_fuel")
-
-SCOUTER_LOOKUP = {"$lookup": {
-    "from": "users",
-    "localField": "scouter_id",
-    "foreignField": "_id",
-    "as": "scouter"
-}}
 
 
 @scouting_bp.record
@@ -50,14 +42,6 @@ def on_blueprint_init(state):
 def actor_name(user) -> str:
     """Username for log lines."""
     return user.username if user.is_authenticated else 'Anonymous'
-
-
-def team_access_match(user) -> dict:
-    """$match stage (after SCOUTER_LOOKUP + $unwind) limiting records to the user's own or their team's."""
-    access = {"scouter._id": ObjectId(user.get_id())}
-    if user.teamNumber:
-        access = {"$or": [access, {"scouter.teamNumber": user.teamNumber}]}
-    return {"$match": access}
 
 
 def fuel_total(record: dict):

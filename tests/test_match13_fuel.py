@@ -1,5 +1,6 @@
 """No real API calls or MongoDB connections; writes use an in-memory fake."""
 import copy
+from functools import partial
 from datetime import datetime, timezone
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +16,7 @@ from flask import Flask
 import requests
 
 from app.scout.routes import common, records
+from app.scout.scouting_utils import ScoutingManager
 from app.scout.match13_fuel import (FUEL_FIELDS, PHASES, FuelEstimateService,
                                    apportioned, zero_scored_fuel, estimate_fuel, match_key)
 
@@ -458,6 +460,9 @@ class RouteTests(unittest.TestCase):
         self.user = SimpleNamespace(get_id=lambda: '6ac99468539dec0f82df2c4e', teamNumber=334, is_authenticated=True, username='tester')
         self.manager = MagicMock()
         self.manager.add_scouting_data.return_value = (True, str(ObjectId()))
+        # Real query builders so the polling test sees the actual access filter
+        for name in ('get_visible_fuel', '_visible_records'):
+            setattr(self.manager, name, partial(getattr(ScoutingManager, name), self.manager))
 
     def test_zero_submissions_enroll_even_with_ferry_and_nonzero_scoring_stays_manual(self):
         with patch.object(records, 'current_user', self.user), patch.object(common, 'scouting_manager', self.manager):

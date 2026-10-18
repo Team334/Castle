@@ -14,20 +14,14 @@ from app.utils import handle_route_errors
 from ..match13_fuel import FUEL_FIELDS, zero_scored_fuel
 from ..TBA import TBAInterface
 from . import common
-from .common import (SCOUTER_LOOKUP, TELEOP_SHIFT_FIELDS, actor_name,
-                     fuel_total, scouting_bp, team_access_match)
+from .common import TELEOP_SHIFT_FIELDS, actor_name, fuel_total, scouting_bp
 
 SCOUTING_PAGE_SIZE = 20
 
 
 def _user_team():
     """The current user's Team, or None."""
-    if not current_user.teamNumber:
-        return None
-    if team_doc := common.scouting_manager.db.teams.find_one({"team_number": current_user.teamNumber}):
-        from app.models import Team
-        return Team.create_from_db(team_doc)
-    return None
+    return common.scouting_manager.get_team(current_user.teamNumber)
 
 
 @scouting_bp.route("/scouting/add", methods=["GET", "POST"])
@@ -126,12 +120,8 @@ def fuel_estimates():
     statuses = service.statuses(ids, include_manual=True)
     if not statuses:
         return jsonify({})
-    records = common.scouting_manager.db.team_data.aggregate([
-        {"$match": {"_id": {"$in": [ObjectId(id) for id in statuses]}}},
-        SCOUTER_LOOKUP,
-        {"$unwind": "$scouter"}, team_access_match(current_user),
-        {"$project": {"_id": 1, **dict.fromkeys(FUEL_FIELDS, 1)}},
-    ])
+    records = common.scouting_manager.get_visible_fuel(
+        statuses, current_user.get_id(), current_user.teamNumber, FUEL_FIELDS)
     return jsonify({str(record["_id"]): {**statuses[str(record["_id"])],
                      "fuel": {field: record.get(field, 0) for field in FUEL_FIELDS}} for record in records})
 
@@ -259,41 +249,7 @@ def _match_team_rows(teams: list[dict], statuses: dict) -> list[dict]:
 @login_required
 def matches():
     try:
-        pipeline = [
-            SCOUTER_LOOKUP,
-            {"$unwind": "$scouter"},
-            team_access_match(current_user),
-            {"$group": {
-                "_id": {
-                    "event": "$event_code",
-                    "match": "$match_number"
-                },
-                "teams": {
-                    "$push": {
-                        "id": "$_id",
-                        "number": "$team_number",
-                        "alliance": "$alliance",
-
-                        # Fuel stats
-                        "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
-                        "auto_climb": {"$ifNull": ["$auto_climb", False]},
-                        "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
-                        "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
-                        "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
-                        "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
-                        "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
-                        "teleop_shift_4_fuel": {"$ifNull": ["$teleop_shift_4_fuel", 0]},
-                        "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
-
-                        "climb_level": {"$ifNull": ["$climb_level", 0]},
-                        "climb_type": "$climb_type",
-                        "climb_success": "$climb_success"
-                    }
-                },
-            }}
-        ]
-
-        match_data = list(common.scouting_manager.db.team_data.aggregate(pipeline))
+        match_data = common.scouting_manager.get_match_alliances(current_user.get_id(), current_user.teamNumber)
         service = current_app.extensions.get("match13_fuel")
         statuses = service.statuses(t["id"] for match in match_data for t in match["teams"]) if service else {}
         matches = []

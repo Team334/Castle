@@ -4,19 +4,18 @@ import unittest
 
 from bson import ObjectId
 
-from app.scout.routes.common import actor_name, fuel_total, team_access_match
+from app.scout.routes.common import actor_name, fuel_total
+from app.scout.scouting_utils import access_match
 
 
 class CommonHelperTests(unittest.TestCase):
     def test_access_match_limits_to_own_records_without_team(self):
         user_id = str(ObjectId())
-        user = SimpleNamespace(get_id=lambda: user_id, teamNumber=None)
-        self.assertEqual(team_access_match(user), {"$match": {"scouter._id": ObjectId(user_id)}})
+        self.assertEqual(access_match(user_id, None), {"$match": {"scouter._id": ObjectId(user_id)}})
 
     def test_access_match_adds_team_records(self):
         user_id = str(ObjectId())
-        user = SimpleNamespace(get_id=lambda: user_id, teamNumber=334)
-        self.assertEqual(team_access_match(user), {"$match": {"$or": [
+        self.assertEqual(access_match(user_id, 334), {"$match": {"$or": [
             {"scouter._id": ObjectId(user_id)}, {"scouter.teamNumber": 334}]}})
 
     def test_fuel_total_excludes_ferried(self):

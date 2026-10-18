@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from ..TBA import TBAInterface
 from . import common
-from .common import SCOUTER_LOOKUP, actor_name, scouting_bp, team_access_match
+from .common import actor_name, scouting_bp
 
 SEARCH_TIMEOUT = 10  # seconds; aiohttp's default was 5 minutes
 
@@ -45,69 +45,27 @@ def compare_teams():
         teams_data = {}
         for team_num in teams:
             try:
-                pipeline = [
-                    {"$match": {"team_number": team_num}},
-                    SCOUTER_LOOKUP,
-                    {"$unwind": "$scouter"},
-                    team_access_match(current_user),
-                    {"$group": {
-                        "_id": "$team_number",
-                        "matches_played": {"$sum": 1},
-
-                        # Fuel Stats
-                        "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
-                        "avg_auto_climb": {"$avg": {"$cond": ["$auto_climb", 1, 0]}},
-                        "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
-                        "avg_ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
-                        "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
-                        "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
-                        "avg_teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
-                        "avg_teleop_shift_4_fuel": {"$avg": {"$ifNull": ["$teleop_shift_4_fuel", 0]}},
-                        "avg_endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
-
-                        # Climb Stats
-                        "climb_success_rate": {"$avg": {"$cond": ["$climb_success", 1, 0]}},
-                        "climb_level_1_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 1]}, 1, 0]}},
-                        "climb_level_2_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 2]}, 1, 0]}},
-                        "climb_level_3_count": {"$sum": {"$cond": [{"$eq": ["$climb_level", 3]}, 1, 0]}},
-                        "avg_climb_level": {"$avg": {"$ifNull": ["$climb_level", 0]}},
-
-                        "defense_notes": {"$push": "$defense_notes"},
-                        "auto_paths": {"$push": {
-                            "path": "$auto_path",
-                            "notes": "$auto_notes",
-                            "match_number": "$match_number"
-                        }},
-                        "defense_rating": {"$avg": {"$cond": [{"$gt": ["$defense_rating", 0]}, "$defense_rating", None]}},
-                        "robot_disabled_list": {"$push": "$robot_disabled"},
-                        "preferred_climb_type": {"$last": "$climb_type"},
-                        "matches": {"$push": "$$ROOT"}
-                    }},
-                    {"$match": {"matches_played": {"$gt": 0}}}
-                ]
-
-                if stats := list(
-                    common.scouting_manager.db.team_data.aggregate(pipeline)
-                ):
+                if stats := common.scouting_manager.get_compare_stats(
+                        team_num, current_user.get_id(), current_user.teamNumber):
 
                     # Calculate total teleop average
                     avg_teleop_total = (
-                        (stats[0].get("avg_transition_fuel") or 0) +
-                        (stats[0].get("avg_ferried_fuel") or 0) +
-                        (stats[0]["avg_teleop_shift_1_fuel"] or 0) +
-                        (stats[0]["avg_teleop_shift_2_fuel"] or 0) +
-                        (stats[0]["avg_teleop_shift_3_fuel"] or 0) +
-                        (stats[0]["avg_teleop_shift_4_fuel"] or 0)
+                        (stats.get("avg_transition_fuel") or 0) +
+                        (stats.get("avg_ferried_fuel") or 0) +
+                        (stats["avg_teleop_shift_1_fuel"] or 0) +
+                        (stats["avg_teleop_shift_2_fuel"] or 0) +
+                        (stats["avg_teleop_shift_3_fuel"] or 0) +
+                        (stats["avg_teleop_shift_4_fuel"] or 0)
                     )
 
                     normalized_stats = {
                         # TODO
-                        "auto_scoring": min((stats[0]["avg_auto_fuel"] or 0) / 10, 1), # Assumes ~10 max auto fuel
+                        "auto_scoring": min((stats["avg_auto_fuel"] or 0) / 10, 1), # Assumes ~10 max auto fuel
                         "teleop_scoring": min(avg_teleop_total / 30, 1), # Assumes ~30 max teleop fuel
-                        "endgame_scoring": min((stats[0]["avg_endgame_fuel"] or 0) / 10, 1), # Assumes ~10 max endgame fuel
-                        "climb_level": min((stats[0]["avg_climb_level"] or 0) / 3, 1), # Max level 3
-                        "climb_rating": stats[0]["climb_success_rate"],
-                        "defense_rating": (stats[0]["defense_rating"] or 0) / 5 if stats[0].get("defense_rating") is not None else 0
+                        "endgame_scoring": min((stats["avg_endgame_fuel"] or 0) / 10, 1), # Assumes ~10 max endgame fuel
+                        "climb_level": min((stats["avg_climb_level"] or 0) / 3, 1), # Max level 3
+                        "climb_rating": stats["climb_success_rate"],
+                        "defense_rating": (stats["defense_rating"] or 0) / 5 if stats.get("defense_rating") is not None else 0
                     }
 
                     # Get team info from TBA
@@ -120,9 +78,9 @@ def compare_teams():
                         "city": team_info.get("city"),
                         "state_prov": team_info.get("state_prov"),
                         "country": team_info.get("country"),
-                        "stats": stats[0],
+                        "stats": stats,
                         "normalized_stats": normalized_stats,
-                        "matches": stats[0]["matches"]
+                        "matches": stats["matches"]
                     }
 
             except Exception as team_error:
@@ -169,45 +127,8 @@ def search_teams():
         # Get team number from the response
         team_number = team.get("team_number")
 
-        # Fetch scouting data from our database
-        pipeline = [
-            {"$match": {"team_number": team_number}},
-            SCOUTER_LOOKUP,
-            {"$unwind": {"path": "$scouter"}},
-            team_access_match(current_user),
-            {"$sort": {"event_code": 1, "match_number": 1}},
-            {
-                "$project": {
-                    "_id": {"$toString": "$_id"},  # Convert ObjectId to string
-                    "event_code": 1,
-                    "match_number": 1,
-                    # Fuel Stats
-                    "transition_fuel": {"$ifNull": ["$transition_fuel", 0]},
-                    "ferried_fuel": {"$ifNull": ["$ferried_fuel", 0]},
-                    "auto_fuel": {"$ifNull": ["$auto_fuel", 0]},
-                    "teleop_shift_1_fuel": {"$ifNull": ["$teleop_shift_1_fuel", 0]},
-                    "teleop_shift_2_fuel": {"$ifNull": ["$teleop_shift_2_fuel", 0]},
-                    "teleop_shift_3_fuel": {"$ifNull": ["$teleop_shift_3_fuel", 0]},
-                    "teleop_shift_4_fuel": {"$ifNull": ["$teleop_shift_4_fuel", 0]},
-                    "endgame_fuel": {"$ifNull": ["$endgame_fuel", 0]},
-
-                    # Climb Stats
-                    "auto_climb": 1,
-                    "climb_level": {"$ifNull": ["$climb_level", 0]},
-                    "climb_type": 1,
-                    "climb_success": 1,
-
-                    "auto_path": 1,
-                    "auto_notes": 1,
-                    "defense_rating": {"$ifNull": ["$defense_rating", 0]},
-                    "notes": 1,
-                    "scouter_name": "$scouter.username",
-                    "scouter_id": {"$toString": "$scouter._id"}
-                }
-            }
-        ]
-
-        scouting_data = list(common.scouting_manager.db.team_data.aggregate(pipeline))
+        scouting_data = common.scouting_manager.get_team_records(
+            team_number, current_user.get_id(), current_user.teamNumber)
 
         # Format response
         response_data = [{
@@ -242,38 +163,12 @@ def get_team_paths():
     try:
         team_number = int(team_number)
 
-        # Build pipeline to get paths for the team
-        pipeline = [
-            {"$match": {"team_number": team_number}},
-            SCOUTER_LOOKUP,
-            {"$unwind": {"path": "$scouter", "preserveNullAndEmptyArrays": True}},
-            team_access_match(current_user),
-            # Only get matches with auto path data
-            {"$match": {"auto_path": {"$exists": True, "$ne": []}}},
-            # Sort by most recent matches first
-            {"$sort": {"match_number": -1}},
-            # Project only the needed fields
-            {"$project": {
-                "_id": {"$toString": "$_id"},
-                "team_number": 1,
-                "match_number": 1,
-                "event_code": 1,
-                "event_name": 1,
-                "alliance": 1,
-                "auto_path": 1,
-                "auto_notes": 1,
-                "scouter_name": "$scouter.username",
-                "scouter_id": {"$toString": "$scouter._id"}
-            }}
-        ]
-
         # Get team info from TBA
         tba = TBAInterface()
         team_key = f"frc{team_number}"
         team_info = tba.get_team(team_key) or {}
 
-        # Get paths from database
-        paths = list(common.scouting_manager.db.team_data.aggregate(pipeline))
+        paths = common.scouting_manager.get_auto_paths(team_number, current_user.get_id(), current_user.teamNumber)
 
         # Format response
         response = {

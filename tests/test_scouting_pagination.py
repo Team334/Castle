@@ -31,7 +31,7 @@ class PaginationTests(unittest.TestCase):
         self.manager.db.team_data.aggregate.return_value = iter([{'records': [], 'count': []}])
         self.manager.get_all_scouting_data(334, self.user_id, page=1)
         pipeline = self.manager.db.team_data.aggregate.call_args.args[0]
-        self.assertEqual(pipeline[2]['$match']['$or'], [
+        self.assertCountEqual(pipeline[2]['$match']['$or'], [
             {'scouter.teamNumber': 334}, {'scouter._id': ObjectId(self.user_id)}])
 
     def test_search_is_literal_and_runs_before_pagination(self):
