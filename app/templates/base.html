@@ -33,8 +33,6 @@
         }
     </script>
     
-    <link rel="preload" href="{{ url_for('static', filename='fonts/Richardson Brand Accelerator.otf') }}" as="font" type="font/otf" crossorigin>
-    <link rel="preload" href="{{ url_for('static', filename='fonts/oxanium-vrb.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
     {% block head %}{% endblock %}
 
@@ -58,333 +56,191 @@
 
 
     <meta name="viewport" content="initial-scale=1, width=device-width"/>
-    <meta name="theme-color" content="#3b82f6">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Scout">
-
     <style>
-    /* Font Loading */
-    @font-face {
-        font-family: 'MainFont';
-        src: url('/static/fonts/Richardson Brand Accelerator.otf') format('opentype');
-        font-display: swap;
-        font-weight: normal;
-        font-style: normal;
-    }
-
-    @font-face {
-        font-family: 'SecondaryFont';
-        src: url('/static/fonts/oxanium-vrb.ttf') format('truetype');
-        font-display: swap;
-        font-weight: normal;
-        font-style: normal;
-    }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: toast-in 0.25s ease-out; }
     </style>
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
-    <div class="flex justify-center items-center">
-    <nav class="z-50 box-border max-w-6xl shadow-lg hidden sm:block bg-blue-100 dark:bg-gray-800 rounded-full opacity-85 mt-2 transition-colors duration-200">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex justify-between items-center gap-10">
-                <div class="flex space-x-4 text-center">
-                    <a href="{{ url_for('index') }}" class="flex items-center text-center hover:text-blue-500">
-                        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="h-12 dark:hidden">
-                        <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="Logo" class="h-12 hidden dark:block">
-                        <p class="py-4 px-2 text-center -ml-4">Castle</p>
-                    </a>
-                    <!-- Offline Status Indicator -->
-                    <div id="nav-offline-indicator" class="hidden py-1 px-3 bg-amber-100 border border-amber-300 rounded-full flex items-center space-x-2 text-amber-700 font-medium relative group">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>Offline Mode</span>
-                        <!-- Tooltip that appears on hover -->
-                        <div class="hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-3 py-2 bg-gray-800 text-white text-xs font-normal rounded-lg shadow-lg whitespace-nowrap z-50">
-                            Using Cached Content Only Accessed Before
-                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 h-2 w-2 rotate-45 bg-gray-800"></div>
-                        </div>
-                    </div>
-                    {% if current_user.is_authenticated %}
-                        {% if current_user.teamNumber %}
-                            <a href="{{ url_for('scouting.home') }}" class="py-4 px-2 hover:text-blue-500 text-center">Scout</a>
-                            <a href="{{ url_for('scouting.lighthouse') }}" class="py-4 px-2 hover:text-purple-500 text-center">Compare</a>
-                            <a href="{{ url_for('team.manage') }}" class="py-4 px-2 hover:text-blue-500 text-center">Team</a>
-                        {% else %}
-                            <a href="{{ url_for('team.join') }}" class="py-4 px-2 hover:text-green-500 text-center">Join Team</a>
-                        {% endif %}
-                    {% endif %}
-                </div>
-                <div class="flex space-x-4 items-center">
-                    <button class="theme-toggle p-2 rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition duration-200 focus:outline-none" title="Toggle Dark Mode">
-                        <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                        <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    </button>
-                    {% if current_user.is_authenticated %}
-                        <div class="relative flex items-center space-x-2">
-                            <button id="userDropdownButton" class="flex items-center space-x-2 hover:text-blue-500 dark:hover:text-blue-400">
-                                <img src="{{ url_for('auth.profile_picture', user_id=current_user.get_id()) }}" 
-                                     alt="Profile Picture" 
-                                     class="w-10 h-10 rounded-full">
-                                <span class="py-4 px-2">{{current_user.username}}</span>
-                                <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                            <!-- Dropdown menu -->
-                            <div id="userDropdown" class="hidden absolute right-0 top-full mt-2 w-32 text-center bg-white dark:bg-gray-800 rounded-xl shadow-lg py-2 z-50 border border-transparent dark:border-gray-700">
-                                <a href="{{ url_for('auth.profile', username=current_user.username) }}" 
-                                   class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-500 dark:hover:text-blue-400">
-                                    Profile
-                                </a>
-                                <a href="{{ url_for('auth.settings') }}" 
-                                   class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-500 dark:hover:text-blue-400">
-                                    Settings
-                                </a>
-                                <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                                <a href="{{ url_for('auth.logout') }}" 
-                                   class="block px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700">
-                                    Logout
-                                </a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="py-4 px-2 hover:text-blue-500">Login</a>
-                        <a href="{{ url_for('auth.register') }}" class="py-4 px-2 hover:text-blue-500">Register</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
-    </div>
-    <nav class="shadow-lg sm:hidden rounded-xl bg-blue-100 dark:bg-gray-800 fixed left-0 top-0 w-full z-50 transition-colors duration-200">
-        <div class="max-w-6xl mx-auto px-4">
-          <div class="flex justify-between items-center py-2 rounded-xl">
-            <a href="{{ url_for('index') }}" class="font-bold flex items-center justify-center flex-row">
-              <img src="{{ url_for('static', filename='logo.png') }}" alt="Castle Logo" class="h-10">
-              <span class="ml-2 text-lg">Castle</span>
+{% set endpoint = request.endpoint or '' %}
+{% set compare_active = endpoint in ['scouting.lighthouse', 'scouting.auton'] %}
+{% set scout_active = endpoint.startswith('scouting.') and not compare_active %}
+{% set team_active = endpoint.startswith('team.') %}
+<body class="flex min-h-screen flex-col">
+    <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/80">
+        <div class="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-6 sm:px-6">
+            <a href="{{ url_for('index') }}" class="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="h-7 w-7 dark:hidden">
+                <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="" class="hidden h-7 w-7 dark:block">
+                <span>Castle</span>
             </a>
-            <div class="flex items-center space-x-2">
-                <button class="theme-toggle p-2 rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition duration-200 focus:outline-none" title="Toggle Dark Mode">
-                    <svg class="w-6 h-6 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                    <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                </button>
-                <button class="mobile-menu-button p-2 hover:bg-blue-200 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none">
-                  <svg class="w-6 h-6" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M4 6h16M4 12h16M4 18h16"></path>
-                  </svg>
-                </button>
-            </div>
-          </div>
-        </div>
-        <div class="mobile-menu hidden bg-white dark:bg-gray-800 border-t dark:border-gray-700 transition-colors duration-200">
-          <div class="py-2 px-4 space-y-1">
-            <a href="{{ url_for('index') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Home</a>
-            <!-- Mobile Offline Status Indicator -->
-            <div id="mobile-offline-indicator" class="hidden py-3 px-4 bg-amber-100 border border-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-500 rounded-lg flex items-center space-x-2 text-amber-700 font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>Offline Mode - Cached Content Active</span>
-            </div>
+
             {% if current_user.is_authenticated %}
-              {% if current_user.teamNumber %}
-                  <a href="{{ url_for('scouting.home') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Scout</a>
-                  <a href="{{ url_for('scouting.lighthouse') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Compare</a>
-                  <a href="{{ url_for('team.manage') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Team</a>
-              {% else %}
-                  <a href="{{ url_for('team.join') }}" class="block py-3 px-4 hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg transition-colors">Join Team</a>
-              {% endif %}
-              <hr class="my-2 border-gray-200 dark:border-gray-700">
-              <div class="px-4 py-3">
-                  <div class="flex items-center space-x-3">
-                      <img src="{{ url_for('auth.profile_picture', user_id=current_user.get_id()) }}" 
-                           alt="Profile Picture" 
-                           class="w-10 h-10 rounded-full">
-                      <a href="{{ url_for('auth.profile', username=current_user.username) }}" 
-                         class="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">{{current_user.username}}</a>
-                  </div>
-              </div>
-              <a href="{{ url_for('auth.settings') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Settings</a>
-              <a href="{{ url_for('auth.logout') }}" class="block py-3 px-4 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors">Logout</a>
-            {% else %}
-              <hr class="my-2 border-gray-200 dark:border-gray-700">
-              <a href="{{ url_for('auth.login') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Login</a>
-              <a href="{{ url_for('auth.register') }}" class="block py-3 px-4 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Register</a>
+            <nav class="hidden items-center gap-1 sm:flex" aria-label="Main">
+                {% if current_user.teamNumber %}
+                    <a href="{{ url_for('scouting.home') }}" class="nav-link {{ 'nav-link-active' if scout_active }}">Scout</a>
+                    <a href="{{ url_for('scouting.lighthouse') }}" class="nav-link {{ 'nav-link-active' if compare_active }}">Compare</a>
+                    <a href="{{ url_for('team.manage') }}" class="nav-link {{ 'nav-link-active' if team_active }}">Team</a>
+                {% else %}
+                    <a href="{{ url_for('team.join') }}" class="nav-link {{ 'nav-link-active' if team_active }}">Join a team</a>
+                {% endif %}
+            </nav>
             {% endif %}
-          </div>
-        </div>
-    </nav>
 
-    <div class="flex-grow">
-        <div class="container mx-auto px-4 sm:my-10 my-20">
-            <div class="container">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% set category, message = messages[-1] %}
-                        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:-translate-x-0 z-50 w-[90%] sm:w-full max-w-xl min-h-[60px] sm:min-h-[80px] mx-auto sm:mx-0  animate-fade-in-up">
-                            <div class="flex items-center p-6 rounded-lg shadow-xl {{ 
-                                'bg-red-50 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-2 border-red-200 dark:border-red-800' if category == 'error' else 
-                                'bg-green-50 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-2 border-green-200 dark:border-green-800' 
-                            }}">
-                                {% if category == 'error' %}
-                                    <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                    </svg>
-                                {% else %}
-                                    <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                    </svg>
-                                {% endif %}
-                                <p class="text-base font-medium">{{ message }}</p>
-                                <button onclick="this.parentElement.remove()" class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 {{ 
-                                    'text-red-500 hover:bg-red-100 dark:hover:bg-red-800' if category == 'error' else 
-                                    'text-green-500 hover:bg-green-100 dark:hover:bg-green-800' 
-                                }}">
-                                    <span class="sr-only">Dismiss</span>
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% endwith %}
+            <div class="hidden sm:contents"><div id="nav-offline-indicator" class="badge badge-amber hidden" title="Showing pages saved on this device">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a1.875 1.875 0 0 0 1.61 2.81h17.14a1.875 1.875 0 0 0 1.61-2.81L13.71 3.86a1.875 1.875 0 0 0-3.42 0Z"/></svg>
+                <span>Offline</span>
+            </div></div>
+
+            <div class="ml-auto flex items-center gap-1">
+                <button type="button" class="theme-toggle btn btn-ghost btn-icon" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <svg class="h-5 w-5 dark:hidden" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75 9.75 9.75 0 0 1 8.25 6c0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25 9.75 9.75 0 0 0 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>
+                    <svg class="hidden h-5 w-5 dark:block" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>
+                </button>
+
+                {% if current_user.is_authenticated %}
+                <div class="relative hidden sm:block">
+                    <button type="button" id="userDropdownButton" class="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800" aria-haspopup="menu">
+                        <img src="{{ url_for('auth.profile_picture', user_id=current_user.get_id()) }}" alt="" class="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700">
+                        <span class="max-w-[10rem] truncate">{{ current_user.username }}</span>
+                        <svg class="h-4 w-4 text-zinc-400 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                    </button>
+                    <div id="userDropdown" class="card absolute right-0 top-full z-50 mt-2 hidden w-48 p-1" role="menu">
+                        <a href="{{ url_for('auth.profile', username=current_user.username) }}" class="menu-item" role="menuitem">Profile</a>
+                        <a href="{{ url_for('auth.settings') }}" class="menu-item" role="menuitem">Settings</a>
+                        <div class="my-1 border-t border-zinc-200 dark:border-zinc-800"></div>
+                        <a href="{{ url_for('auth.logout') }}" class="menu-item text-red-600 dark:text-red-400" role="menuitem">Log out</a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-ghost hidden sm:inline-flex">Log in</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary hidden sm:inline-flex">Sign up</a>
+                {% endif %}
+
+                <button type="button" class="mobile-menu-button btn btn-ghost btn-icon sm:hidden" aria-label="Open menu">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                </button>
             </div>
-            {% block content %}{% endblock %}
-            
-            {% if request.endpoint == 'index' %}
-            <div class="absolute top-20 right-10 w-20 h-20 bg-blue-500 rounded-full opacity-20 animate-float z-10"></div>
-            <div class="absolute bottom-10 left-10 w-16 h-16 bg-blue-600 rounded-full opacity-25 animate-float delay-200 z-10"></div>
-            {% endif %}
         </div>
-    </div>
 
-    <!-- Footer -->
-    <footer class="bg-blue-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-4 mt-8 border-t border-blue-200 dark:border-gray-700 transition-colors duration-200">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col space-y-4 md:space-y-0 md:flex-row md:justify-between md:items-center">
-                <div class="text-center">
-                    <p class="text-sm">© 2024-2026 <a href="https://bthsrobotics.com" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">Team 334</a></p>
-                </div>
-                <div class="hidden sm:flex flex-col sm:flex-row items-center justify-center gap-2">
-                    <a href="https://github.com/team334/Castle" target="_blank" rel="noopener noreferrer" 
-                       class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
+        <div class="mobile-menu hidden border-t border-zinc-200 px-4 py-3 sm:hidden dark:border-zinc-800">
+            <div id="mobile-offline-indicator" class="badge badge-amber mb-2 hidden w-full justify-center py-2">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a1.875 1.875 0 0 0 1.61 2.81h17.14a1.875 1.875 0 0 0 1.61-2.81L13.71 3.86a1.875 1.875 0 0 0-3.42 0Z"/></svg>
+                <span>Offline: showing pages saved on this device</span>
+            </div>
+            <nav class="space-y-1" aria-label="Main">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.teamNumber %}
+                        <a href="{{ url_for('scouting.home') }}" class="menu-item {{ 'nav-link-active' if scout_active }}">Scout</a>
+                        <a href="{{ url_for('scouting.lighthouse') }}" class="menu-item {{ 'nav-link-active' if compare_active }}">Compare</a>
+                        <a href="{{ url_for('team.manage') }}" class="menu-item {{ 'nav-link-active' if team_active }}">Team</a>
+                    {% else %}
+                        <a href="{{ url_for('team.join') }}" class="menu-item {{ 'nav-link-active' if team_active }}">Join a team</a>
+                    {% endif %}
+                    <div class="my-2 border-t border-zinc-200 dark:border-zinc-800"></div>
+                    <a href="{{ url_for('auth.profile', username=current_user.username) }}" class="menu-item">
+                        <img src="{{ url_for('auth.profile_picture', user_id=current_user.get_id()) }}" alt="" class="h-6 w-6 rounded-full object-cover">
+                        <span class="truncate">{{ current_user.username }}</span>
                     </a>
-                    <p class="text-sm text-center">This project is open source. Help us improve it!</p>
+                    <a href="{{ url_for('auth.settings') }}" class="menu-item">Settings</a>
+                    <a href="{{ url_for('auth.logout') }}" class="menu-item text-red-600 dark:text-red-400">Log out</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="menu-item">Log in</a>
+                    <a href="{{ url_for('auth.register') }}" class="menu-item">Sign up</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% set category, message = messages[-1] %}
+                <div class="animate-fade-in-up fixed inset-x-4 bottom-4 z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-96" role="status">
+                    <div class="card flex items-start gap-3 p-4 shadow-lg transition-all duration-300">
+                        {% if category == 'error' %}
+                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                        {% else %}
+                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        {% endif %}
+                        <p class="flex-1 text-sm text-zinc-700 dark:text-zinc-200">{{ message }}</p>
+                        <button type="button" onclick="this.parentElement.remove()" class="-m-1 rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
+                            <span class="sr-only">Dismiss</span>
+                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="hidden sm:block text-center">
-                    <a href="https://cherriae.github.io" target="_blank" rel="noopener noreferrer" 
-                       class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm">
-                        Created by Jerry
-                    </a>
-                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-zinc-200 dark:border-zinc-800">
+        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-sm text-zinc-500 sm:flex-row sm:px-6 dark:text-zinc-400">
+            <p>&copy; 2024-2026 <a href="https://bthsrobotics.com" class="hover:text-zinc-900 dark:hover:text-zinc-100">Team 334</a></p>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/team334/Castle" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 hover:text-zinc-900 dark:hover:text-zinc-100">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    Open source
+                </a>
+                <a href="https://cherriae.github.io" target="_blank" rel="noopener noreferrer" class="hover:text-zinc-900 dark:hover:text-zinc-100">Created by Jerry</a>
             </div>
         </div>
     </footer>
 
     <script>
-        const menuButton = document.querySelector('.mobile-menu-button');
-        const mobileMenu = document.querySelector('.mobile-menu');
-
-        menuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
+        document.querySelector('.mobile-menu-button').addEventListener('click', () => {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
         });
-    </script>
-    <style>
-        @keyframes fade-in-up {
-            0% {
-                opacity: 0;
-                transform: translateY(20px) translateX(-50%);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) translateX(-50%);
-            }
-        }
 
-        @keyframes fade-in-left {
-            0% {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .animate-fade-in-up {
-            animation: fade-in-up 0.5s ease-out;
-        }
-
-        @media (min-width: 640px) {
-            .animate-fade-in-up {
-                animation: fade-in-left 0.5s ease-out;
-            }
-        }
-    </style>
-
-    <script>
+        // Flash messages dismiss themselves after five seconds
         document.addEventListener('DOMContentLoaded', function() {
-            const flashMessages = document.querySelectorAll('.animate-fade-in-up > div');
-            flashMessages.forEach(message => {
+            document.querySelectorAll('.animate-fade-in-up > div').forEach(message => {
                 setTimeout(() => {
                     message.style.opacity = '0';
-                    message.style.transform = 'translateY(20px)';
-                    message.style.transition = 'all 0.5s ease-out';
-                    setTimeout(() => message.remove(), 500);
+                    message.style.transform = 'translateY(8px)';
+                    setTimeout(() => message.remove(), 300);
                 }, 5000);
             });
         });
-    </script>
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-    </script>
-    <!-- <script defer src="/_vercel/insights/script.js"></script> -->
-    <!-- <script defer src="/_vercel/speed-insights/script.js"></script> -->
-    <script>
-        // Dark mode toggle functionality
+
+        // Dark mode toggle
         document.querySelectorAll('.theme-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.theme = 'light';
-                } else {
-                    document.documentElement.classList.add('dark');
-                    localStorage.theme = 'dark';
-                }
+                const dark = document.documentElement.classList.toggle('dark');
+                localStorage.theme = dark ? 'dark' : 'light';
             });
         });
 
-        // User dropdown functionality
+        // User menu
         const userDropdownButton = document.getElementById('userDropdownButton');
         const userDropdown = document.getElementById('userDropdown');
-        const dropdownArrow = userDropdownButton?.querySelector('svg');
-
         if (userDropdownButton && userDropdown) {
+            const arrow = userDropdownButton.querySelector('svg');
             userDropdownButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 userDropdown.classList.toggle('hidden');
-                dropdownArrow.style.transform = userDropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
+                arrow.style.transform = userDropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
             });
-
-            // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if (!userDropdownButton.contains(e.target)) {
                     userDropdown.classList.add('hidden');
-                    dropdownArrow.style.transform = '';
+                    arrow.style.transform = '';
                 }
             });
         }
     </script>
-    
+
     <!-- Service Worker Registration -->
     <script src="{{ url_for('static', filename='js/base.js') }}" data-app-version="{{ request.args.get('v', '1.0') }}"></script>
 </body>
