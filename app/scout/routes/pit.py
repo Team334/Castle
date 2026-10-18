@@ -11,6 +11,52 @@ from . import common
 from .common import actor_name, scouting_bp
 
 
+def _form_int(name: str) -> int:
+    """Integer form field; blank or missing is 0."""
+    return int(request.form.get(name) or 0)
+
+
+def _pit_form() -> dict:
+    """Pit scouting fields from the add/edit form."""
+    form = request.form
+    has_auto = form.get("has_auto") == "true"
+    return {
+        "team_number": int(form["team_number"]),
+
+        # Drive base information
+        "drive_type": {
+            "swerve": "swerve" in form.getlist("drive_type"),
+            "tank": "tank" in form.getlist("drive_type"),
+            "other": form.get("drive_type_other", "")
+        },
+        "swerve_modules": form.get("swerve_modules", ""),
+
+        # Mechanisms
+        "fuel_count_bps": _form_int("fuel_count_bps"),
+        "shooter_type": form.get("shooter_type", ""),
+        "shooter_notes": form.get("shooter_notes", ""),
+        "hopper_notes": form.get("hopper_notes", ""),
+        "intake_notes": form.get("intake_notes", ""),
+
+        # Autonomous
+        "autonomous_capabilities": {
+            "has_auto": has_auto,
+            "num_routes": _form_int("auto_routes") if has_auto else 0,
+            "preferred_start": form.get("auto_preferred_start", "") if has_auto else "",
+            "notes": form.get("auto_notes", "") if has_auto else ""
+        },
+
+        # Driver Experience
+        "driver_experience": {
+            "years": _form_int("driver_years"),
+            "notes": form.get("driver_notes", "")
+        },
+
+        # General Notes
+        "notes": form.get("notes", ""),
+    }
+
+
 @scouting_bp.route("/scouting/pit")
 @login_required
 # @limiter.limit("50 per minute")
@@ -36,47 +82,8 @@ def pit_scouting_add():
     if request.method == "POST":
         try:
             current_app.logger.info(f"Scouting.add Form Details {request.form}")
-            # Process form data
-            pit_data = {
-                "team_number": int(request.form.get("team_number")),
-                "scouter_id": current_user.id,
-
-                # Drive base information
-                "drive_type": {
-                    "swerve": "swerve" in request.form.getlist("drive_type"),
-                    "tank": "tank" in request.form.getlist("drive_type"),
-                    "other": request.form.get("drive_type_other", "")
-                },
-                "swerve_modules": request.form.get("swerve_modules", ""),
-
-                # Mechanisms
-                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
-                "shooter_type": request.form.get("shooter_type", ""),
-                "shooter_notes": request.form.get("shooter_notes", ""),
-                "hopper_notes": request.form.get("hopper_notes", ""),
-                "intake_notes": request.form.get("intake_notes", ""),
-
-                # Autonomous
-                "autonomous_capabilities": {
-                    "has_auto": request.form.get("has_auto") == "true",
-                    "num_routes": int(request.form.get("auto_routes", 0) or 0) if request.form.get("has_auto") == "true" else 0,
-                    "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
-                    "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
-                },
-
-                # Driver Experience
-                "driver_experience": {
-                    "years": int(request.form.get("driver_years", 0) if not (request.form.get("driver_years") == '') else 0),
-                    "notes": request.form.get("driver_notes", "")
-                },
-
-                # General Notes
-                "notes": request.form.get("notes", ""),
-
-                # Timestamps
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc)
-            }
+            now = datetime.now(timezone.utc)
+            pit_data = {**_pit_form(), "scouter_id": current_user.id, "created_at": now, "updated_at": now}
 
             # Add to database
             if common.scouting_manager.add_pit_scouting(pit_data):
@@ -110,36 +117,8 @@ def pit_scouting_edit(entry_id):
     if request.method == "POST":
         try:
             current_app.logger.info(f"Scouting.edit Form Details {request.form}")
-            data = {
-                "team_number": int(request.form["team_number"]),
-                "scouter_id": ObjectId(current_user.get_id()),
-                "drive_type": {
-                    "swerve": "swerve" in request.form.getlist("drive_type"),
-                    "tank": "tank" in request.form.getlist("drive_type"),
-                    "other": request.form.get("drive_type_other", "")
-                },
-                "swerve_modules": request.form.get("swerve_modules", ""),
-
-                # Mechanisms
-                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
-                "shooter_type": request.form.get("shooter_type", ""),
-                "shooter_notes": request.form.get("shooter_notes", ""),
-                "hopper_notes": request.form.get("hopper_notes", ""),
-                "intake_notes": request.form.get("intake_notes", ""),
-
-                "autonomous_capabilities": {
-                    "has_auto": request.form.get("has_auto") == "true",
-                    "num_routes": int(request.form.get("auto_routes", 0)) if request.form.get("has_auto") == "true" else 0,
-                    "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
-                    "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
-                },
-                "driver_experience": {
-                    "years": int(request.form.get("driver_years", 0)),
-                    "notes": request.form.get("driver_notes", "")
-                },
-                "notes": request.form.get("notes", ""),
-                "updated_at": datetime.now(timezone.utc)
-            }
+            data = {**_pit_form(), "scouter_id": ObjectId(current_user.get_id()),
+                    "updated_at": datetime.now(timezone.utc)}
 
             if common.scouting_manager.update_pit_scouting(entry_id, data, current_user.get_id()):
                 current_app.logger.info(f"Successfully updated pit scouting data {data} for user {actor_name(current_user)}")
@@ -149,7 +128,7 @@ def pit_scouting_edit(entry_id):
                 current_app.logger.info(f"Failed to update pit scouting data {data} for user {actor_name(current_user)}")
                 flash("Error updating pit scouting data", "error")
         except Exception as e:
-            current_app.logger.info(f"Error updating pit scouting data {data} for user {actor_name(current_user)} {str(e)}", exc_info=True)
+            current_app.logger.info(f"Error updating pit scouting entry {entry_id} for user {actor_name(current_user)} {str(e)}", exc_info=True)
             flash("An internal error has occurred.", "error")
 
     return render_template("scouting/pit-scouting-edit.html", entry=pit_data)
