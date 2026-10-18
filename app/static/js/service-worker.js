@@ -1,9 +1,9 @@
-const CACHE_NAME = 'castle-app-v12';
-const STATIC_CACHE_NAME = 'castle-app-static-v12';
-const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v12';
-const PAGE_CACHE_NAME = 'castle-app-pages-v12';
+const CACHE_NAME = 'castle-app-v13';
+const STATIC_CACHE_NAME = 'castle-app-static-v13';
+const DYNAMIC_CACHE_NAME = 'castle-app-dynamic-v13';
+const PAGE_CACHE_NAME = 'castle-app-pages-v13';
 
-const CACHE_VERSION = '13'; // Increment this when making changes
+const CACHE_VERSION = '14'; // Increment this when making changes
 
 // Add timestamped version query parameter to bust cache 
 const CACHE_TIMESTAMP = new Date().getTime();
