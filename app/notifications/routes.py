@@ -123,25 +123,3 @@ def delete_subscription():
             "success": False,
             "message": "An internal error has occurred."
         }), 500
-
-# @notifications_bp.route("/test", methods=["POST"])
-# @login_required
-# @limiter.limit("3 per minute")
-# def test_notification():
-#     """Send a test notification to the current user"""
-#     try:
-#         success, message = notification_manager.test_notification(
-#             user_id=current_user.get_id()
-#         )
-        
-#         return jsonify({
-#             "success": success,
-#             "message": message
-#         }), 200 if success else 400
-    
-#     except Exception as e:
-#         current_app.logger.error(f"Error sending test notification: {str(e)}")
-#         return jsonify({
-#             "success": False,
-#             "message": "An internal error has occurred."
-#         }), 500 

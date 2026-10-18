@@ -59,7 +59,6 @@ def _pit_form() -> dict:
 
 @scouting_bp.route("/scouting/pit")
 @login_required
-# @limiter.limit("50 per minute")
 def pit_scouting():
     try:
         # Update to use filtered pit scouting data
@@ -77,7 +76,6 @@ def pit_scouting():
 
 @scouting_bp.route("/scouting/pit/add", methods=["GET", "POST"])
 @login_required
-# @limiter.limit("15 per minute")
 def pit_scouting_add():
     if request.method == "POST":
         try:
@@ -103,7 +101,6 @@ def pit_scouting_add():
 
 @scouting_bp.route("/scouting/pit/edit/<entry_id>", methods=["GET", "POST"])
 @login_required
-# @limiter.limit("10 per minute")
 def pit_scouting_edit(entry_id):
     pit_data = common.scouting_manager.get_pit_scouting_by_id(entry_id)
     if not pit_data:

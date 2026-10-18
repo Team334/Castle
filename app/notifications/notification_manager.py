@@ -421,50 +421,6 @@ class NotificationManager(DatabaseManager):
             logger.error(f"Error deleting subscription: {str(e)}")
             return False, "An internal error has occurred."
     
-    # @with_mongodb_retry()
-    # def test_notification(self, user_id: str) -> Tuple[bool, str]:
-    #     """Send a test notification to a user
-        
-    #     Args:
-    #         user_id: The user ID
-            
-    #     Returns:
-    #         Tuple[bool, str]: Success status and message
-    #     """
-    #     
-
-    #     try:
-    #         # Get the user's subscriptions
-    #         subscriptions = self.db.assignment_subscriptions.find({
-    #             "user_id": user_id,
-    #             "subscription_json": {"$exists": True, "$ne": {}}
-    #         })
-
-    #         if not subscriptions:
-    #             return False, "No subscription found for this user"
-
-    #         for sub_data in subscriptions:
-    #             subscription = AssignmentSubscription.create_from_db(sub_data)
-
-    #             # Override notification data for test
-    #             subscription.title = "Test Notification"
-    #             subscription.body = "This is a test notification from the Scouting App"
-    #             subscription.url = "/team/manage"
-    #             subscription.data = {
-    #                 "test": True, 
-    #                 "type": "test_notification",
-    #                 "timestamp": datetime.now().isoformat()
-    #             }
-
-    #             if _ := self._send_push_notification(subscription):
-    #                 return True, "Test notification sent successfully"
-
-    #         return False, "Failed to send test notification"
-
-    #     except Exception as e:
-    #         logger.error(f"Error sending test notification: {str(e)}")
-    #         return False, "An internal error has occurred." 
-
     def send_instant_assignment_notification(self, assignment_data: Dict, team_number: int) -> None:
         """Send instant notifications to users when they are assigned to a new assignment
         

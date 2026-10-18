@@ -23,7 +23,6 @@ def on_blueprint_init(state):
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-# @limiter.limit("8 per minute")
 @handle_route_errors
 def login():
     if current_user.is_authenticated:

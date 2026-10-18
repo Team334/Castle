@@ -14,7 +14,6 @@ from .common import actor_name, logger, scouting_bp
 
 @scouting_bp.route("/api/tba/events")
 @login_required
-# @limiter.limit("30 per minute")
 def get_tba_events():
     try:
         year = request.args.get('year', default=datetime.now().year, type=int)
@@ -37,7 +36,6 @@ def get_tba_events():
 
 @scouting_bp.route("/api/tba/matches/<event_key>")
 @login_required
-# @limiter.limit("30 per minute")
 def get_tba_matches(event_key):
     try:
         tba = TBAInterface()
@@ -53,7 +51,6 @@ def get_tba_matches(event_key):
 
 @scouting_bp.route("/scouting/live-match-status", methods=["GET"])
 @login_required
-# @limiter.limit("30 per minute")
 def live_match_status():
     """Route for the live team schedule modal"""
     context = {

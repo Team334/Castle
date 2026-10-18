@@ -14,7 +14,6 @@ SEARCH_TIMEOUT = 10  # seconds; aiohttp's default was 5 minutes
 
 
 @scouting_bp.route("/lighthouse")
-# @limiter.limit("30 per minute")
 @login_required
 def lighthouse():
     current_app.logger.info(f"Successfully fetched lighthouse for user {actor_name(current_user)}")
@@ -22,7 +21,6 @@ def lighthouse():
 
 
 @scouting_bp.route("/lighthouse/auton")
-# @limiter.limit("30 per minute")
 @login_required
 def auton():
     current_app.logger.info(f"Successfully fetched lighthouse/auton for user {actor_name(current_user)}")
@@ -30,7 +28,6 @@ def auton():
 
 
 @scouting_bp.route("/api/compare")
-# @limiter.limit("30 per minute")
 @login_required
 def compare_teams():
     try:
@@ -99,7 +96,6 @@ def compare_teams():
 
 @scouting_bp.route("/api/search")
 @login_required
-# @limiter.limit("30 per minute")
 def search_teams():
     query = request.args.get("q", "").strip()
     if not query:
@@ -153,7 +149,6 @@ def search_teams():
 
 @scouting_bp.route("/api/team_paths")
 @login_required
-# @limiter.limit("30 per minute")
 def get_team_paths():
     team_number = request.args.get('team')
 

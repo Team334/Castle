@@ -26,7 +26,6 @@ def _user_team():
 
 @scouting_bp.route("/scouting/add", methods=["GET", "POST"])
 @login_required
-# @limiter.limit("15 per minute")
 @handle_route_errors
 def add():
     if request.method != "POST":
@@ -76,7 +75,6 @@ def add():
 
 @scouting_bp.route("/scouting/list")
 @scouting_bp.route("/scouting")
-# @limiter.limit("30 per minute")
 @login_required
 def home():
     try:
@@ -127,7 +125,6 @@ def fuel_estimates():
 
 
 @scouting_bp.route("/scouting/edit/<string:id>", methods=["GET", "POST"])
-# @limiter.limit("15 per minute")
 @login_required
 def edit(id):
     try:
@@ -183,7 +180,6 @@ def edit(id):
 
 
 @scouting_bp.route("/scouting/delete/<string:id>")
-# @limiter.limit("10 per minute")
 @login_required
 def delete(id):
     try:
@@ -245,7 +241,6 @@ def _match_team_rows(teams: list[dict], statuses: dict) -> list[dict]:
 
 
 @scouting_bp.route("/scouting/matches")
-# @limiter.limit("30 per minute")
 @login_required
 def matches():
     try:

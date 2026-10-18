@@ -15,7 +15,6 @@ TBA_METRICS = {'epa', 'opr', 'dpr', 'ccwm'}
 
 
 @scouting_bp.route("/leaderboard")
-# @limiter.limit("30 per minute")
 def leaderboard():
     try:
         sort_type = request.args.get('sort', 'fuel')
@@ -50,7 +49,6 @@ def leaderboard():
 
 
 @scouting_bp.route("/scouter-leaderboard")
-# @limiter.limit("30 per minute")
 @login_required
 def scouter_leaderboard():
     try:
