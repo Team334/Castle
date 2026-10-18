@@ -3,15 +3,21 @@ import os
 import traceback
 from time import strftime
 from urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
+from flask import (Flask, flash, jsonify, make_response, redirect,
+                   render_template, request, send_from_directory, url_for)
 from flask import (Flask, flash, jsonify, make_response, redirect,
                    render_template, request, send_from_directory, url_for)
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.exceptions import HTTPException
+from flask_wtf.csrf import CSRFError, CSRFProtect
+from werkzeug.exceptions import HTTPException
 
 from app.auth.auth_utils import UserManager
+from app.utils import is_safe_url, limiter
 from app.utils import is_safe_url, limiter
 
 csrf = CSRFProtect()
@@ -30,10 +36,21 @@ def create_app():
         raise RuntimeError(
             "SECRET_KEY is not set. Add it to the environment or .env, e.g. "
             "SECRET_KEY=$(python -c \"import secrets; print(secrets.token_hex(32))\")")
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        # Sessions are signed with this key; a public default lets anyone forge a login.
+        raise RuntimeError(
+            "SECRET_KEY is not set. Add it to the environment or .env, e.g. "
+            "SECRET_KEY=$(python -c \"import secrets; print(secrets.token_hex(32))\")")
     app.config.update(
+        SECRET_KEY=secret_key,
         SECRET_KEY=secret_key,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        REMEMBER_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_SECURE=True,
+        REMEMBER_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SAMESITE="Lax",
         REMEMBER_COOKIE_HTTPONLY=True,
         REMEMBER_COOKIE_SECURE=True,
@@ -42,7 +59,12 @@ def create_app():
         # Scouting pages stay open all event and queue submissions offline; a
         # token is valid for the whole session rather than expiring after an hour.
         WTF_CSRF_TIME_LIMIT=None,
+        # Scouting pages stay open all event and queue submissions offline; a
+        # token is valid for the whole session rather than expiring after an hour.
+        WTF_CSRF_TIME_LIMIT=None,
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
+        RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI")
+            or os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI")
             or os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
@@ -56,12 +78,15 @@ def create_app():
         app.logger.info("VAPID keys configured properly.")
 
     csrf.init_app(app)
+    csrf.init_app(app)
     limiter.init_app(app)
+
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "error"
 
+    # First DatabaseManager opens the singleton connection with MONGO_URI
     # First DatabaseManager opens the singleton connection with MONGO_URI
     try:
         user_manager = UserManager(app.config["MONGO_URI"])
@@ -93,6 +118,11 @@ def create_app():
     # send cross-site without a CORS preflight this app never grants.
     csrf.exempt("app.team.routes.update_assignment_status")
 
+    # The service worker's "mark complete" notification action cannot read the
+    # page's CSRF token. The route only accepts JSON, which browsers will not
+    # send cross-site without a CORS preflight this app never grants.
+    csrf.exempt("app.team.routes.update_assignment_status")
+
     @app.route("/")
     def index():
         return render_template("index.html")
@@ -108,6 +138,9 @@ def create_app():
 
     @app.errorhandler(Exception)
     def handle_exception(e):
+        if isinstance(e, HTTPException):
+            # 400/405/415 etc. are client errors with their own responses, not crashes
+            return e
         if isinstance(e, HTTPException):
             # 400/405/415 etc. are client errors with their own responses, not crashes
             return e
