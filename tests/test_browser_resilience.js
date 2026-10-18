@@ -52,9 +52,9 @@ test('failed writes remain failures rather than successful offline responses', a
 });
 
 function pageFetch(network, online) {
-  const source = fs.readFileSync('app/templates/base.html', 'utf8');
-  const start = source.indexOf('            const originalFetch =');
-  const end = source.indexOf('\n            };', start) + '\n            };'.length;
+  const source = fs.readFileSync('app/static/js/base.js', 'utf8');
+  const start = source.indexOf('    const originalFetch =');
+  const end = source.indexOf('\n    };', start) + '\n    };'.length;
   const storage = new Map([['offlineMode', 'true']]);
   const scope = {
     window: {fetch: network}, navigator: {onLine: online},
