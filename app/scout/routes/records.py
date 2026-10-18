@@ -179,7 +179,7 @@ def edit(id):
         return redirect(url_for("scouting.home"))
 
 
-@scouting_bp.route("/scouting/delete/<string:id>")
+@scouting_bp.route("/scouting/delete/<string:id>", methods=["POST"])
 @login_required
 def delete(id):
     try:

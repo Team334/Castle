@@ -25,6 +25,7 @@
                       enctype="multipart/form-data"
                       id="teamSettingsForm"
                       class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
                     <!-- Team Logo Section -->
                     <div>

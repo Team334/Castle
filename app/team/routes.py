@@ -123,7 +123,7 @@ def create():
     return render_template("team/create.html", form=form)
 
 
-@team_bp.route("/<int:team_number>/leave", methods=["GET", "POST"])
+@team_bp.route("/<int:team_number>/leave", methods=["POST"])
 @login_required
 @limiter.limit("5 per minute")
 def leave(team_number):

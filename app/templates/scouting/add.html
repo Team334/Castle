@@ -62,6 +62,7 @@
       id="scoutingForm"
       autocomplete="off"
     >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="_event_key" value="" />
       <p class="px-8 py-4 text-sm text-gray-600 dark:text-gray-400" id="fuelEstimateHint">
         When all scored-fuel counts are zero or blank, Castle uses automatic Match13 estimates when results become available.

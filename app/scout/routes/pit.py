@@ -131,7 +131,7 @@ def pit_scouting_edit(entry_id):
     return render_template("scouting/pit-scouting-edit.html", entry=pit_data)
 
 
-@scouting_bp.route("/scouting/pit/delete/<entry_id>")
+@scouting_bp.route("/scouting/pit/delete/<entry_id>", methods=["POST"])
 @login_required
 def pit_scouting_delete(entry_id):
     if common.scouting_manager.delete_pit_scouting(entry_id, current_user.get_id()):

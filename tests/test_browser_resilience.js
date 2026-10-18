@@ -248,3 +248,28 @@ test('a polling failure preserves displayed values but deleted records are hidde
   assert.equal(page.row.hidden, true);
   assert.equal(page.row.dataset.fuelEstimateId, undefined);
 });
+
+function csrfFetch(calls) {
+  const source = fs.readFileSync('app/templates/base.html', 'utf8');
+  const start = source.indexOf('(function () {', source.indexOf('Send the CSRF token'));
+  const end = source.indexOf('})();', start) + '})();'.length;
+  const window = {location: {href: 'https://castle.test/scouting', origin: 'https://castle.test'},
+    fetch: async (input, init) => {calls.push({input, init}); return new Response('ok');}};
+  const document = {querySelector: () => ({content: 'tok123'})};
+  vm.runInNewContext(source.slice(start, end), {window, document, Request, Headers, URL});
+  return window.fetch;
+}
+
+test('CSRF token is added only to same-origin writes', async () => {
+  const calls = [];
+  const fetch = csrfFetch(calls);
+  await fetch('/api/fuel_estimates', {method: 'post', headers: {'Content-Type': 'application/json'}});
+  await fetch('/team/1/leave', {method: 'POST', headers: new Headers({'X-Requested-With': 'XMLHttpRequest'})});
+  await fetch(new Request('https://castle.test/team/assignments/1/edit', {method: 'PUT'}));
+  await fetch('/api/tba/events');
+  await fetch('https://api.statbotics.io/v3/team', {method: 'POST'});
+  const token = call => call.init && call.init.headers ? new Headers(call.init.headers).get('X-CSRFToken') : null;
+  assert.deepEqual(calls.map(token), ['tok123', 'tok123', 'tok123', null, null]);
+  assert.equal(new Headers(calls[0].init.headers).get('Content-Type'), 'application/json');
+  assert.equal(new Headers(calls[1].init.headers).get('X-Requested-With'), 'XMLHttpRequest');
+});

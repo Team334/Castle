@@ -333,16 +333,12 @@
                     <span class="hidden sm:inline">Edit</span>
                     <span class="sm:hidden">📝</span>
                   </a>
-                  <a
-                    href="{{ url_for('scouting.delete', id=data._id) }}"
-                    class="text-red-600 hover:text-red-900"
-                    onclick="
+                  <form method="POST" action="{{ url_for('scouting.delete', id=data._id) }}" class="inline" onsubmit="
                       return confirm('Are you sure you want to delete this?');
-                    "
-                  >
+                    "><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-red-600 hover:text-red-900">
                     <span class="hidden sm:inline">Delete</span>
                     <span class="sm:hidden">🗑️</span>
-                  </a>
+                  </button></form>
                   {% elif data.scouter_team and current_user.teamNumber and
                   data.scouter_team|string == current_user.teamNumber|string %}
                   <a
@@ -354,18 +350,14 @@
                   </a>
 
                   {% if team and team.is_admin(current_user.id|string) %}
-                  <a
-                    href="{{ url_for('scouting.delete', id=data._id) }}"
-                    class="text-red-600 hover:text-red-900"
-                    onclick="
+                  <form method="POST" action="{{ url_for('scouting.delete', id=data._id) }}" class="inline" onsubmit="
                       return confirm(
                         'Are you sure you want to delete this team data?',
                       );
-                    "
-                  >
+                    "><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-red-600 hover:text-red-900">
                     <span class="hidden sm:inline">Delete (Admin)</span>
                     <span class="sm:hidden">🗑️</span>
-                  </a>
+                  </button></form>
                   {% endif %} {% else %}
                   <span class="text-gray-400 text-sm">No Access</span>
                   {% endif %}

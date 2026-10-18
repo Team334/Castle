@@ -2,16 +2,17 @@ import logging
 import os
 import traceback
 from time import strftime
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
-from flask import (Flask, make_response, redirect, render_template, request,
-                   send_from_directory, url_for)
-from flask_cors import CORS
+from flask import (Flask, flash, jsonify, make_response, redirect,
+                   render_template, request, send_from_directory, url_for)
 from flask_login import LoginManager, current_user
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
+from werkzeug.exceptions import HTTPException
 
 from app.auth.auth_utils import UserManager
-from app.utils import limiter
+from app.utils import is_safe_url, limiter
 
 csrf = CSRFProtect()
 login_manager = LoginManager()
@@ -23,11 +24,24 @@ def create_app():
 
     # Load config
     load_dotenv()
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        # Sessions are signed with this key; a public default lets anyone forge a login.
+        raise RuntimeError(
+            "SECRET_KEY is not set. Add it to the environment or .env, e.g. "
+            "SECRET_KEY=$(python -c \"import secrets; print(secrets.token_hex(32))\")")
     app.config.update(
-        SECRET_KEY=os.getenv("SECRET_KEY", "team334"),
+        SECRET_KEY=secret_key,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        REMEMBER_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_SECURE=True,
+        REMEMBER_COOKIE_SAMESITE="Lax",
         WTF_CSRF_ENABLED=True,
+        # Scouting pages stay open all event and queue submissions offline; a
+        # token is valid for the whole session rather than expiring after an hour.
+        WTF_CSRF_TIME_LIMIT=None,
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         RATELIMIT_STORAGE_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
@@ -40,9 +54,8 @@ def create_app():
     else:
         app.logger.info("VAPID keys configured properly.")
 
-    # csrf.init_app(app)
+    csrf.init_app(app)
     limiter.init_app(app)
-    CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE"]}})
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -74,6 +87,11 @@ def create_app():
     app.register_blueprint(team_bp, url_prefix="/team")
     app.register_blueprint(notifications_bp, url_prefix="/notifications")
 
+    # The service worker's "mark complete" notification action cannot read the
+    # page's CSRF token. The route only accepts JSON, which browsers will not
+    # send cross-site without a CORS preflight this app never grants.
+    csrf.exempt("app.team.routes.update_assignment_status")
+
     @app.route("/")
     def index():
         return render_template("index.html")
@@ -89,11 +107,24 @@ def create_app():
 
     @app.errorhandler(Exception)
     def handle_exception(e):
+        if isinstance(e, HTTPException):
+            # 400/405/415 etc. are client errors with their own responses, not crashes
+            return e
         trace = traceback.format_exc()
         timestamp = strftime('[%Y-%b-%d %H:%M]')
         app.logger.error(f"{timestamp} User: {current_user.username if current_user.is_authenticated else 'Anonymous'} Unhandled exception: {str(e)}\nTraceback: {trace}", exc_info=True)
         return render_template("500.html"), 500
     
+    @app.errorhandler(CSRFError)
+    def csrf_error(e):
+        app.logger.warning(f"CSRF rejected {request.method} {request.path}: {e.description}")
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": "Your session expired. Reload the page and try again."}), 400
+        flash("Your session expired. Please try again.", "error")
+        referrer = urlparse(request.referrer or "")
+        back = referrer.path + (f"?{referrer.query}" if referrer.query else "")
+        return redirect(back if referrer.netloc == request.host and is_safe_url(back) else url_for("index"))
+
     @app.errorhandler(429)
     def rate_limit_error(e):
         return render_template("429.html"), 429

@@ -3,6 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // Send the CSRF token with every same-origin write made through fetch.
+        (function () {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            const nativeFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+                const request = input instanceof Request ? input : null;
+                const method = ((init && init.method) || (request ? request.method : "GET")).toUpperCase();
+                const url = new URL(request ? request.url : input, window.location.href);
+                if (!["GET", "HEAD", "OPTIONS"].includes(method) && url.origin === window.location.origin) {
+                    const headers = new Headers((init && init.headers) || (request ? request.headers : undefined));
+                    headers.set("X-CSRFToken", token);
+                    init = Object.assign({}, init, {headers});
+                }
+                return nativeFetch(input, init);
+            };
+        })();
+    </script>
     <title>{% block title %}Castle{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
     <script src="https://unpkg.com/@popperjs/core@2"></script>
