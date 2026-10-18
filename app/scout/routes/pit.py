@@ -1,0 +1,167 @@
+"""Pit scouting: list, add, edit, delete."""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from bson import ObjectId
+from flask import current_app, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from . import common
+from .common import actor_name, scouting_bp
+
+
+@scouting_bp.route("/scouting/pit")
+@login_required
+# @limiter.limit("50 per minute")
+def pit_scouting():
+    try:
+        # Update to use filtered pit scouting data
+        pit_data_list = list(common.scouting_manager.get_all_pit_scouting(
+            current_user.teamNumber,
+            current_user.get_id()
+        ))
+        current_app.logger.info(f"Successfully fetched pit scouting data {pit_data_list} for user {actor_name(current_user)}")
+        return render_template("scouting/pit-scouting.html", pit_data=pit_data_list)
+    except Exception as e:
+        current_app.logger.error(f"Error fetching pit scouting data: {str(e)}", exc_info=True)
+        flash("An internal error has occurred.", "error")
+        return render_template("scouting/pit-scouting.html", pit_data=[])
+
+
+@scouting_bp.route("/scouting/pit/add", methods=["GET", "POST"])
+@login_required
+# @limiter.limit("15 per minute")
+def pit_scouting_add():
+    if request.method == "POST":
+        try:
+            current_app.logger.info(f"Scouting.add Form Details {request.form}")
+            # Process form data
+            pit_data = {
+                "team_number": int(request.form.get("team_number")),
+                "scouter_id": current_user.id,
+
+                # Drive base information
+                "drive_type": {
+                    "swerve": "swerve" in request.form.getlist("drive_type"),
+                    "tank": "tank" in request.form.getlist("drive_type"),
+                    "other": request.form.get("drive_type_other", "")
+                },
+                "swerve_modules": request.form.get("swerve_modules", ""),
+
+                # Mechanisms
+                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
+                "shooter_type": request.form.get("shooter_type", ""),
+                "shooter_notes": request.form.get("shooter_notes", ""),
+                "hopper_notes": request.form.get("hopper_notes", ""),
+                "intake_notes": request.form.get("intake_notes", ""),
+
+                # Autonomous
+                "autonomous_capabilities": {
+                    "has_auto": request.form.get("has_auto") == "true",
+                    "num_routes": int(request.form.get("auto_routes", 0) or 0) if request.form.get("has_auto") == "true" else 0,
+                    "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
+                    "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
+                },
+
+                # Driver Experience
+                "driver_experience": {
+                    "years": int(request.form.get("driver_years", 0) if not (request.form.get("driver_years") == '') else 0),
+                    "notes": request.form.get("driver_notes", "")
+                },
+
+                # General Notes
+                "notes": request.form.get("notes", ""),
+
+                # Timestamps
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+
+            # Add to database
+            if common.scouting_manager.add_pit_scouting(pit_data):
+                current_app.logger.info(f"Successfully added pit scouting data {pit_data} for user {actor_name(current_user)}")
+                flash("Pit scouting data added successfully!", "success")
+                return redirect(url_for("scouting.pit_scouting"))
+            else:
+                current_app.logger.info(f"Failed to add pit scouting data {pit_data} for user {actor_name(current_user)}")
+                flash("Error adding pit scouting data. Please try again.", "error")
+        except Exception as e:
+            flash("An error occurred while adding pit scouting data.", "error")
+            current_app.logger.error(f"Error adding pit scouting data: {str(e)}", exc_info=True)
+            return redirect(url_for("scouting.pit_scouting"))
+
+    return render_template("scouting/pit-scouting-add.html")
+
+
+@scouting_bp.route("/scouting/pit/edit/<entry_id>", methods=["GET", "POST"])
+@login_required
+# @limiter.limit("10 per minute")
+def pit_scouting_edit(entry_id):
+    pit_data = common.scouting_manager.get_pit_scouting_by_id(entry_id)
+    if not pit_data:
+        flash("Pit scouting data not found", "error")
+        return redirect(url_for("scouting.pit_scouting"))
+
+    if str(pit_data["scouter_id"]) != current_user.get_id():
+        flash("You don't have permission to edit this data", "error")
+        return redirect(url_for("scouting.pit_scouting"))
+
+    if request.method == "POST":
+        try:
+            current_app.logger.info(f"Scouting.edit Form Details {request.form}")
+            data = {
+                "team_number": int(request.form["team_number"]),
+                "scouter_id": ObjectId(current_user.get_id()),
+                "drive_type": {
+                    "swerve": "swerve" in request.form.getlist("drive_type"),
+                    "tank": "tank" in request.form.getlist("drive_type"),
+                    "other": request.form.get("drive_type_other", "")
+                },
+                "swerve_modules": request.form.get("swerve_modules", ""),
+
+                # Mechanisms
+                "fuel_count_bps": int(request.form.get("fuel_count_bps", 0) or 0),
+                "shooter_type": request.form.get("shooter_type", ""),
+                "shooter_notes": request.form.get("shooter_notes", ""),
+                "hopper_notes": request.form.get("hopper_notes", ""),
+                "intake_notes": request.form.get("intake_notes", ""),
+
+                "autonomous_capabilities": {
+                    "has_auto": request.form.get("has_auto") == "true",
+                    "num_routes": int(request.form.get("auto_routes", 0)) if request.form.get("has_auto") == "true" else 0,
+                    "preferred_start": request.form.get("auto_preferred_start", "") if request.form.get("has_auto") == "true" else "",
+                    "notes": request.form.get("auto_notes", "") if request.form.get("has_auto") == "true" else ""
+                },
+                "driver_experience": {
+                    "years": int(request.form.get("driver_years", 0)),
+                    "notes": request.form.get("driver_notes", "")
+                },
+                "notes": request.form.get("notes", ""),
+                "updated_at": datetime.now(timezone.utc)
+            }
+
+            if common.scouting_manager.update_pit_scouting(entry_id, data, current_user.get_id()):
+                current_app.logger.info(f"Successfully updated pit scouting data {data} for user {actor_name(current_user)}")
+                flash("Pit scouting data updated successfully", "success")
+                return redirect(url_for("scouting.pit_scouting"))
+            else:
+                current_app.logger.info(f"Failed to update pit scouting data {data} for user {actor_name(current_user)}")
+                flash("Error updating pit scouting data", "error")
+        except Exception as e:
+            current_app.logger.info(f"Error updating pit scouting data {data} for user {actor_name(current_user)} {str(e)}", exc_info=True)
+            flash("An internal error has occurred.", "error")
+
+    return render_template("scouting/pit-scouting-edit.html", entry=pit_data)
+
+
+@scouting_bp.route("/scouting/pit/delete/<entry_id>")
+@login_required
+def pit_scouting_delete(entry_id):
+    if common.scouting_manager.delete_pit_scouting(entry_id, current_user.get_id()):
+        current_app.logger.info(f"Successfully deleted pit scouting entry {entry_id} for user {actor_name(current_user)}")
+        flash("Pit scouting data deleted successfully", "success")
+    else:
+        current_app.logger.info(f"Failed to delete pit scouting entry {entry_id} for user {actor_name(current_user)}")
+        flash("Error deleting pit scouting data", "error")
+    return redirect(url_for("scouting.pit_scouting"))

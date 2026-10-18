@@ -14,7 +14,7 @@ from bson import ObjectId
 from flask import Flask
 import requests
 
-from app.scout import routes
+from app.scout.routes import common, records
 from app.scout.match13_fuel import (FUEL_FIELDS, PHASES, FuelEstimateService,
                                    apportioned, zero_scored_fuel, estimate_fuel, match_key)
 
@@ -451,8 +451,8 @@ class RouteTests(unittest.TestCase):
         self.app = Flask(__name__)
         self.app.config.update(LOGIN_DISABLED=True, SECRET_KEY='test-only')
         self.app.add_url_rule('/scouting', endpoint='scouting.home', view_func=lambda: 'ok')
-        self.app.add_url_rule('/scouting/add', view_func=routes.add, methods=['POST'])
-        self.app.add_url_rule('/api/fuel_estimates', view_func=routes.fuel_estimates, methods=['POST'])
+        self.app.add_url_rule('/scouting/add', view_func=records.add, methods=['POST'])
+        self.app.add_url_rule('/api/fuel_estimates', view_func=records.fuel_estimates, methods=['POST'])
         self.service = MagicMock()
         self.app.extensions['match13_fuel'] = self.service
         self.user = SimpleNamespace(get_id=lambda: '6ac99468539dec0f82df2c4e', teamNumber=334, is_authenticated=True, username='tester')
@@ -460,7 +460,7 @@ class RouteTests(unittest.TestCase):
         self.manager.add_scouting_data.return_value = (True, str(ObjectId()))
 
     def test_zero_submissions_enroll_even_with_ferry_and_nonzero_scoring_stays_manual(self):
-        with patch.object(routes, 'current_user', self.user), patch.object(routes, 'scouting_manager', self.manager):
+        with patch.object(records, 'current_user', self.user), patch.object(common, 'scouting_manager', self.manager):
             response = self.app.test_client().post('/scouting/add', data={'team_number': '334'})
             self.assertEqual(response.status_code, 302)
             self.service.enroll.assert_called_once()
@@ -480,7 +480,7 @@ class RouteTests(unittest.TestCase):
         own, foreign = str(ObjectId()), str(ObjectId())
         self.service.statuses.return_value = {own: {'estimated': True}, foreign: {'estimated': True}}
         self.manager.db.team_data.aggregate.return_value = [{'_id': ObjectId(own), 'auto_fuel': 2}]
-        with patch.object(routes, 'current_user', self.user), patch.object(routes, 'scouting_manager', self.manager):
+        with patch.object(records, 'current_user', self.user), patch.object(common, 'scouting_manager', self.manager):
             client = self.app.test_client()
             response = client.post('/api/fuel_estimates', json={'ids': [own, foreign]})
             self.assertEqual(list(response.json), [own])

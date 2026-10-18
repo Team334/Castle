@@ -10,7 +10,7 @@ from flask import Flask
 from app.scout import TBA as tba_module
 from app.scout import team_stats
 from app.scout.api_cache import PublicAPICache
-from app.scout.routes import get_team_epa_opr, get_tba_matches
+from app.scout.routes.events import get_team_epa_opr, get_tba_matches
 
 
 class Response:
