@@ -1,229 +1,215 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header Section -->
-    <div class="mb-8">
-        <div class="sm:flex sm:items-center sm:justify-between">
-            <div class="sm:flex-auto">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Add Pit Scouting Data</h1>
-                <p class="mt-2 text-base text-gray-600 dark:text-gray-400">Enter pit scouting information for a team</p>
-            </div>
-            <div class="mt-4 sm:mt-0 sm:flex-none">
-                <a href="{{ url_for('scouting.pit_scouting') }}"
-                   class="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    Back to List
-                </a>
-            </div>
+{% set chip = "flex min-h-[44px] cursor-pointer select-none items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/60 peer-focus-visible:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-offset-zinc-950 dark:hover:bg-zinc-800 dark:peer-checked:border-blue-500 dark:peer-checked:bg-blue-500/10 dark:peer-checked:text-blue-300" %}
+{% set field = "input text-base sm:text-sm disabled:cursor-not-allowed disabled:opacity-60" %}
+<div class="mx-auto max-w-3xl">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Add pit data</h1>
+            <p class="page-subtitle">Record what a team told you about their robot.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('scouting.pit_scouting') }}" class="btn btn-secondary">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+                Back to list
+            </a>
         </div>
     </div>
 
-    <!-- Form Section -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none overflow-hidden">
-        <form method="POST" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <!-- Basic Info -->
-            <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Basic Information</h3>
+    <form method="POST" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Basic info -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Team</h2>
+            </div>
+            <div class="card-body">
+                <label for="pit-team-number" class="label">Team number</label>
+                <input id="pit-team-number" type="number" name="team_number" required inputmode="numeric" placeholder="e.g. 334"
+                       class="{{ field }} sm:max-w-xs">
+            </div>
+        </section>
+
+        <!-- Drive base -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Drive base</h2>
+            </div>
+            <div class="card-body space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Team Number</label>
-                    <input type="number" name="team_number" required
-                           class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 text-lg transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                </div>
-            </div>
-
-            <!-- Drive Base -->
-            <div class="p-8">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Drive Base</h3>
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Drive Type</label>
-                        <div class="flex flex-wrap gap-4 mb-4">
-                            {% for type in ['Swerve', 'Tank'] %}
-                            <label class="relative flex items-center group">
-                                <input type="checkbox" name="drive_type" value="{{ type.lower() }}"
-                                       class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                                <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300
-                                            cursor-pointer transition-all duration-200
-                                            group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-indigo-500 dark:border-indigo-400 peer-checked:text-indigo-600 dark:text-indigo-400
-                                            peer-focus:ring-2 peer-focus:ring-indigo-500 peer-focus:ring-offset-2">
-                                    {{ type }}
-                                </div>
-                            </label>
-                            {% endfor %}
-                        </div>
-                        <input type="text" name="drive_type_other" placeholder="Other drive type..." autocomplete="off"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Swerve Modules</label>
-                        <input type="text" name="swerve_modules" placeholder="e.g., SDS MK4i" autocomplete="off"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mechanisms -->
-            <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Mechanisms</h3>
-                <div class="space-y-8">
-
-                    <!-- Fuel Count (BPS) -->
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Fuel Count (BPS)</label>
-                        <input type="number" name="fuel_count_bps" min="0" value="0" autocomplete="off"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-
-                    <!-- Shooter -->
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Shooter</label>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Shooter Type</label>
-                        <div class="flex flex-wrap gap-3 mb-4">
-                            {% for stype in ['Single', 'Double', 'Turret', 'Multi'] %}
-                            <label class="relative flex items-center group">
-                                <input type="radio" name="shooter_type" value="{{ stype.lower() }}"
-                                       class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                                <div class="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300
-                                            cursor-pointer transition-all duration-200
-                                            group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-indigo-500 dark:border-indigo-400 peer-checked:text-indigo-600 dark:text-indigo-400
-                                            peer-focus:ring-2 peer-focus:ring-indigo-500 peer-focus:ring-offset-2">
-                                    {{ stype }}
-                                </div>
-                            </label>
-                            {% endfor %}
-                            <label class="relative flex items-center group">
-                                <input type="radio" name="shooter_type" value="other"
-                                       class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                                       onchange="document.getElementById('shooter_other_box').classList.remove('hidden');"
-                                       onclick="document.getElementById('shooter_other_box').classList.remove('hidden');">
-                                <div class="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300
-                                            cursor-pointer transition-all duration-200
-                                            group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-indigo-500 dark:border-indigo-400 peer-checked:text-indigo-600 dark:text-indigo-400
-                                            peer-focus:ring-2 peer-focus:ring-indigo-500 peer-focus:ring-offset-2">
-                                    Other
-                                </div>
-                            </label>
-                        </div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Shooter Notes</label>
-                        <textarea name="shooter_notes" rows="3" autocomplete="off"
-                                  placeholder="Notes about the shooter mechanism..."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
-                    </div>
-
-                    <!-- Hopper -->
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Hopper</label>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hopper Notes</label>
-                        <textarea name="hopper_notes" rows="3" autocomplete="off"
-                                  placeholder="Notes about the hopper mechanism (capacity, style, etc.)..."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
-                    </div>
-
-                    <!-- Intake -->
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Intake</label>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Intake Notes</label>
-                        <textarea name="intake_notes" rows="3" autocomplete="off"
-                                  placeholder="Notes about the intake mechanism (type, ground, HP station, etc.)..."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Autonomous -->
-            <div class="p-8">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Autonomous</h3>
-                <div class="space-y-6">
-                    <div class="flex items-center mb-4">
-                        <label class="relative flex items-center group">
-                            <input type="radio" name="has_auto" value="false" checked
-                                   class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300
-                                        cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-indigo-500 dark:border-indigo-400 peer-checked:text-indigo-600 dark:text-indigo-400
-                                        peer-focus:ring-2 peer-focus:ring-indigo-500 peer-focus:ring-offset-2">
-                                No Autonomous
+                    <span class="label">Drive type</span>
+                    <div class="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                        {% for type in ['Swerve', 'Tank'] %}
+                        <label class="relative">
+                            <input type="checkbox" name="drive_type" value="{{ type.lower() }}"
+                                   class="peer sr-only">
+                            <div class="{{ chip }} sm:min-w-[7rem]">
+                                {{ type }}
                             </div>
                         </label>
-                        <label class="relative flex items-center group ml-4">
-                            <input type="radio" name="has_auto" value="true"
-                                   class="peer sr-only dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                            <div class="px-5 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300
-                                        cursor-pointer transition-all duration-200
-                                        group-hover:bg-gray-50 dark:bg-gray-900/50 peer-checked:border-indigo-500 dark:border-indigo-400 peer-checked:text-indigo-600 dark:text-indigo-400
-                                        peer-focus:ring-2 peer-focus:ring-indigo-500 peer-focus:ring-offset-2">
-                                Has Autonomous
+                        {% endfor %}
+                    </div>
+                    <input type="text" name="drive_type_other" placeholder="Other drive type" autocomplete="off" aria-label="Other drive type"
+                           class="{{ field }}">
+                </div>
+
+                <div>
+                    <label for="pit-swerve-modules" class="label">Swerve modules</label>
+                    <input id="pit-swerve-modules" type="text" name="swerve_modules" placeholder="e.g. SDS MK4i" autocomplete="off"
+                           class="{{ field }}">
+                </div>
+            </div>
+        </section>
+
+        <!-- Mechanisms -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Mechanisms</h2>
+            </div>
+            <div class="card-body space-y-5">
+                <div>
+                    <label for="pit-fuel-bps" class="label">Fuel count (BPS)</label>
+                    <input id="pit-fuel-bps" type="number" name="fuel_count_bps" min="0" value="0" autocomplete="off" inputmode="numeric"
+                           class="{{ field }} sm:max-w-xs">
+                </div>
+
+                <div>
+                    <span class="label">Shooter type</span>
+                    <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                        {% for stype in ['Single', 'Double', 'Turret', 'Multi'] %}
+                        <label class="relative">
+                            <input type="radio" name="shooter_type" value="{{ stype.lower() }}"
+                                   class="peer sr-only">
+                            <div class="{{ chip }}">
+                                {{ stype }}
+                            </div>
+                        </label>
+                        {% endfor %}
+                        <label class="relative">
+                            <input type="radio" name="shooter_type" value="other"
+                                   class="peer sr-only"
+                                   onchange="document.getElementById('shooter_other_box').classList.remove('hidden');"
+                                   onclick="document.getElementById('shooter_other_box').classList.remove('hidden');">
+                            <div class="{{ chip }}">
+                                Other
                             </div>
                         </label>
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Auto Routes</label>
-                        <input type="number" name="auto_routes" min="0" value="0"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preferred Starting Position</label>
-                        <input type="text" name="auto_preferred_start" autocomplete="off"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Auto Notes</label>
-                        <textarea name="auto_notes" rows="2" autocomplete="off"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
-                    </div>
                 </div>
-            </div>
 
-            <!-- Driver Experience -->
-            <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Driver Experience</h3>
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Years of Experience</label>
-                        <input type="number" name="driver_years" min="0" value="0"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Driver Notes</label>
-                        <textarea name="driver_notes" rows="2" autocomplete="off"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Additional Notes -->
-            <div class="p-8">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Additional Notes</h3>
                 <div>
-                    <textarea name="notes" rows="4" autocomplete="off"
-                              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:border-indigo-400 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"></textarea>
+                    <label for="pit-shooter-notes" class="label">Shooter notes</label>
+                    <textarea id="pit-shooter-notes" name="shooter_notes" rows="3" autocomplete="off"
+                              placeholder="Flywheel, hood, range…"
+                              class="{{ field }}"></textarea>
                 </div>
-            </div>
 
-            <!-- Submit Buttons -->
-            <div class="p-8 bg-white dark:bg-gray-800">
-                <div class="flex justify-end gap-4">
-                    <a href="{{ url_for('scouting.pit_scouting') }}"
-                       class="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
-                        Cancel
-                    </a>
-                    <button type="submit"
-                            class="px-6 py-3 rounded-lg border border-transparent bg-indigo-600 dark:bg-indigo-500 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
-                        Save
-                    </button>
+                <div>
+                    <label for="pit-hopper-notes" class="label">Hopper notes</label>
+                    <textarea id="pit-hopper-notes" name="hopper_notes" rows="3" autocomplete="off"
+                              placeholder="Capacity, style…"
+                              class="{{ field }}"></textarea>
+                </div>
+
+                <div>
+                    <label for="pit-intake-notes" class="label">Intake notes</label>
+                    <textarea id="pit-intake-notes" name="intake_notes" rows="3" autocomplete="off"
+                              placeholder="Ground, human player station, width…"
+                              class="{{ field }}"></textarea>
                 </div>
             </div>
-        </form>
-    </div>
+        </section>
+
+        <!-- Autonomous -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Autonomous</h2>
+            </div>
+            <div class="card-body space-y-5">
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <label class="relative">
+                        <input type="radio" name="has_auto" value="false" checked
+                               class="peer sr-only">
+                        <div class="{{ chip }}">
+                            No auto
+                        </div>
+                    </label>
+                    <label class="relative">
+                        <input type="radio" name="has_auto" value="true"
+                               class="peer sr-only">
+                        <div class="{{ chip }}">
+                            Has auto
+                        </div>
+                    </label>
+                </div>
+
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <div>
+                        <label for="pit-auto-routes" class="label">Number of auto routes</label>
+                        <input id="pit-auto-routes" type="number" name="auto_routes" min="0" value="0" inputmode="numeric"
+                               class="{{ field }}">
+                    </div>
+
+                    <div>
+                        <label for="pit-auto-start" class="label">Preferred starting position</label>
+                        <input id="pit-auto-start" type="text" name="auto_preferred_start" autocomplete="off"
+                               class="{{ field }}">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="pit-auto-notes" class="label">Auto notes</label>
+                    <textarea id="pit-auto-notes" name="auto_notes" rows="2" autocomplete="off"
+                              class="{{ field }}"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Driver experience -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Driver experience</h2>
+            </div>
+            <div class="card-body space-y-5">
+                <div>
+                    <label for="pit-driver-years" class="label">Years of experience</label>
+                    <input id="pit-driver-years" type="number" name="driver_years" min="0" value="0" inputmode="numeric"
+                           class="{{ field }} sm:max-w-xs">
+                </div>
+
+                <div>
+                    <label for="pit-driver-notes" class="label">Driver notes</label>
+                    <textarea id="pit-driver-notes" name="driver_notes" rows="2" autocomplete="off"
+                              class="{{ field }}"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Additional notes -->
+        <section class="card">
+            <div class="card-header">
+                <h2 class="section-title">Additional notes</h2>
+            </div>
+            <div class="card-body">
+                <textarea name="notes" rows="4" autocomplete="off" aria-label="Additional notes"
+                          placeholder="Anything else worth remembering"
+                          class="{{ field }}"></textarea>
+            </div>
+        </section>
+
+        <!-- Submit -->
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <a href="{{ url_for('scouting.pit_scouting') }}"
+               class="btn btn-secondary btn-lg w-full sm:w-auto">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="btn btn-primary btn-lg w-full sm:w-auto">
+                Save
+            </button>
+        </div>
+    </form>
 </div>
 
 <script src=" {{url_for('static', filename='js/pit-scouting/add.js')}} "></script>
