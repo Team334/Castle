@@ -346,6 +346,21 @@ test('keyboard shortcuts edit, select tools, and stay off in read-only mode', ()
   assert.equal(page.board.drawingHistory.length, length);
 });
 
+test('Escape cancels a selection box mid-drag', () => {
+  const page = whiteboard();
+  const input = devices.mouse(page);
+  drag(input, [10, 10], [20, 10]);
+  page.board.setTool('select');
+  input.down(0, 0);
+  input.move(50, 50);
+  key(page, 'Escape');
+  input.move(60, 60);
+  input.up(60, 60);
+  assert.equal(page.board.isSelecting, false);
+  assert.deepEqual(plain(page.board.selectedStrokes), []);
+  assert.equal(page.board.selectionRect, null);
+});
+
 test('saved drawings load back with their view and transforms', () => {
   const page = whiteboard();
   drag(devices.mouse(page), [10, 10], [20, 10]);

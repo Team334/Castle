@@ -124,19 +124,10 @@ function initScoutFormCanvas({ updateUIControls, onCanvasReady = () => {}, resiz
     { passive: false },
   );
 
-  // Prevent page scrolling when middle mouse button is pressed
+  // Middle-button drag pans the canvas; stop the browser's autoscroll
   canvas.addEventListener("mousedown", (e) => {
     if (e.button === 1 && e.target === canvas) {
-      // Middle mouse button
       e.preventDefault();
-      CanvasField.startPanning(e);
-    }
-  });
-
-  // Add mouseup handler for panning
-  canvas.addEventListener("mouseup", (e) => {
-    if (e.button === 1 && e.target === canvas) {
-      CanvasField.stopPanning();
     }
   });
 
