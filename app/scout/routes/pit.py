@@ -66,7 +66,7 @@ def pit_scouting():
             current_user.teamNumber,
             current_user.get_id()
         ))
-        current_app.logger.info(f"Successfully fetched pit scouting data {pit_data_list} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched {len(pit_data_list)} pit scouting records for user {actor_name(current_user)}")
         return render_template("scouting/pit-scouting.html", pit_data=pit_data_list)
     except Exception as e:
         current_app.logger.error(f"Error fetching pit scouting data: {str(e)}", exc_info=True)
@@ -79,17 +79,16 @@ def pit_scouting():
 def pit_scouting_add():
     if request.method == "POST":
         try:
-            current_app.logger.info(f"Scouting.add Form Details {request.form}")
             now = datetime.now(timezone.utc)
             pit_data = {**_pit_form(), "scouter_id": current_user.id, "created_at": now, "updated_at": now}
 
             # Add to database
             if common.scouting_manager.add_pit_scouting(pit_data):
-                current_app.logger.info(f"Successfully added pit scouting data {pit_data} for user {actor_name(current_user)}")
+                current_app.logger.info(f"Added pit scouting for team {pit_data['team_number']} for user {actor_name(current_user)}")
                 flash("Pit scouting data added successfully!", "success")
                 return redirect(url_for("scouting.pit_scouting"))
             else:
-                current_app.logger.info(f"Failed to add pit scouting data {pit_data} for user {actor_name(current_user)}")
+                current_app.logger.info(f"Failed to add pit scouting for team {pit_data['team_number']} for user {actor_name(current_user)}")
                 flash("Error adding pit scouting data. Please try again.", "error")
         except Exception as e:
             flash("An error occurred while adding pit scouting data.", "error")
@@ -113,16 +112,15 @@ def pit_scouting_edit(entry_id):
 
     if request.method == "POST":
         try:
-            current_app.logger.info(f"Scouting.edit Form Details {request.form}")
             data = {**_pit_form(), "scouter_id": ObjectId(current_user.get_id()),
                     "updated_at": datetime.now(timezone.utc)}
 
             if common.scouting_manager.update_pit_scouting(entry_id, data, current_user.get_id()):
-                current_app.logger.info(f"Successfully updated pit scouting data {data} for user {actor_name(current_user)}")
+                current_app.logger.info(f"Updated pit scouting entry {entry_id} for user {actor_name(current_user)}")
                 flash("Pit scouting data updated successfully", "success")
                 return redirect(url_for("scouting.pit_scouting"))
             else:
-                current_app.logger.info(f"Failed to update pit scouting data {data} for user {actor_name(current_user)}")
+                current_app.logger.info(f"Failed to update pit scouting entry {entry_id} for user {actor_name(current_user)}")
                 flash("Error updating pit scouting data", "error")
         except Exception as e:
             current_app.logger.info(f"Error updating pit scouting entry {entry_id} for user {actor_name(current_user)} {str(e)}", exc_info=True)

@@ -76,13 +76,13 @@ def create_subscription():
         )
         
         if success:
-            current_app.logger.info(f"Successfully created subscription {subscription_json} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Created push subscription (team {team_number}, assignment {assignment_id}) for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             return jsonify({
                 "success": True,
                 "message": message
             }), 200
         else:
-            current_app.logger.info(f"Failed to create subscription {subscription_json} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Failed to create push subscription (team {team_number}, assignment {assignment_id}) for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
             return jsonify({
                 "success": False,
                 "message": message

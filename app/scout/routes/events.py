@@ -90,7 +90,7 @@ def get_team_status():
 
         # Get team matches at event
         matches = tba.get_team_matches_at_event(team_key, event_code)
-        current_app.logger.info(f"Successfully fetched team status {status} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched status for team {team_number} at {event_code} for user {actor_name(current_user)}")
 
         return jsonify({
             "status": status,

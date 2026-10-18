@@ -26,7 +26,7 @@ def leaderboard():
         sort_field = None if sort_type in TBA_METRICS else LEADERBOARD_SORT_FIELDS.get(sort_type, 'total_fuel')
         teams = manager.get_team_leaderboard(current_user.get_id(), current_user.teamNumber,
                                              selected_event, sort_field)
-        current_app.logger.info(f"Successfully fetched leaderboard {teams} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched leaderboard: {len(teams)} teams, event {selected_event}, sort {sort_type} for user {actor_name(current_user)}")
 
         if sort_type in TBA_METRICS:
             from app.scout.team_stats import team_stats_snapshot
@@ -63,7 +63,7 @@ def scouter_leaderboard():
                                                    SCOUTER_SORT_FIELDS.get(sort_by, 'match_count'))
         teams = manager.get_scouter_teams()
 
-        current_app.logger.info(f"Successfully fetched scouter leaderboard {scouters} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched scouter leaderboard: {len(scouters)} scouters for user {actor_name(current_user)}")
         return render_template(
             "scouting/scouter-leaderboard.html",
             scouters=scouters,

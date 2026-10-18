@@ -38,14 +38,13 @@ def join():
 
         if request.method == "POST":
             join_code = request.form.get("join_code")
-            current_app.logger.info(f"Team.join Form Details {request.form}")
 
             if not join_code:
                 flash("Join code is required", "error")
                 return redirect(url_for("team.join"))
 
             success, result = team_manager.join_team(current_user.get_id(), join_code)
-            current_app.logger.info(f"Tried to join team ({success}) {join_code} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
+            current_app.logger.info(f"Tried to join team ({success}) for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
 
             if success:
                 team, updated_user = result
@@ -559,7 +558,6 @@ def update_team_info(team_number):
         # Update team information
         success, message = team_manager.update_team_info(team_number, updates)
         current_app.logger.info(f"Tried to update team info ({success}) {team_number} for user {current_user.username if current_user.is_authenticated else 'Anonymous'}")
-        current_app.logger.info(f"Team.update_team_info Form Details {request.form}")
         flash(message, "success" if success else "error")
         return redirect(url_for("team.manage", team_number=team_number))
         

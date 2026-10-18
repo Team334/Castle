@@ -62,8 +62,7 @@ def add():
             service.enroll(message, data)
         except Exception:
             current_app.logger.exception("Saved scouting record; could not enroll its fuel estimate")
-    current_app.logger.info(f"Tried to add scouting data ({success}) {data} for user {actor_name(current_user)} - {message}")
-    current_app.logger.info(f"Scouting.add Form Details {request.form} - {message}")
+    current_app.logger.info(f"Tried to add scouting data ({success}) team {data.get('team_number')} {data.get('event_code')} match {data.get('match_number')} for user {actor_name(current_user)} - {message}")
 
     if success:
         flash("Team data added successfully", "success")
@@ -145,7 +144,6 @@ def edit(id):
 
         if request.method == "POST":
             data = request.form.to_dict()
-            current_app.logger.info(f"Scouting.edit Form Details {request.form}")
             # Add edit tracking - record who made the edit
             data['last_edited_by'] = current_user.get_id()
             data['last_edited_at'] = datetime.now().isoformat()
@@ -163,10 +161,10 @@ def edit(id):
             saved = service.manual_update(id, save, data) if service else save()
             if saved:
                 flash("Data updated successfully", "success")
-                current_app.logger.info(f"Successfully updated scouting data {data} for user {actor_name(current_user)}")
+                current_app.logger.info(f"Updated scouting record {id} (team {data.get('team_number')} {data.get('event_code')} match {data.get('match_number')}) for user {actor_name(current_user)}")
                 return redirect(url_for("scouting.home"))
 
-            current_app.logger.info(f"Failed to update scouting data {data} for user {actor_name(current_user)}")
+            current_app.logger.info(f"Failed to update scouting record {id} (team {data.get('team_number')} {data.get('event_code')} match {data.get('match_number')}) for user {actor_name(current_user)}")
             flash("Unable to update data", "error")
 
         service = current_app.extensions.get("match13_fuel")
@@ -260,7 +258,7 @@ def matches():
                 "red_fuel": _alliance_fuel(red_teams),
                 "blue_fuel": _alliance_fuel(blue_teams)
             })
-        current_app.logger.info(f"Successfully fetched matches {matches} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched {len(matches)} matches for user {actor_name(current_user)}")
         return render_template("scouting/matches.html", matches=matches)
 
     except Exception as e:

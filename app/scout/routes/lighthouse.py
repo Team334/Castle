@@ -86,7 +86,7 @@ def compare_teams():
         if not teams_data:
             return jsonify({"error": "No data available for the selected teams"}), 404
 
-        current_app.logger.info(f"Successfully fetched team data {teams_data} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Compared teams {sorted(teams_data)} for user {actor_name(current_user)}")
         return json_util.dumps(teams_data)
 
     except Exception as e:
@@ -139,7 +139,7 @@ def search_teams():
         }]
 
         # Use json_util.dumps to handle MongoDB types
-        current_app.logger.info(f"Successfully fetched team data {response_data} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Searched team {team_number}: {len(scouting_data)} records for user {actor_name(current_user)}")
         return json_util.dumps(response_data), 200, {'Content-Type': 'application/json'}
 
     except Exception as e:
@@ -177,7 +177,7 @@ def get_team_paths():
             "paths": paths
         }
 
-        current_app.logger.info(f"Successfully fetched team paths {response} for user {actor_name(current_user)}")
+        current_app.logger.info(f"Fetched {len(paths)} auto paths for team {team_number} for user {actor_name(current_user)}")
         return json_util.dumps(response), 200, {'Content-Type': 'application/json'}
 
     except Exception as e:
