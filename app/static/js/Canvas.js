@@ -1091,7 +1091,14 @@ class Canvas {
       this.panTo(e.clientX, e.clientY);
       return;
     }
-    if (this.readonly) {
+    // Hovering does nothing unless the select tool shows handle cursors
+    const idle =
+      this.startX === null &&
+      !this.isDrawing &&
+      !this.isSelecting &&
+      !this.moveSelection.active &&
+      !this.resizeHandles.active;
+    if (this.readonly || (idle && this.currentTool !== "select")) {
       return;
     }
 
