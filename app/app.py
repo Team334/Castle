@@ -122,9 +122,7 @@ def create_app():
         if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"success": False, "message": "Your session expired. Reload the page and try again."}), 400
         flash("Your session expired. Please try again.", "error")
-        referrer = urlparse(request.referrer or "")
-        back = referrer.path + (f"?{referrer.query}" if referrer.query else "")
-        return redirect(back if referrer.netloc == request.host and is_safe_url(back) else url_for("index"))
+        return redirect(url_for("index"))
 
     @app.errorhandler(429)
     def rate_limit_error(e):
