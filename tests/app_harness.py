@@ -1,4 +1,7 @@
-"""Build the real app via create_app() with MongoDB and background services mocked."""
+"""Build the real app via create_app() with MongoDB and background services mocked.
+
+.env is never loaded (it may point at production), rate limits use in-memory
+storage, and constructing any real MongoClient fails the test."""
 import os
 import re
 from unittest.mock import MagicMock, patch
@@ -16,6 +19,12 @@ MOCKED = ("app.utils.MongoDB._connect", "app.utils.GridFS", "app.utils.MongoDB.g
 def start_app():
     """Return (app, patches); stop the patches in tearDownClass."""
     patches = [patch(target, MagicMock()) for target in MOCKED]
+    patches += [
+        patch("app.app.load_dotenv"),
+        patch("pymongo.MongoClient", side_effect=AssertionError("tests must not open a real MongoDB connection")),
+        patch.dict(os.environ, {"MONGO_URI": "mongodb://tests-never-connect.invalid/scouting_app",
+                                "RATELIMIT_STORAGE_URI": "memory://", "TBA_AUTH_KEY": ""}),
+    ]
     user = User.create_from_db({"_id": ObjectId(USER_ID), "username": "tester", "teamNumber": 334})
     patches.append(patch("app.auth.auth_utils.UserManager.get_user_by_id", return_value=user))
     patches.append(patch.dict(os.environ, {"SECRET_KEY": "test-only"}))

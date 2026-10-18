@@ -43,7 +43,8 @@ def create_app():
         # token is valid for the whole session rather than expiring after an hour.
         WTF_CSRF_TIME_LIMIT=None,
         MONGO_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
-        RATELIMIT_STORAGE_URI=os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
+        RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI")
+            or os.getenv("MONGO_URI", "mongodb://localhost:27017/scouting_app"),
         VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
         VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
         VAPID_CLAIM_EMAIL=os.getenv("VAPID_CLAIM_EMAIL", "team334@gmail.com")
