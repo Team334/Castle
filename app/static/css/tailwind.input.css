@@ -7,6 +7,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Native controls (date pickers, selects, checkboxes) follow the theme */
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
   }
@@ -73,13 +78,13 @@
     @apply mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300;
   }
   .input {
-    @apply block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500;
+    @apply block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 sm:text-sm shadow-sm transition placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500;
   }
   .help {
     @apply mt-1.5 text-xs text-zinc-500 dark:text-zinc-400;
   }
   .checkbox {
-    @apply h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800;
+    @apply h-4 w-4 rounded border-zinc-300 text-blue-600 accent-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800;
   }
 
   /* Badges */
@@ -109,16 +114,16 @@
   .table {
     @apply min-w-full text-left text-sm;
   }
-  .table thead th {
+  .table :where(thead th) {
     @apply whitespace-nowrap border-b border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400;
   }
-  .table tbody td {
+  .table :where(tbody td) {
     @apply whitespace-nowrap border-b border-zinc-100 px-3 py-2.5 text-zinc-700 dark:border-zinc-800/70 dark:text-zinc-300;
   }
-  .table tbody tr:last-child td {
+  .table :where(tbody tr:last-child td) {
     @apply border-b-0;
   }
-  .table tbody tr {
+  .table :where(tbody tr) {
     @apply transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50;
   }
 

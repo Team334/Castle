@@ -79,8 +79,8 @@
     <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/80">
         <div class="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-6 sm:px-6">
             <a href="{{ url_for('index') }}" class="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="h-7 w-7 dark:hidden">
-                <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="" class="hidden h-7 w-7 dark:block">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="h-7 w-auto dark:hidden">
+                <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="" class="hidden h-7 w-auto dark:block">
                 <span>Castle</span>
             </a>
 
