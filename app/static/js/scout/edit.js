@@ -107,14 +107,12 @@ document.addEventListener("DOMContentLoaded", function () {
     button.addEventListener("click", () => {
       // Remove active class from all buttons and contents
       tabButtons.forEach((btn) => {
-        btn.classList.remove("active", "border-blue-500", "text-blue-600");
-        btn.classList.add("border-transparent", "text-gray-500");
+        btn.classList.remove("active");
       });
       tabContents.forEach((content) => content.classList.add("hidden"));
 
       // Add active class to clicked button and show corresponding content
-      button.classList.add("active", "border-blue-500", "text-blue-600");
-      button.classList.remove("border-transparent", "text-gray-500");
+      button.classList.add("active");
       const tabName = button.getAttribute("data-tab");
       const activeContent = document.querySelector(
         `.tab-content[data-tab="${tabName}"]`,

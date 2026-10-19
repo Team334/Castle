@@ -21,17 +21,17 @@ function initScoutFormCanvas({ updateUIControls, onCanvasReady = () => {}, resiz
 
       const messageDiv = document.createElement("div");
       messageDiv.className =
-        "fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:-translate-x-0 z-50 w-[90%] sm:w-full max-w-xl min-h-[60px] sm:min-h-[80px] mx-auto sm:mx-0 animate-fade-in-up";
+        "animate-fade-in-up fixed inset-x-4 bottom-4 z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-96";
 
       const innerDiv = document.createElement("div");
       innerDiv.className =
-        "flex items-center p-6 rounded-lg shadow-xl bg-green-50 text-green-800 border-2 border-green-200";
+        "card flex items-start gap-3 p-4 shadow-lg";
 
       const icon = document.createElementNS(
         "http://www.w3.org/2000/svg",
         "svg",
       );
-      icon.setAttribute("class", "w-6 h-6 mr-3 flex-shrink-0");
+      icon.setAttribute("class", "mt-0.5 h-5 w-5 shrink-0 text-green-500");
       icon.setAttribute("fill", "currentColor");
       icon.setAttribute("viewBox", "0 0 20 20");
 
@@ -49,19 +49,19 @@ function initScoutFormCanvas({ updateUIControls, onCanvasReady = () => {}, resiz
       icon.appendChild(path);
 
       const text = document.createElement("p");
-      text.className = "text-base font-medium";
+      text.className = "flex-1 text-sm text-zinc-700 dark:text-zinc-200";
       text.textContent = message;
 
       const closeButton = document.createElement("button");
       closeButton.className =
-        "ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 text-green-500 hover:bg-green-100";
+        "-m-1 rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200";
       closeButton.onclick = () => messageDiv.remove();
 
       const closeIcon = document.createElementNS(
         "http://www.w3.org/2000/svg",
         "svg",
       );
-      closeIcon.setAttribute("class", "w-5 h-5");
+      closeIcon.setAttribute("class", "h-4 w-4");
       closeIcon.setAttribute("fill", "currentColor");
       closeIcon.setAttribute("viewBox", "0 0 20 20");
 
@@ -214,7 +214,7 @@ function initScoutFormCanvas({ updateUIControls, onCanvasReady = () => {}, resiz
     const newFillState = !CanvasField.isFilled;
     CanvasField.setFill(newFillState);
     this.textContent = `Fill: ${newFillState ? "On" : "Off"}`;
-    this.classList.toggle("bg-blue-800", newFillState);
+    this.classList.toggle("active", newFillState);
   });
 
   // Function to update hidden path data
@@ -313,8 +313,7 @@ function initScoutFormCanvas({ updateUIControls, onCanvasReady = () => {}, resiz
     e.preventDefault();
     const newState = !CanvasField.readonly;
     CanvasField.setReadonly(newState);
-    readonlyToggle.classList.toggle("bg-blue-800", newState);
-    readonlyToggle.classList.toggle("text-white", newState);
+    readonlyToggle.classList.toggle("active", newState);
   });
 
   loadFile.addEventListener("change", (e) => {
