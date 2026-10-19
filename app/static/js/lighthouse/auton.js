@@ -4,11 +4,11 @@ const MAX_PATHS = 6;
 const MAX_PER_ALLIANCE = 3;
 const TEAM_COLORS = [
   "#2563eb", // blue
-  "#dc2626", // red
-  "#059669", // green
-  "#7c3aed", // purple
-  "#d97706", // amber
-  "#db2777", // pink
+  "#f59e0b", // amber
+  "#14b8a6", // teal
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#65a30d", // lime
 ];
 
 // State
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize Sortable.js for drag and drop
   Sortable.create(selectedPathsContainer, {
     animation: 150,
-    ghostClass: "bg-gray-100",
+    ghostClass: "opacity-50",
     onEnd: updatePathOrder,
   });
 
@@ -179,7 +179,7 @@ async function searchTeam() {
 
   try {
     // Show loading state
-    searchBtn.innerHTML = '<span class="animate-spin">↻</span>';
+    searchBtn.innerHTML = '<span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-label="Loading"></span>';
 
     const response = await fetch(`${API_ENDPOINT}?team=${teamNumber}`);
 
@@ -289,26 +289,20 @@ function updateAvailablePaths() {
   // Add each path as a card
   availablePaths.forEach((path, index) => {
     const card = document.createElement("div");
-    card.className = "path-card dark:bg-gray-700";
+    card.className = "path-card";
     card.dataset.index = index;
 
-    // Alliance color indicator border
-    if (path.alliance === "red" || path.alliance === "blue") {
-      card.classList.add(`border-l-4`);
-      card.classList.add(`border-${path.alliance}-500`);
-    }
-
     card.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="font-medium">Match ${path.match_number}</div>
-                    <div class="text-sm text-gray-600 dark:text-white">${path.event_name || path.event_code}</div>
-                    <div class="text-xs text-gray-500 dark:text-white mt-1">
-                        ${path.alliance ? `<span class="px-2 py-0.5 rounded ${path.alliance === "red" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"} capitalize">${path.alliance}</span>` : ""}
-                        ${path.auto_notes ? `<span class="ml-2 dark:text-white">${path.auto_notes}</span>` : ""}
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium">Match ${path.match_number}</span>
+                        ${path.alliance === "red" || path.alliance === "blue" ? `<span class="badge ${path.alliance === "red" ? "badge-red" : "badge-blue"} capitalize">${path.alliance}</span>` : path.alliance ? `<span class="badge badge-gray capitalize">${path.alliance}</span>` : ""}
                     </div>
+                    <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${path.event_name || path.event_code}</div>
+                    ${path.auto_notes ? `<div class="mt-1 text-xs text-zinc-600 dark:text-zinc-300">${path.auto_notes}</div>` : ""}
                 </div>
-                <button class="add-path-btn bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs">
+                <button type="button" class="add-path-btn btn btn-secondary btn-sm">
                     Add
                 </button>
             </div>
@@ -325,7 +319,7 @@ function updateAvailablePaths() {
   // If we have many paths, add a scroll hint
   if (availablePaths.length > 2) {
     const scrollHint = document.createElement("div");
-    scrollHint.className = "text-xs text-gray-500 text-center mt-2";
+    scrollHint.className = "mt-2 text-center text-xs text-zinc-400 dark:text-zinc-500";
     scrollHint.textContent = "Scroll to see more paths";
     availablePathsContainer.appendChild(scrollHint);
   }
@@ -409,14 +403,8 @@ function updateSelectedPaths() {
   // Add each selected path as a card
   selectedPaths.forEach((path, index) => {
     const card = document.createElement("div");
-    card.className = "selected-path-card path-card flex items-center dark:bg-gray-700";
+    card.className = "selected-path-card path-card flex items-center";
     card.dataset.id = path.id;
-
-    // Add an alliance class for styling
-    if (path.alliance === "red" || path.alliance === "blue") {
-      card.classList.add(`border-l-4`);
-      card.classList.add(`border-${path.alliance}-500`);
-    }
 
     // Format team name display - include name in parentheses if available
     const teamDisplay = path.teamName
@@ -425,24 +413,24 @@ function updateSelectedPaths() {
 
     card.innerHTML = `
             <span class="color-indicator" style="background-color: ${path.color};"></span>
-            <div class="flex-1">
-                <div class="font-medium">${teamDisplay} - Match ${path.matchNumber}</div>
-                <div class="text-sm text-gray-600 dark:text-white">
+            <div class="min-w-0 flex-1">
+                <div class="break-words text-sm font-medium">${teamDisplay} · Match ${path.matchNumber}</div>
+                <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     ${path.eventCode}
                     ${
                       path.alliance
-                        ? `<span class="ml-2 px-2 py-0.5 text-xs rounded ${
+                        ? `<span class="badge ${
                             path.alliance === "red"
-                              ? "bg-red-100 text-red-800"
+                              ? "badge-red"
                               : path.alliance === "blue"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
+                                ? "badge-blue"
+                                : "badge-gray"
                           } capitalize">${path.alliance}</span>`
                         : ""
                     }
                 </div>
             </div>
-            <span class="remove-path">&times;</span>
+            <span class="remove-path" role="button" aria-label="Remove path">&times;</span>
         `;
 
     // Add event listener for removal

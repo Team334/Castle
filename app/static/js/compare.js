@@ -152,10 +152,10 @@ function updateRadarChart(data) {
     }
 
     const isDark = document.documentElement.classList.contains('dark');
-    const textColor = isDark ? '#e5e7eb' : '#374151';
-    const gridColor = isDark ? '#374151' : '#e5e7eb';
-    const angleLineColor = isDark ? '#4b5563' : '#d1d5db';
-    const pointBorderColor = isDark ? '#1f2937' : '#fff';
+    const textColor = isDark ? '#a1a1aa' : '#52525b';
+    const gridColor = isDark ? '#27272a' : '#e4e4e7';
+    const angleLineColor = isDark ? '#3f3f46' : '#d4d4d8';
+    const pointBorderColor = isDark ? '#18181b' : '#fff';
 
     window.lastCompareData = data;
 
@@ -186,7 +186,7 @@ function updateRadarChart(data) {
     radarChart = new Chart(canvas.getContext('2d'), {
         type: 'radar',
         data: {
-            labels: ['Auto Fuel', 'Teleop Fuel', 'Endgame Fuel', 'Climb Level', 'Climb Success', 'Defense Rating'],
+            labels: ['Auto fuel', 'Teleop fuel', 'Endgame fuel', 'Climb level', 'Climb success', 'Defense rating'],
             datasets: datasets
         },
         options: {
@@ -216,7 +216,10 @@ function updateRadarChart(data) {
                 legend: {
                     position: 'top',
                     labels: {
-                        color: textColor
+                        color: textColor,
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        boxHeight: 8
                     }
                 }
             }
@@ -256,47 +259,50 @@ function updateRawDataTable(data) {
     Object.entries(data).forEach(([teamNumber, teamData]) => {
         teamData.matches?.forEach(match => {
             const row = document.createElement('tr');
+            row.className = 'tabular-nums';
 
             row.innerHTML = `
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <td class="font-semibold !text-zinc-900 dark:!text-zinc-100">
                     ${teamNumber}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
-                    ${match.alliance || '-'}
+                <td>
+                    ${match.alliance === 'red' || match.alliance === 'blue'
+                        ? `<span class="badge ${match.alliance === 'red' ? 'badge-red' : 'badge-blue'}">${match.alliance === 'red' ? 'Red' : 'Blue'}</span>`
+                        : (match.alliance || '-')}
                 </td>
-                <td class="sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td class="!text-zinc-900 dark:!text-zinc-100">
                     ${match.match_number || '-'}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                    ${match.auto_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                    ${match.transition_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                    ${match.ferried_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
-                    ${match.teleop_shift_1_fuel || 0} / ${match.teleop_shift_2_fuel || 0} / ${match.teleop_shift_3_fuel || 0} / ${match.teleop_shift_4_fuel || 0}
+                <td>
+                    ${match.teleop_shift_1_fuel || 0}/${match.teleop_shift_2_fuel || 0}/${match.teleop_shift_3_fuel || 0}/${match.teleop_shift_4_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                     ${match.endgame_fuel || 0}
                 </td>
-                <td class="md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
-                    Level ${match.climb_level || 0}
+                <td>
+                    L${match.climb_level || 0}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                <td>
                     ${match.auto_path ? 
-                        `<button onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-500">View</button>` 
-                        : 'None'}
+                        `<button type="button" onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="link">View</button>` 
+                        : '<span class="text-zinc-400 dark:text-zinc-500">None</span>'}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                     ${match.defense_rating || 0}/5
                 </td>
-                <td class="lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td class="max-w-xs truncate">
                     ${match.notes || '-'}
                 </td>
-                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-white">
+                <td>
                     ${match.scouter?.username || match.scouter_name || '-'}
                 </td>
             `;
@@ -307,7 +313,8 @@ function updateRawDataTable(data) {
 
 // Helper function to get team colors
 function getTeamColor(index) {
-    const colors = ['#2563eb', '#dc2626', '#059669'];
+    // blue-600, amber-500, teal-500 (match the dots on the team cards)
+    const colors = ['#2563eb', '#f59e0b', '#14b8a6'];
     return colors[index] || colors[0];
 }
 
@@ -402,12 +409,14 @@ function updateAutoPaths(data) {
 
     // Create the single container for all auto paths
     autoPathsContainer.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden mb-8">
-            <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Auto Paths</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Latest 5 matches per team</p>
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="section-title">Auto paths</h3>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Latest 5 matches per team</p>
+                </div>
             </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="auto-paths-grid">
+            <div class="card-body grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" id="auto-paths-grid">
             </div>
         </div>
     `;
@@ -416,10 +425,11 @@ function updateAutoPaths(data) {
 
     Object.entries(data).forEach(([teamNumber, teamData], index) => {
         const teamContainer = document.createElement('div');
+        teamContainer.className = 'min-w-0';
         
         // Add team header
         teamContainer.innerHTML = `
-            <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Team ${teamNumber} - ${teamData.nickname}</h4>
+            <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><span class="h-2 w-2 flex-shrink-0 rounded-full" style="background:${getTeamColor(index)}"></span><span class="truncate">${teamNumber} · ${teamData.nickname}</span></h4>
         `;
 
         // Get auto paths from matches
@@ -437,23 +447,23 @@ function updateAutoPaths(data) {
 
         if (sortedPaths.length === 0) {
             teamContainer.innerHTML += `
-                <p class="text-gray-500 dark:text-gray-400 italic">No auto paths available</p>
+                <p class="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">No auto paths available</p>
             `;
         } else {
             // Create a table for the paths
             const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200 dark:divide-gray-700';
+            table.className = 'table';
             
             // Add table header
             table.innerHTML = `
-                <thead class="bg-gray-50 dark:bg-gray-900/50">
-                    <tr class="dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Match</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Path</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Notes</th>
+                <thead>
+                    <tr>
+                        <th>Match</th>
+                        <th>Path</th>
+                        <th>Notes</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody>
                 </tbody>
             `;
 
@@ -461,19 +471,19 @@ function updateAutoPaths(data) {
             const tbody = table.querySelector('tbody');
             sortedPaths.forEach(pathData => {
                 const row = document.createElement('tr');
-                row.className = 'bg-gray-50 dark:bg-gray-900/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700';
+                row.className = 'tabular-nums';
                 
                 row.innerHTML = `
-                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                    <td class="!text-zinc-900 dark:!text-zinc-100">
                         ${pathData.match_number}
                     </td>
-                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                        <button onclick='showAutoPath(${JSON.stringify(pathData.path)}, ${JSON.stringify(pathData.notes || '')}, "${pathData.device_type || ''}")' 
-                                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-500">
-                            View Path
+                    <td>
+                        <button type="button" onclick='showAutoPath(${JSON.stringify(pathData.path)}, ${JSON.stringify(pathData.notes || '')}, "${pathData.device_type || ''}")' 
+                                class="link">
+                            View path
                         </button>
                     </td>
-                    <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    <td class="!whitespace-normal !text-zinc-500 dark:!text-zinc-400">
                         ${pathData.notes || '-'}
                     </td>
                 `;
@@ -481,7 +491,10 @@ function updateAutoPaths(data) {
                 tbody.appendChild(row);
             });
             
-            teamContainer.appendChild(table);
+            const wrap = document.createElement('div');
+            wrap.className = 'overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800';
+            wrap.appendChild(table);
+            teamContainer.appendChild(wrap);
         }
 
         gridContainer.appendChild(teamContainer);

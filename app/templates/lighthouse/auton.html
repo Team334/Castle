@@ -12,173 +12,114 @@
   href="{{ url_for('static', filename='css/auton.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="container mx-auto px-4 py-6">
-  <h1 class="text-2xl font-bold mb-6">Autonomous Path Comparison</h1>
+<div>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Auto path comparison</h1>
+      <p class="page-subtitle">Overlay autonomous paths from up to six robots on one field.</p>
+    </div>
 
-  <!-- Navigation Links -->
-  <div class="flex flex-wrap gap-4 mb-6">
-    <a
-      href="{{ url_for('scouting.lighthouse') }}"
-      class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-      Team Comparison
-    </a>
-    <a
-      href="{{ url_for('scouting.home') }}"
-      class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-        />
-      </svg>
-      Team Data
-    </a>
-    <a
-      href="{{ url_for('scouting.matches') }}"
-      class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-        />
-      </svg>
-      Match View
-    </a>
-    <a
-      href="{{ url_for('scouting.pit_scouting') }}"
-      class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2h3zm-1-9H8a1 1 0 110-2h1a1 1 0 110 2z"
-        />
-      </svg>
-      Pit Scouting
-    </a>
+    <!-- Navigation Links -->
+    <nav class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-end sm:px-0 sm:pb-0" aria-label="Scouting tools">
+      <a href="{{ url_for('scouting.lighthouse') }}" class="btn btn-secondary btn-sm">Team comparison</a>
+      <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary btn-sm">Team data</a>
+      <a href="{{ url_for('scouting.matches') }}" class="btn btn-secondary btn-sm">Match view</a>
+      <a href="{{ url_for('scouting.pit_scouting') }}" class="btn btn-secondary btn-sm">Pit scouting</a>
+    </nav>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
     <!-- Left Column - Team Search and Path Selection -->
-    <div class="lg:col-span-1">
-      <div class="bg-white dark:bg-gray-800 shadow-md dark:shadow-none rounded-lg p-4 mb-6">
-        <h2 class="text-lg font-semibold mb-3">Search Teams</h2>
-        <div class="mb-4">
+    <div class="min-w-0 lg:col-span-1">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Search teams</h2>
+        </div>
+        <div class="card-body">
           <div class="flex gap-2">
             <input
               type="text"
               id="team-search"
-              class="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-              placeholder="Enter team number..."
+              class="input"
+              inputmode="numeric"
+              placeholder="Team number"
+              aria-label="Team number"
             />
             <button
               id="search-btn"
-              class="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 dark:hover:bg-blue-600"
+              type="button"
+              class="btn btn-primary"
             >
               Search
             </button>
           </div>
-        </div>
 
-        <div id="search-results" class="mt-4 hidden">
-          <h3 class="text-md font-semibold mb-2">
-            <span id="team-name"></span>
-          </h3>
-          <div id="team-info" class="text-sm text-gray-600 dark:text-gray-400 mb-3"></div>
+          <div id="search-results" class="mt-5 hidden">
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <span id="team-name"></span>
+            </h3>
+            <div id="team-info" class="mb-4 text-xs text-zinc-500 dark:text-zinc-400"></div>
 
-          <h3 class="text-md font-semibold mb-2">
-            Available Paths
-            <span id="path-count-available" class="text-sm text-gray-500 dark:text-gray-400"
-              >(0)</span
+            <h3 class="flex items-center gap-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              Available paths
+              <span id="path-count-available" class="font-normal tabular-nums text-zinc-500 dark:text-zinc-400"
+                >(0)</span
+              >
+            </h3>
+            <p class="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+              Select a team to view their available autonomous paths.
+            </p>
+            <div
+              id="available-paths"
+              class="max-h-80 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-950/40"
             >
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Select a team to view their available autonomous paths.
-          </p>
-          <div
-            id="available-paths"
-            class="max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded p-2 bg-white dark:bg-gray-800"
-          >
-            <div id="no-paths-message" class="text-center py-4 hidden">
-              <p class="text-gray-500 dark:text-gray-400 italic">
-                No autonomous paths available for this team
-              </p>
-              <p class="text-xs text-gray-400 mt-1">
-                Try selecting a different team or check if paths have been
-                uploaded
-              </p>
+              <div id="no-paths-message" class="hidden py-6 text-center">
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                  No autonomous paths available for this team
+                </p>
+                <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  Try selecting a different team or check if paths have been
+                  uploaded
+                </p>
+              </div>
+              <!-- Path cards will be inserted here -->
             </div>
-            <!-- Path cards will be inserted here -->
           </div>
         </div>
       </div>
     </div>
 
     <!-- Right Column - Canvas and Selected Paths -->
-    <div class="lg:col-span-2">
-      <div class="bg-white dark:bg-gray-800 shadow-md dark:shadow-none rounded-lg p-4 mb-6">
-        <h2 class="text-lg font-semibold mb-3">Path Comparison</h2>
-
-        <!-- Canvas Container -->
-        <div
-          id="canvas-container"
-          class="mb-1 relative border rounded-lg overflow-hidden"
-          style="height: 400px"
-        >
-          <canvas
-            id="pathCanvas"
-            class="absolute inset-0 w-full h-full"
-          ></canvas>
+    <div class="min-w-0 lg:col-span-2">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="section-title">Path comparison</h2>
         </div>
+        <div class="card-body">
+          <!-- Canvas Container -->
+          <div
+            id="canvas-container"
+            class="relative mb-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
+            style="height: 400px"
+          >
+            <canvas
+              id="pathCanvas"
+              class="absolute inset-0 h-full w-full"
+            ></canvas>
+          </div>
 
-        <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-2">
-          Pan: Shift+Drag or Middle Mouse Button | Zoom: Scroll Wheel
-        </p>
+          <p class="text-center text-xs text-zinc-500 dark:text-zinc-400">
+            Pan: Shift+drag or middle mouse button · Zoom: scroll wheel
+          </p>
 
-        <!-- Controls -->
-        <div class="flex justify-center mb-6 mt-4">
-          <div class="flex gap-4">
+          <!-- Controls -->
+          <div class="mb-6 mt-4 flex flex-wrap items-center justify-center gap-2">
             <button
               id="reset-view-btn"
-              class="tool-btn bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:bg-blue-900/40 text-blue-700 border-blue-300 rounded-xl"
+              type="button"
+              class="tool-btn"
               title="Reset Canvas View (Fit to screen)"
+              aria-label="Reset view"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -186,6 +127,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -196,8 +138,10 @@
             </button>
             <button
               id="flip-horizontal-btn"
-              class="tool-btn bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300 rounded-xl"
+              type="button"
+              class="tool-btn"
               title="Flip Horizontally"
+              aria-label="Flip horizontally"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -205,6 +149,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -215,8 +160,10 @@
             </button>
             <button
               id="flip-vertical-btn"
-              class="tool-btn bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300 rounded-xl"
+              type="button"
+              class="tool-btn"
               title="Flip Vertically"
+              aria-label="Flip vertically"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -224,6 +171,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -234,8 +182,10 @@
             </button>
             <button
               id="rotate-cw-btn"
-              class="tool-btn bg-green-50 hover:bg-green-100 text-green-700 border-green-300 rounded-xl"
+              type="button"
+              class="tool-btn"
               title="Rotate Clockwise"
+              aria-label="Rotate clockwise"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -243,6 +193,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -253,8 +204,10 @@
             </button>
             <button
               id="rotate-ccw-btn"
-              class="tool-btn bg-green-50 hover:bg-green-100 text-green-700 border-green-300 rounded-xl"
+              type="button"
+              class="tool-btn"
               title="Rotate Counter-Clockwise"
+              aria-label="Rotate counter-clockwise"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -262,6 +215,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -270,10 +224,13 @@
                 />
               </svg>
             </button>
+            <span class="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-800" aria-hidden="true"></span>
             <button
               id="clear-all-btn"
-              class="tool-btn bg-red-50 hover:bg-red-100 text-red-700 border-red-300 rounded-xl"
+              type="button"
+              class="tool-btn tool-btn-danger"
               title="Clear All Paths"
+              aria-label="Clear all paths"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -281,6 +238,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -290,18 +248,21 @@
               </svg>
             </button>
           </div>
-        </div>
 
-        <!-- Selected Paths -->
-        <h3 class="text-md font-semibold mb-2">
-          Selected Paths (<span id="path-count">0</span>/6)
-        </h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          You can add up to 6 paths with a maximum of 3 teams per alliance.
-        </p>
-        <div id="selected-paths" class="draggable-container min-h-[100px]">
-          <div id="empty-prompt" class="text-gray-400 text-center py-8">
-            Search for a team and select paths to compare
+          <!-- Selected Paths -->
+          <div class="mb-2 flex items-baseline justify-between gap-3">
+            <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              Selected paths
+            </h3>
+            <span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400"><span id="path-count">0</span>/6</span>
+          </div>
+          <p class="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+            You can add up to 6 paths with a maximum of 3 teams per alliance. Drag to reorder.
+          </p>
+          <div id="selected-paths" class="draggable-container">
+            <div id="empty-prompt" class="py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">
+              Search for a team and select paths to compare
+            </div>
           </div>
         </div>
       </div>

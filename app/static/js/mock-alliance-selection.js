@@ -150,10 +150,10 @@ function handleStartBracket() {
 
 // Notification configuration
 const NOTIFICATION_COLORS = {
-    success: { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-200', icon: 'text-green-500' },
-    error: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200', icon: 'text-red-500' },
-    warning: { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200', icon: 'text-yellow-500' },
-    info: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200', icon: 'text-blue-500' }
+    success: { bg: 'bg-green-50 dark:bg-green-500/10', text: 'text-green-800 dark:text-green-300', border: 'border-green-200 dark:border-green-500/30', icon: 'text-green-600 dark:text-green-400' },
+    error: { bg: 'bg-red-50 dark:bg-red-500/10', text: 'text-red-800 dark:text-red-300', border: 'border-red-200 dark:border-red-500/30', icon: 'text-red-600 dark:text-red-400' },
+    warning: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-800 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-500/30', icon: 'text-amber-600 dark:text-amber-400' },
+    info: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-800 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-500/30', icon: 'text-blue-600 dark:text-blue-400' }
 };
 
 const NOTIFICATION_ICONS = {
@@ -182,11 +182,11 @@ function showNotification(message, type = 'info') {
 function createNotificationElement(message, type, color) {
     const notification = document.createElement('div');
     notification.setAttribute('role', 'alert');
-    notification.className = `flex items-center p-6 rounded-lg shadow-xl ${color.bg} ${color.text} border-2 ${color.border} mb-4 animate-fade-in`;
+    notification.className = `flex items-center gap-3 rounded-lg border py-3 pl-1 pr-4 ${color.bg} ${color.text} ${color.border} mb-2 animate-fade-in`;
     
-    const iconSvg = createSVGElement('w-6 h-6 mr-3 flex-shrink-0 ' + color.icon, NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info);
+    const iconSvg = createSVGElement('h-5 w-5 flex-shrink-0 ' + color.icon, NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info);
     const messageP = document.createElement('p');
-    messageP.className = 'text-base font-medium flex-1 dark:text-gray-300';
+    messageP.className = 'flex-1 text-sm font-medium';
     messageP.textContent = message;
     
     const dismissButton = createDismissButton(color.icon);
@@ -213,7 +213,7 @@ function createSVGElement(className, innerHTML) {
 function createDismissButton(iconClass) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 ${iconClass} hover:bg-opacity-20 dark:hover:bg-gray-700 dark:hover:bg-opacity-20 transition-colors`;
+    button.className = `-my-1 -mr-1 ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md ${iconClass} transition-colors hover:bg-black/5 dark:hover:bg-white/10`;
     
     const srSpan = document.createElement('span');
     srSpan.className = 'sr-only';
@@ -288,7 +288,7 @@ function renderEventDropdown(events) {
 
     if (events.length === 0) {
         const div = document.createElement('div');
-        div.className = 'px-4 py-2 text-sm text-gray-500 dark:text-white';
+        div.className = 'px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400';
         div.textContent = 'No events found';
         dom.eventDropdownList.appendChild(div);
         return;
@@ -297,7 +297,7 @@ function renderEventDropdown(events) {
     const fragment = document.createDocumentFragment();
     events.forEach(evt => {
         const li = document.createElement('li');
-        li.className = 'px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm text-gray-700 dark:text-white dark:hover:bg-gray-700';
+        li.className = 'cursor-pointer rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800';
         li.textContent = evt.name;
         li.addEventListener('click', () => {
             if (dom.eventSelect) dom.eventSelect.value = evt.key;
@@ -358,7 +358,7 @@ async function loadEvents() {
 function setLoadingState(isLoading) {
     if (dom.searchEventsBtn) {
         dom.searchEventsBtn.disabled = isLoading;
-        dom.searchEventsBtn.textContent = isLoading ? 'Searching...' : 'Search Events';
+        dom.searchEventsBtn.textContent = isLoading ? 'Searching...' : 'Search events';
     }
     
     if (dom.eventSearchInput) {
@@ -410,7 +410,7 @@ async function loadRankings() {
         showNotification('Failed to load rankings. Please try again.', 'error');
     } finally {
         dom.loadRankingsBtn.disabled = false;
-        dom.loadRankingsBtn.textContent = 'Load Rankings';
+        dom.loadRankingsBtn.textContent = 'Load rankings';
     }
 }
 
@@ -466,8 +466,8 @@ function updateTeamSelection(prevTeam, newTeam) {
             newCard.classList.add('selected-for-pick');
             if (!newCard.querySelector('.selection-indicator')) {
                 const ind = document.createElement('div');
-                ind.className = 'selection-indicator text-xs text-blue-600 font-medium mt-1';
-                ind.textContent = 'SELECTED - Tap slot to place';
+                ind.className = 'selection-indicator mt-1 text-xs font-medium text-blue-600 dark:text-blue-400';
+                ind.textContent = 'Selected · tap a slot to place';
                 newCard.appendChild(ind);
             }
         }
@@ -594,7 +594,7 @@ function areAllPicksComplete() {
 // Create alliance card element
 function createAllianceCard(alliance, index, isActive) {
     const card = document.createElement('div');
-    card.className = `alliance-card bg-white border-2 dark:border-gray-700 rounded-lg p-4 dark:bg-gray-800`;
+    card.className = `alliance-card rounded-lg border p-3 ${isActive ? 'active border-blue-600 dark:border-blue-500' : 'border-zinc-200 dark:border-zinc-800'}`;
     
     if (!alliance) {
         card.innerHTML = createEmptyAllianceHTML(index);
@@ -609,14 +609,14 @@ function createAllianceCard(alliance, index, isActive) {
 function createEmptyAllianceHTML(index) {
     const picksHTML = Array(MAX_PICKS_PER_ALLIANCE)
         .fill(0)
-        .map((_, j) => `<div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400">Pick ${j + 1}</div>`)
+        .map((_, j) => `<div class="team-slot empty mb-2 flex items-center justify-center px-3 py-2 text-xs text-zinc-400 last:mb-0 dark:text-zinc-500">Pick ${j + 1}</div>`)
         .join('');
     
     return `
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-bold text-gray-400 dark:text-gray-100">Alliance ${index + 1}</h3>
+        <div class="mb-2 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-zinc-400 dark:text-zinc-500">Alliance ${index + 1}</h3>
         </div>
-        <div class="team-slot empty p-3 rounded mb-3 text-center text-gray-400 dark:text-gray-500">
+        <div class="team-slot empty mb-2 flex items-center justify-center px-3 py-2 text-xs text-zinc-400 dark:text-zinc-500">
             Waiting for captain...
         </div>
         ${picksHTML}
@@ -636,14 +636,16 @@ function createFilledAllianceHTML(alliance, index, isActive) {
         .join('');
 
     return `
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-bold dark:text-gray-100">Alliance ${alliance.number}</h3>
-            ${isActive ? '<span class="pick-round-indicator">PICKING</span>' : ''}
+        <div class="mb-2 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alliance ${alliance.number}</h3>
+            ${isActive ? '<span class="pick-round-indicator">Picking</span>' : ''}
         </div>
-        <div class="team-slot captain p-3 rounded mb-3">
-            <div class="font-semibold text-blue-700">${alliance.captain.team_number}</div>
-            <div class="text-xs text-gray-600 dark:text-gray-400">${alliance.captain.nickname || ''}</div>
-            <div class="text-xs text-blue-600 font-medium mt-1">Captain (Rank ${alliance.captain.rank})</div>
+        <div class="team-slot captain mb-2 px-3 py-2">
+            <div class="flex items-baseline justify-between gap-2">
+                <span class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">${alliance.captain.team_number}</span>
+                <span class="whitespace-nowrap text-xs font-medium text-blue-700 dark:text-blue-300">Captain · #${alliance.captain.rank}</span>
+            </div>
+            <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${alliance.captain.nickname || ''}</div>
         </div>
         ${picksHTML}
     `;
@@ -652,18 +654,18 @@ function createFilledAllianceHTML(alliance, index, isActive) {
 // Create HTML for filled pick slot
 function createFilledPickHTML(pick, allianceIndex, pickIndex) {
     return `
-        <div class="team-slot filled p-3 rounded mb-2 cursor-pointer hover:bg-red-50 group dark:hover:bg-red-700" 
+        <div class="team-slot filled group mb-2 cursor-pointer px-3 py-2 last:mb-0" 
              data-alliance="${allianceIndex}" 
              data-pick="${pickIndex}"
              data-action="remove">
-            <div class="flex justify-between items-center">
-                <div class="flex-1">
-                    <div class="font-semibold text-gray-900 dark:text-black">${pick.team_number}</div>
-                    <div class="text-xs text-gray-600 dark:text-black">${pick.nickname || ''}</div>
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                    <div class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">${pick.team_number}</div>
+                    <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${pick.nickname || ''}</div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="text-xs text-gray-500">Pick ${pickIndex + 1}</div>
-                    <svg class="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="whitespace-nowrap text-xs text-zinc-400 dark:text-zinc-500">Pick ${pickIndex + 1}</div>
+                    <svg class="h-4 w-4 text-red-500 opacity-0 transition-opacity group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </div>
@@ -675,10 +677,10 @@ function createFilledPickHTML(pick, allianceIndex, pickIndex) {
 // Create HTML for empty pick slot
 function createEmptyPickHTML(allianceIndex, pickIndex, isCurrentPick) {
     return `
-        <div class="team-slot empty p-3 rounded mb-2 text-center text-gray-400 dark:text-gray-500 cursor-pointer ${isCurrentPick ? 'animate-pulse' : ''}" 
+        <div class="team-slot empty mb-2 flex cursor-pointer items-center justify-center px-3 py-2 text-xs last:mb-0 ${isCurrentPick ? 'text-blue-600 dark:text-blue-400 animate-pulse' : 'text-zinc-400 dark:text-zinc-500'}" 
                 data-alliance="${allianceIndex}" 
                 data-pick="${pickIndex}">
-            ${isCurrentPick ? '← Tap or drag team here' : `Pick ${pickIndex + 1}`}
+            ${isCurrentPick ? 'Tap or drag a team here' : `Pick ${pickIndex + 1}`}
         </div>
     `;
 }
@@ -718,7 +720,7 @@ function createTeamCard(team) {
 
     const card = document.createElement('div');
     card.id = `team-card-${team.team_number}`;
-    card.className = `team-card bg-white border border-gray-200 rounded-lg p-3 dark:bg-gray-800 dark:border-gray-700 ${
+    card.className = `team-card min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900 ${
         isSelectedForPick ? 'selected-for-pick' : ''
     }`;
     card.draggable = true;
@@ -736,10 +738,12 @@ function createTeamCard(team) {
     card.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     card.innerHTML = `
-        <div class="font-semibold text-lg dark:text-gray-300">${team.team_number}</div>
-        <div class="text-sm text-gray-600 dark:text-gray-400 truncate">${team.nickname || 'No name'}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Rank: ${team.rank}</div>
-        ${isSelectedForPick ? '<div class="selection-indicator text-xs text-blue-600 font-medium mt-1 dark:text-blue-400">SELECTED - Tap slot to place</div>' : ''}
+        <div class="flex items-baseline justify-between gap-2">
+            <span class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">${team.team_number}</span>
+            <span class="text-xs tabular-nums text-zinc-400 dark:text-zinc-500">#${team.rank}</span>
+        </div>
+        <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${team.nickname || 'No name'}</div>
+        ${isSelectedForPick ? '<div class="selection-indicator mt-1 text-xs font-medium text-blue-600 dark:text-blue-400">Selected · tap a slot to place</div>' : ''}
     `;
 
     return card;
@@ -867,10 +871,10 @@ function updateStatus() {
 // Set status to complete
 function setStatusComplete() {
     dom.statusText.textContent = 'Alliance selection complete!';
-    dom.statusBox.classList.remove('bg-blue-50', 'border-blue-500');
-    dom.statusBox.classList.add('bg-green-50', 'border-green-500');
-    dom.statusText.classList.remove('text-blue-800');
-    dom.statusText.classList.add('text-green-800');
+    dom.statusBox.classList.remove('bg-blue-50', 'border-blue-200', 'dark:bg-blue-500/10', 'dark:border-blue-500/30');
+    dom.statusBox.classList.add('bg-green-50', 'border-green-200', 'dark:bg-green-500/10', 'dark:border-green-500/30');
+    dom.statusText.classList.remove('text-blue-800', 'dark:text-blue-300');
+    dom.statusText.classList.add('text-green-800', 'dark:text-green-300');
     dom.startBracketBtn.classList.remove('hidden');
 }
 
@@ -882,10 +886,10 @@ function setStatusFormingAlliances() {
     } else {
         dom.statusText.textContent = 'Processing...';
     }
-    dom.statusBox.classList.remove('bg-green-50', 'border-green-500');
-    dom.statusBox.classList.add('bg-blue-50', 'border-blue-500');
-    dom.statusText.classList.remove('text-green-800');
-    dom.statusText.classList.add('text-blue-800');
+    dom.statusBox.classList.remove('bg-green-50', 'border-green-200', 'dark:bg-green-500/10', 'dark:border-green-500/30');
+    dom.statusBox.classList.add('bg-blue-50', 'border-blue-200', 'dark:bg-blue-500/10', 'dark:border-blue-500/30');
+    dom.statusText.classList.remove('text-green-800', 'dark:text-green-300');
+    dom.statusText.classList.add('text-blue-800', 'dark:text-blue-300');
     dom.startBracketBtn.classList.add('hidden');
 }
 
@@ -896,10 +900,10 @@ function setStatusPicking() {
         const pickNumber = currentAlliance.picks.length + 1;
         dom.statusText.textContent = `Round ${state.currentPick.round}, Pick ${pickNumber} - Alliance ${currentAlliance.number} (Captain: ${currentAlliance.captain.team_number}) is picking...`;
     }
-    dom.statusBox.classList.remove('bg-green-50', 'border-green-500');
-    dom.statusBox.classList.add('bg-blue-50', 'border-blue-500');
-    dom.statusText.classList.remove('text-green-800');
-    dom.statusText.classList.add('text-blue-800');
+    dom.statusBox.classList.remove('bg-green-50', 'border-green-200', 'dark:bg-green-500/10', 'dark:border-green-500/30');
+    dom.statusBox.classList.add('bg-blue-50', 'border-blue-200', 'dark:bg-blue-500/10', 'dark:border-blue-500/30');
+    dom.statusText.classList.remove('text-green-800', 'dark:text-green-300');
+    dom.statusText.classList.add('text-blue-800', 'dark:text-blue-300');
     dom.startBracketBtn.classList.add('hidden');
 }
 
