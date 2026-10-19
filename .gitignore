@@ -170,3 +170,5 @@ testing_*.py
 
 # Local Match13 cache, quotas and eligibility (preserve when deploying)
 /instance/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
