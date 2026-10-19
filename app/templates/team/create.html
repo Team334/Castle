@@ -1,26 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900/50 py-12">
-    <div class="max-w-2xl mx-auto">
-        <!-- Header Section -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Your Team</h1>
-            <p class="mt-2 text-gray-600 dark:text-gray-400">Set up your team's profile and start collaborating</p>
-        </div>
+<div class="mx-auto w-full max-w-lg">
+    <div class="mb-6">
+        <h1 class="page-title">Create your team</h1>
+        <p class="page-subtitle">Set up your team's profile and start collaborating.</p>
+    </div>
 
-        <!-- Main Form Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-none overflow-hidden">
-            <form method="POST" enctype="multipart/form-data" class="p-8 space-y-8">
-                {{ form.csrf_token }}
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data">
+            {{ form.csrf_token }}
 
+            <div class="card-body space-y-5">
                 <!-- Team Number -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Team Number</label>
+                    <label for="team_number" class="label">Team number</label>
                     {{ form.team_number(
                         autocomplete="off",
-                        class="w-full px-4 py-3 rounded-lg border " + (" border-red-500 ring-1 ring-red-500" if form.team_number.errors else "border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"),
-                        placeholder="Enter your team number",
+                        class="input py-2.5" + (" border-red-500 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500" if form.team_number.errors else ""),
+                        placeholder="e.g. 334",
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')",
                         pattern="[0-9]*",
                         min="1",
@@ -28,78 +26,80 @@
                     ) }}
                     {% if form.team_number.errors %}
                         {% for error in form.team_number.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Team number must be less than 20000</p>
+                    <p class="help">Team number must be less than 20000.</p>
                 </div>
 
                 <!-- Team Name -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Team Name</label>
+                    <label for="team_name" class="label">Team name</label>
                     {{ form.team_name(
                         autocomplete="off",
-                        class="w-full px-4 py-3 rounded-lg border " + (" border-red-500 ring-1 ring-red-500" if form.team_name.errors else "border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"),
+                        class="input py-2.5" + (" border-red-500 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500" if form.team_name.errors else ""),
                         placeholder="Enter your team name"
                     ) }}
                     {% if form.team_name.errors %}
                         {% for error in form.team_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                    <label for="description" class="label">Description</label>
                     {{ form.description(
                         autocomplete="off",
-                        class="w-full px-4 py-3 rounded-lg border h-32 resize-none " + (" border-red-500 ring-1 ring-red-500" if form.description.errors else "border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"),
-                        placeholder="Tell us about your team...",
+                        class="input h-28 resize-none" + (" border-red-500 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500" if form.description.errors else ""),
+                        placeholder="Tell us about your team",
                         maxlength="100"
                     ) }}
-                    <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <div class="help">
                         <span id="char-count">0</span>/100 characters
                     </div>
                     {% if form.description.errors %}
                         {% for error in form.description.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
                 </div>
 
                 <!-- Team Logo -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Team Logo</label>
-                    <div class="mt-1 flex items-center">
-                        {{ form.logo(
-                            class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500" + (" border-red-500" if form.logo.errors else "")
-                        ) }}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Optional: Upload a square image (JPG or PNG, max 2MB)</p>
-                    </div>
+                    <label for="logo" class="label">Team logo <span class="font-normal text-zinc-400 dark:text-zinc-500">(optional)</span></label>
+                    {{ form.logo(
+                        class="block w-full cursor-pointer text-sm text-zinc-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border file:border-solid file:border-zinc-300 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-50 dark:text-zinc-400 dark:file:border-zinc-700 dark:file:bg-zinc-900 dark:file:text-zinc-200 dark:hover:file:bg-zinc-800" + (" text-red-600" if form.logo.errors else "")
+                    ) }}
+                    <p class="help">Upload a square image (JPG or PNG, max 2MB).</p>
                     {% if form.logo.errors %}
                         {% for error in form.logo.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
                         {% endfor %}
                     {% endif %}
                 </div>
+            </div>
 
-                <!-- Submit Button -->
-                <div class="pt-4">
-                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                        Create Team
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="border-t border-zinc-200 px-4 py-3 sm:px-5 dark:border-zinc-800">
+                <button type="submit" class="btn btn-primary w-full py-2.5">
+                    Create team
+                </button>
+            </div>
+        </form>
     </div>
+
+    <p class="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        Have a join code?
+        <a href="{{ url_for('team.join') }}" class="link">Join an existing team</a>
+    </p>
 </div>
 
 <script>
 document.querySelector('textarea[name="description"]').addEventListener('input', function() {
     const charCount = this.value.length;
     document.getElementById('char-count').textContent = charCount;
-    
+
     if (charCount > 100) {
         this.value = this.value.substring(0, 100);
     }

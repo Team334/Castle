@@ -5,28 +5,16 @@ function showNotification(message, type = "info") {
 
   const colors = {
     success: {
-      bg: "bg-green-50",
-      text: "text-green-800",
-      border: "border-green-300",
-      icon: "text-green-600",
+      icon: "text-green-500",
     },
     error: {
-      bg: "bg-red-50",
-      text: "text-red-800",
-      border: "border-red-300",
-      icon: "text-red-600",
+      icon: "text-red-500",
     },
     warning: {
-      bg: "bg-yellow-50",
-      text: "text-yellow-800",
-      border: "border-yellow-300",
-      icon: "text-yellow-600",
+      icon: "text-amber-500",
     },
     info: {
-      bg: "bg-blue-50 dark:bg-blue-900/20",
-      text: "text-blue-800",
-      border: "border-blue-300",
-      icon: "text-blue-600",
+      icon: "text-blue-500",
     },
   };
 
@@ -44,18 +32,18 @@ function showNotification(message, type = "info") {
   const icon = icons[type] || icons.info;
 
   const notification = document.createElement("div");
-  notification.className = `flex items-center p-4 rounded-lg shadow-lg dark:shadow-none ${color.bg} ${color.text} border-2 ${color.border} animate-slide-in`;
+  notification.className = "card flex items-start gap-3 p-4 shadow-lg animate-slide-in";
   notification.style.cssText =
-    "animation: slideIn 0.3s ease-out; min-width: 300px;";
+    "animation: slideIn 0.3s ease-out;";
 
   notification.innerHTML = `
-    <svg class="w-6 h-6 mr-3 flex-shrink-0 ${color.icon}" fill="currentColor" viewBox="0 0 20 20">
+    <svg class="mt-0.5 h-5 w-5 shrink-0 ${color.icon}" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
       ${icon}
     </svg>
-    <p class="text-sm font-medium flex-1">${message}</p>
-    <button type="button" class="ml-3 -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 ${color.icon} hover:bg-opacity-20" onclick="this.parentElement.remove()">
+    <p class="flex-1 text-sm text-zinc-700 dark:text-zinc-200">${message}</p>
+    <button type="button" class="-m-1 rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" onclick="this.parentElement.remove()">
       <span class="sr-only">Dismiss</span>
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
       </svg>
     </button>
@@ -190,20 +178,20 @@ function checkUsername(username) {
   // Check username length and characters
   if (username.length < 3) {
     statusDiv.innerHTML =
-      '<span class="text-yellow-600">Username must be at least 3 characters long</span>';
+      '<span class="text-amber-600 dark:text-amber-400">Username must be at least 3 characters long</span>';
     return;
   }
 
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
     statusDiv.innerHTML =
-      '<span class="text-red-600">Username can only contain letters, numbers, and underscores</span>';
+      '<span class="text-red-600 dark:text-red-400">Username can only contain letters, numbers, and underscores</span>';
     return;
   }
 
   // Set a timeout to avoid too many requests
   usernameCheckTimeout = setTimeout(() => {
     statusDiv.innerHTML =
-      '<span class="text-blue-600">Checking availability...</span>';
+      '<span class="text-zinc-500 dark:text-zinc-400">Checking availability...</span>';
 
     fetch("/auth/check_username", {
       method: "POST",
@@ -217,16 +205,16 @@ function checkUsername(username) {
       .then((data) => {
         if (data.available) {
           statusDiv.innerHTML =
-            '<span class="text-green-600">✓ Username is available</span>';
+            '<span class="text-green-600 dark:text-green-400">Username is available</span>';
         } else {
           statusDiv.innerHTML =
-            '<span class="text-red-600">✗ Username is already taken</span>';
+            '<span class="text-red-600 dark:text-red-400">Username is already taken</span>';
         }
       })
       .catch((error) => {
         console.error("Error:", error);
         statusDiv.innerHTML =
-          '<span class="text-red-600">Error checking username availability</span>';
+          '<span class="text-red-600 dark:text-red-400">Error checking username availability</span>';
       });
   }, 500); // Wait 500ms after user stops typing before checking
 }

@@ -3,243 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
     <title>Offline - Castle</title>
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-dark: #2563eb;
-            --secondary: #f59e0b;
-            --secondary-dark: #d97706;
-            --bg-light: #f8fafc;
-            --bg-dark: #f0f4f8;
-            --text: #1e293b;
-            --text-light: #64748b;
+            color-scheme: light dark;
+            --bg: #fafafa;          /* zinc-50 */
+            --surface: #ffffff;
+            --border: #e4e4e7;      /* zinc-200 */
+            --text: #18181b;        /* zinc-900 */
+            --text-muted: #71717a;  /* zinc-500 */
+            --text-soft: #52525b;   /* zinc-600 */
+            --subtle: #f4f4f5;      /* zinc-100 */
+            --primary: #2563eb;     /* blue-600 */
+            --primary-hover: #1d4ed8;
+            --primary-active: #1e40af;
+            --secondary-border: #d4d4d8; /* zinc-300 */
+            --secondary-text: #3f3f46;   /* zinc-700 */
+            --secondary-hover: #fafafa;
+            --ring: rgba(59, 130, 246, 0.6);
         }
-        
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #09090b;          /* zinc-950 */
+                --surface: #18181b;     /* zinc-900 */
+                --border: #27272a;      /* zinc-800 */
+                --text: #f4f4f5;        /* zinc-100 */
+                --text-muted: #a1a1aa;  /* zinc-400 */
+                --text-soft: #d4d4d8;   /* zinc-300 */
+                --subtle: rgba(39, 39, 42, 0.6);
+                --secondary-border: #3f3f46; /* zinc-700 */
+                --secondary-text: #e4e4e7;   /* zinc-200 */
+                --secondary-hover: #27272a;
+            }
+
+            .logo {
+                filter: invert(1);
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        html {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--bg-light);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.5;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px 16px;
             overflow-x: hidden;
-            position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        
+
         .container {
-            max-width: 600px;
+            max-width: 480px;
             width: 100%;
-            background-color: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-            padding: 32px;
-            z-index: 10;
-            position: relative;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            padding: 28px;
         }
-        
+
         .header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
-        
+
         .logo {
-            width: 80px;
+            display: block;
             height: 80px;
-            margin-bottom: 16px;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-            animation: pulse 2s infinite;
+            width: auto;
+            margin: -12px auto 4px;
         }
-        
+
         h1 {
-            color: var(--primary);
-            font-size: 28px;
-            margin-bottom: 8px;
+            color: var(--text);
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
         }
-        
+
         .subtitle {
-            font-size: 18px;
-            color: var(--text-light);
-            margin-bottom: 24px;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 0;
         }
-        
+
         p {
             margin-bottom: 16px;
-            color: var(--text);
-            font-size: 16px;
+            color: var(--text-soft);
+            font-size: 14px;
         }
-        
+
         .info-box {
-            background-color: rgba(245, 158, 11, 0.1);
-            border-left: 4px solid var(--secondary);
+            background-color: var(--subtle);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 18px;
-            margin: 24px 0;
+            padding: 16px;
+            margin: 20px 0;
         }
-        
+
         .info-box h3 {
-            color: var(--secondary-dark);
-            margin-bottom: 12px;
-            font-size: 18px;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
             display: flex;
             align-items: center;
         }
-        
+
         .info-icon {
             margin-right: 8px;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+            flex-shrink: 0;
         }
-        
-        .info-box ul {
-            padding-left: 24px;
-        }
-        
-        .info-box li {
+
+        .info-box p {
             margin-bottom: 8px;
-            position: relative;
         }
-        
+
+        .info-box ul {
+            padding-left: 18px;
+            list-style: none;
+        }
+
+        .info-box li {
+            margin-bottom: 6px;
+            position: relative;
+            font-size: 14px;
+            color: var(--text-soft);
+        }
+
+        .info-box li:last-child {
+            margin-bottom: 0;
+        }
+
         .info-box li::before {
             content: "";
             position: absolute;
-            left: -18px;
-            top: 8px;
-            width: 6px;
-            height: 6px;
+            left: -14px;
+            top: 9px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
-            background-color: var(--secondary);
+            background-color: var(--text-muted);
         }
-        
+
         .status-container {
-            margin-top: 24px;
+            margin-top: 20px;
             text-align: center;
         }
-        
+
         #connection-status {
-            font-weight: 600;
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 6px;
             background-color: rgba(239, 68, 68, 0.1);
             color: #ef4444;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
-        
+
+        #retry-info {
+            margin-bottom: 4px;
+        }
+
         .button {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             background-color: var(--primary);
-            color: white;
-            font-weight: 600;
-            border: none;
-            padding: 12px 24px;
+            color: #ffffff;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 20px;
+            border: 1px solid transparent;
+            padding: 10px 16px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.15s ease, border-color 0.15s ease;
             text-align: center;
+            flex: 1;
         }
-        
+
         .button:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            background-color: var(--primary-hover);
         }
-        
+
         .button:active {
-            transform: translateY(0);
+            background-color: var(--primary-active);
         }
-        
-        .shapes {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+
+        .button:disabled {
+            opacity: 0.5;
             pointer-events: none;
-            overflow: hidden;
         }
-        
-        .shape {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.15;
+
+        .button:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ring);
         }
-        
-        .shape-1 {
-            width: 200px;
-            height: 200px;
-            background-color: var(--primary);
-            top: 10%;
-            right: 15%;
-            animation: float 8s ease-in-out infinite;
-        }
-        
-        .shape-2 {
-            width: 150px;
-            height: 150px;
-            background-color: var(--secondary);
-            bottom: 10%;
-            left: 15%;
-            animation: float 6s ease-in-out infinite 1s;
-        }
-        
-        .shape-3 {
-            width: 100px;
-            height: 100px;
-            background-color: var(--primary-dark);
-            top: 50%;
-            left: 8%;
-            animation: float 7s ease-in-out infinite 0.5s;
-        }
-        
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0) rotate(0deg);
-            }
-            50% {
-                transform: translateY(-20px) rotate(5deg);
-            }
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-        
+
         .wifi-icon {
             display: inline-block;
-            width: 24px;
-            height: 24px;
-            margin-right: 8px;
-            vertical-align: middle;
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            flex-shrink: 0;
         }
-        
+
         .wifi-slash {
             opacity: 0;
             animation: blink 2s infinite;
         }
-        
+
         @keyframes blink {
             0%, 100% {
                 opacity: 0;
@@ -248,19 +249,18 @@
                 opacity: 1;
             }
         }
-        
+
         .loading {
             display: inline-block;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s linear infinite;
-            margin-left: 8px;
             vertical-align: middle;
         }
-        
+
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -268,84 +268,55 @@
         }
 
         .retry-countdown {
-            font-size: 14px;
-            color: var(--text-light);
-            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
         }
-        
-        /* Mobile adjustments */
-        @media (max-width: 600px) {
-            .container {
-                padding: 24px;
-                border-radius: 12px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
-            
-            .subtitle {
-                font-size: 16px;
-            }
-            
-            .logo {
-                width: 70px;
-                height: 70px;
-            }
-            
-            .shape-1 {
-                width: 150px;
-                height: 150px;
-            }
-            
-            .shape-2 {
-                width: 100px;
-                height: 100px;
-            }
-            
-            .shape-3 {
-                width: 80px;
-                height: 80px;
-            }
-        }
-        
-        /* Additional styles for the back button */
+
         .button-container {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             justify-content: center;
         }
-        
+
         .button-secondary {
-            background-color: transparent;
-            color: var(--primary);
-            border: 1px solid var(--primary);
+            background-color: var(--surface);
+            color: var(--secondary-text);
+            border-color: var(--secondary-border);
         }
-        
-        .button-secondary:hover {
-            background-color: rgba(59, 130, 246, 0.1);
-            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+
+        .button-secondary:hover,
+        .button-secondary:active {
+            background-color: var(--secondary-hover);
         }
-        
+
         .button-icon {
             width: 16px;
             height: 16px;
-            margin-right: 6px;
-            vertical-align: middle;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .wifi-slash,
+            .loading {
+                animation: none;
+            }
+            .wifi-slash {
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-    </div>
-    
     <div class="container">
         <div class="header">
-            <img src="/static/logo.png" alt="Castle Logo" class="logo">
-            <h1>You're Offline</h1>
+            <img src="/static/logo.png" alt="Castle" class="logo">
+            <h1>You're offline</h1>
             <p class="subtitle">No internet connection detected</p>
         </div>
         
@@ -356,7 +327,7 @@
                 <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd" />
                 </svg>
-                About Offline Mode
+                About offline mode
             </h3>
             <p>Castle has been designed to work offline with pages you've already visited. Here's what you need to know:</p>
             <ul>

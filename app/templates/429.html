@@ -3,32 +3,26 @@
 {% block title %}429 - Too Many Requests{% endblock %}
 
 {% block content %}
-<div class="min-h-[70vh] flex items-center justify-center">
-    <div class="text-center">
-        <!-- Clock/Timer SVG Icon -->
-        <div class="mb-8 flex justify-center">
-            <svg class="w-32 h-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+<div class="flex min-h-[60vh] items-center justify-center">
+    <div class="w-full max-w-md text-center">
+        <div class="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
         </div>
 
-        <!-- Error Message -->
-        <h1 class="mb-4 text-6xl font-semibold text-blue-600">429</h1>
-        <h2 class="mb-4 text-2xl font-bold text-gray-800 dark:text-gray-200">Too Many Requests</h2>
-        <p class="mb-8 text-gray-600 dark:text-gray-400">Whoa there! Our robot needs a moment to catch up. Please try again in a bit.</p>
+        <p class="text-sm font-semibold text-blue-600 dark:text-blue-400">429</p>
+        <h1 class="page-title mt-1">Too many requests</h1>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">You're going a bit fast. Wait a moment, then try again.</p>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-center space-x-4">
-            <a href="{{ url_for('index') }}"
-               class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200">
-                Go Home
-            </a>
-            <button onclick="history.back()"
-                    class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:bg-gray-600 transition duration-200">
-                Go Back
+        <div class="mt-8 flex flex-col-reverse justify-center gap-3 sm:flex-row">
+            <button type="button" onclick="history.back()" class="btn btn-secondary py-2.5 sm:py-2">
+                Go back
             </button>
+            <a href="{{ url_for('index') }}" class="btn btn-primary py-2.5 sm:py-2">
+                Go home
+            </a>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
