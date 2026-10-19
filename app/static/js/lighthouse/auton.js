@@ -2,6 +2,14 @@
 const API_ENDPOINT = "/api/team_paths";
 const MAX_PATHS = 6;
 const MAX_PER_ALLIANCE = 3;
+
+// Auto notes and match numbers are typed by scouters; escape them before they
+// go into innerHTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[ch]);
+}
 const TEAM_COLORS = [
   "#2563eb", // blue
   "#f59e0b", // amber
@@ -296,11 +304,11 @@ function updateAvailablePaths() {
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium">Match ${path.match_number}</span>
-                        ${path.alliance === "red" || path.alliance === "blue" ? `<span class="badge ${path.alliance === "red" ? "badge-red" : "badge-blue"} capitalize">${path.alliance}</span>` : path.alliance ? `<span class="badge badge-gray capitalize">${path.alliance}</span>` : ""}
+                        <span class="text-sm font-medium">Match ${escapeHtml(path.match_number)}</span>
+                        ${path.alliance === "red" || path.alliance === "blue" ? `<span class="badge ${path.alliance === "red" ? "badge-red" : "badge-blue"} capitalize">${path.alliance}</span>` : path.alliance ? `<span class="badge badge-gray capitalize">${escapeHtml(path.alliance)}</span>` : ""}
                     </div>
-                    <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${path.event_name || path.event_code}</div>
-                    ${path.auto_notes ? `<div class="mt-1 text-xs text-zinc-600 dark:text-zinc-300">${path.auto_notes}</div>` : ""}
+                    <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">${escapeHtml(path.event_name || path.event_code)}</div>
+                    ${path.auto_notes ? `<div class="mt-1 text-xs text-zinc-600 dark:text-zinc-300">${escapeHtml(path.auto_notes)}</div>` : ""}
                 </div>
                 <button type="button" class="add-path-btn btn btn-secondary btn-sm">
                     Add
@@ -408,15 +416,15 @@ function updateSelectedPaths() {
 
     // Format team name display - include name in parentheses if available
     const teamDisplay = path.teamName
-      ? `Team ${path.teamNumber} (${path.teamName})`
-      : `Team ${path.teamNumber}`;
+      ? `Team ${escapeHtml(path.teamNumber)} (${escapeHtml(path.teamName)})`
+      : `Team ${escapeHtml(path.teamNumber)}`;
 
     card.innerHTML = `
             <span class="color-indicator" style="background-color: ${path.color};"></span>
             <div class="min-w-0 flex-1">
-                <div class="break-words text-sm font-medium">${teamDisplay} · Match ${path.matchNumber}</div>
+                <div class="break-words text-sm font-medium">${teamDisplay} · Match ${escapeHtml(path.matchNumber)}</div>
                 <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    ${path.eventCode}
+                    ${escapeHtml(path.eventCode)}
                     ${
                       path.alliance
                         ? `<span class="badge ${
@@ -425,7 +433,7 @@ function updateSelectedPaths() {
                               : path.alliance === "blue"
                                 ? "badge-blue"
                                 : "badge-gray"
-                          } capitalize">${path.alliance}</span>`
+                          } capitalize">${escapeHtml(path.alliance)}</span>`
                         : ""
                     }
                 </div>

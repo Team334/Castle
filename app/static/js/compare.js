@@ -3,6 +3,14 @@ const API_ENDPOINT = '/api/compare';
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 3;
 
+// Scouting notes, match numbers and team names are typed by users or come from
+// TBA; escape them before they go into innerHTML.
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[ch]);
+}
+
 // DOM Elements
 const team1Input = document.getElementById('team1-input');
 const team2Input = document.getElementById('team2-input');
@@ -263,15 +271,15 @@ function updateRawDataTable(data) {
 
             row.innerHTML = `
                 <td class="font-semibold !text-zinc-900 dark:!text-zinc-100">
-                    ${teamNumber}
+                    ${escapeHtml(teamNumber)}
                 </td>
                 <td>
                     ${match.alliance === 'red' || match.alliance === 'blue'
                         ? `<span class="badge ${match.alliance === 'red' ? 'badge-red' : 'badge-blue'}">${match.alliance === 'red' ? 'Red' : 'Blue'}</span>`
-                        : (match.alliance || '-')}
+                        : escapeHtml(match.alliance || '-')}
                 </td>
                 <td class="!text-zinc-900 dark:!text-zinc-100">
-                    ${match.match_number || '-'}
+                    ${escapeHtml(match.match_number || '-')}
                 </td>
                 <td>
                    ${match.auto_fuel || 0}
@@ -293,19 +301,21 @@ function updateRawDataTable(data) {
                 </td>
                 <td>
                     ${match.auto_path ? 
-                        `<button type="button" onclick='showAutoPath(${JSON.stringify(match.auto_path)}, ${JSON.stringify(match.auto_notes || '')}, "${match.device_type || ''}")' class="link">View</button>` 
+                        '<button type="button" class="link auto-path-button">View</button>'
                         : '<span class="text-zinc-400 dark:text-zinc-500">None</span>'}
                 </td>
                 <td>
                     ${match.defense_rating || 0}/5
                 </td>
                 <td class="max-w-xs truncate">
-                    ${match.notes || '-'}
+                    ${escapeHtml(match.notes || '-')}
                 </td>
                 <td>
-                    ${match.scouter?.username || match.scouter_name || '-'}
+                    ${escapeHtml(match.scouter?.username || match.scouter_name || '-')}
                 </td>
             `;
+            row.querySelector('.auto-path-button')?.addEventListener('click', () =>
+                showAutoPath(match.auto_path, match.auto_notes || '', match.device_type || ''));
             tbody.appendChild(row);
         });
     });
@@ -429,7 +439,7 @@ function updateAutoPaths(data) {
         
         // Add team header
         teamContainer.innerHTML = `
-            <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><span class="h-2 w-2 flex-shrink-0 rounded-full" style="background:${getTeamColor(index)}"></span><span class="truncate">${teamNumber} · ${teamData.nickname}</span></h4>
+            <h4 class="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><span class="h-2 w-2 flex-shrink-0 rounded-full" style="background:${getTeamColor(index)}"></span><span class="truncate">${escapeHtml(teamNumber)} · ${escapeHtml(teamData.nickname)}</span></h4>
         `;
 
         // Get auto paths from matches
@@ -475,18 +485,19 @@ function updateAutoPaths(data) {
                 
                 row.innerHTML = `
                     <td class="!text-zinc-900 dark:!text-zinc-100">
-                        ${pathData.match_number}
+                        ${escapeHtml(pathData.match_number)}
                     </td>
                     <td>
-                        <button type="button" onclick='showAutoPath(${JSON.stringify(pathData.path)}, ${JSON.stringify(pathData.notes || '')}, "${pathData.device_type || ''}")' 
-                                class="link">
+                        <button type="button" class="link auto-path-button">
                             View path
                         </button>
                     </td>
                     <td class="!whitespace-normal !text-zinc-500 dark:!text-zinc-400">
-                        ${pathData.notes || '-'}
+                        ${escapeHtml(pathData.notes || '-')}
                     </td>
                 `;
+                row.querySelector('.auto-path-button').addEventListener('click', () =>
+                    showAutoPath(pathData.path, pathData.notes || '', pathData.device_type || ''));
                 
                 tbody.appendChild(row);
             });
