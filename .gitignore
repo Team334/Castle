@@ -172,3 +172,6 @@ testing_*.py
 /instance/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Brainstorming mockups (superpowers visual companion)
+.superpowers/
