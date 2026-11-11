@@ -9,6 +9,8 @@ from bson import ObjectId
 from app.models import Team, TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
 
+from .TBA import EVENT_KEY_PATTERN, tba_match_key
+
 logger = logging.getLogger(__name__)
 
 SCOUTER_LOOKUP = {"$lookup": {
@@ -146,13 +148,33 @@ class ScoutingManager(DatabaseManager):
     # ============ Match records ============
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_scouting_data(self, data: dict, scouter_id: str) -> tuple[bool, str]:
-        """Add new scouting data with retry mechanism"""
+    def add_scouting_data(self, data: dict, scouter_id: str, team_number=None) -> tuple[bool, str]:
+        """Add a match record; team_number is the scout's team. Refuses a same-team duplicate."""
+        scout_team = team_number
         try:
             # Validate team number
             team_number = int(data["team_number"])
             if team_number <= 0:
                 return False, "Invalid team number"
+
+            event_key = str(data.get("_event_key") or "")
+            keys = {}
+            if EVENT_KEY_PATTERN.fullmatch(event_key) and (key := tba_match_key(event_key, str(data["match_number"]))):
+                keys = {"event_key": event_key, "match_key": key}
+                # shortcut: check-then-insert can race when two scouts save in the same second;
+                # a unique index needs the scout's team on the record.
+                scope = {"scouter.teamNumber": scout_team} if scout_team else {"scouter_id": ObjectId(scouter_id)}
+                duplicate = next(iter(self.db.team_data.aggregate([
+                    {"$match": {"match_key": key, "team_number": team_number, "excluded": {"$ne": True}}},
+                    SCOUTER_LOOKUP,
+                    UNWIND_SCOUTER,
+                    {"$match": scope},
+                    {"$limit": 1},
+                ])), None)
+                if duplicate:
+                    scout = duplicate.get("scouter", {}).get("username", "another scout")
+                    return False, (f"Team {team_number} in {data['match_number']} was already scouted by {scout}. "
+                                   "Edit that entry from the scouting list instead.")
 
             team_data = {
                 "team_number": team_number,
@@ -161,6 +183,7 @@ class ScoutingManager(DatabaseManager):
                 "alliance": data.get("alliance", "red"),
                 "auto_climb": bool(data.get("auto_climb", False)),
                 **_record_fields(data),
+                **keys,
 
                 # Metadata
                 "scouter_id": ObjectId(scouter_id),

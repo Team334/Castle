@@ -55,7 +55,8 @@ def add():
     for field in FUEL_FIELDS:
         if data.get(field) in (None, ""):
             data[field] = 0
-    success, message = common.scouting_manager.add_scouting_data(data, current_user.get_id())
+    success, message = common.scouting_manager.add_scouting_data(
+        data, current_user.get_id(), team_number=current_user.teamNumber)
     service = current_app.extensions.get("match13_fuel")
     if success and use_estimate and service:
         try:

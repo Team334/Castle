@@ -2,9 +2,22 @@
 
 MongoDB is never contacted: managers are built with __new__ and a MagicMock db."""
 import unittest
+from unittest.mock import MagicMock
+
+from bson import ObjectId
 
 from app.scout.match13_fuel import match_key
+from app.scout.scouting_utils import ScoutingManager
 from app.scout.TBA import tba_match_key
+from tests.app_harness import USER_ID
+
+
+def manager():
+    """A ScoutingManager whose db is a MagicMock; aggregate returns no rows by default."""
+    m = ScoutingManager.__new__(ScoutingManager)
+    m.db = MagicMock()
+    m.db.team_data.aggregate.return_value = []
+    return m
 
 
 class MatchKeyTests(unittest.TestCase):
@@ -23,6 +36,53 @@ class MatchKeyTests(unittest.TestCase):
     def test_match13_stays_2026_only(self):
         self.assertIsNone(match_key("2027nyny", "Qual 1"))
         self.assertEqual(match_key("2026nyny", "Qual 1"), "2026nyny_qm1")
+
+
+def form(**kw):
+    return {"team_number": "254", "event_code": "NYC Regional", "match_number": "Qual 12",
+            "_event_key": "2026nyny", **kw}
+
+
+class AddRecordTests(unittest.TestCase):
+    def setUp(self):
+        self.m = manager()
+
+    def test_valid_keys_are_stored(self):
+        ok, _ = self.m.add_scouting_data(form(), USER_ID, 334)
+        doc = self.m.db.team_data.insert_one.call_args.args[0]
+        self.assertTrue(ok)
+        self.assertEqual((doc["event_key"], doc["match_key"]), ("2026nyny", "2026nyny_qm12"))
+        self.assertEqual((doc["event_code"], doc["match_number"]), ("NYC Regional", "Qual 12"))
+
+    def test_missing_or_invalid_event_key_saves_without_keys_or_check(self):
+        for bad in ["", "javascript:", None]:
+            self.m.db.reset_mock()
+            ok, _ = self.m.add_scouting_data(form(_event_key=bad), USER_ID, 334)
+            doc = self.m.db.team_data.insert_one.call_args.args[0]
+            self.assertTrue(ok, bad)
+            self.assertNotIn("event_key", doc)
+            self.assertNotIn("match_key", doc)
+            self.m.db.team_data.aggregate.assert_not_called()
+
+    def test_same_team_duplicate_is_blocked_with_scout_name(self):
+        self.m.db.team_data.aggregate.return_value = [{"scouter": {"username": "sam"}}]
+        ok, msg = self.m.add_scouting_data(form(), USER_ID, 334)
+        self.assertFalse(ok)
+        self.assertEqual(msg, "Team 254 in Qual 12 was already scouted by sam. "
+                              "Edit that entry from the scouting list instead.")
+        self.m.db.team_data.insert_one.assert_not_called()
+
+    def test_duplicate_query_scopes_to_team_and_skips_excluded(self):
+        self.m.add_scouting_data(form(), USER_ID, 334)
+        pipeline = self.m.db.team_data.aggregate.call_args.args[0]
+        self.assertEqual(pipeline[0]["$match"],
+                         {"match_key": "2026nyny_qm12", "team_number": 254, "excluded": {"$ne": True}})
+        self.assertIn({"$match": {"scouter.teamNumber": 334}}, pipeline)
+
+    def test_teamless_scout_is_checked_against_own_records_only(self):
+        self.m.add_scouting_data(form(), USER_ID, None)
+        pipeline = self.m.db.team_data.aggregate.call_args.args[0]
+        self.assertIn({"$match": {"scouter_id": ObjectId(USER_ID)}}, pipeline)
 
 
 if __name__ == '__main__':
