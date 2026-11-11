@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timezone
 
 from bson import ObjectId
+from bson.errors import InvalidId
 
 from app.models import Team, TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
@@ -27,6 +28,9 @@ SCOUTER_LOOKUP = {"$lookup": {
 UNWIND_SCOUTER = {"$unwind": "$scouter"}
 # Phone/browser-generated entry ids (the add form's draft id); makes uploads safe to repeat.
 CLIENT_ID_PATTERN = re.compile(r"[A-Za-z0-9-]{1,64}\Z")
+# Imported entries never set these themselves: they are computed, owned by the server, or venue-only.
+IMPORT_PROTECTED = {"scouter_team", "excluded", "event_key", "match_key", "uploaded_by", "origin",
+                    "fuel_pending", "client_id", "scouter_id", "created_at"}
 # Stats skip records marked "Exclude from stats"; lists and scout counts keep them.
 COUNTED = {"$match": {"excluded": {"$ne": True}}}
 
@@ -65,6 +69,23 @@ SCOUTER_SORT_FIELDS = {
     'match_count': 'match_count',
     'unique_teams': 'unique_teams_count',
 }
+
+
+def _object_id(value) -> ObjectId | None:
+    """ObjectId for a valid id string/ObjectId, else None (uploaded data is untrusted)."""
+    try:
+        return ObjectId(value) if value is not None else None
+    except (InvalidId, TypeError):
+        return None
+
+
+def _parse_time(value) -> datetime | None:
+    """Aware datetime from an ISO string (naive means UTC), else None."""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def access_match(user_id, team_number=None) -> dict:
@@ -216,6 +237,38 @@ class ScoutingManager(DatabaseManager):
         except Exception as e:
             logger.error(f"Error adding team data: {str(e)}")
             return "rejected", "An internal error has occurred."
+
+    def import_matches(self, entries: list, uploader_id: str, uploader_team: int) -> list[dict]:
+        """Insert uploaded match entries (phone sync, QR, files); safe to repeat. One result per entry, in order."""
+        results = []
+        for index, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                results.append({"key": str(index), "status": "rejected", "reason": "not an entry"})
+                continue
+            oid = _object_id(entry.get("_id"))
+            client_id = entry.get("client_id")
+            client_id = client_id if isinstance(client_id, str) and CLIENT_ID_PATTERN.fullmatch(client_id) else None
+            key = client_id or (str(oid) if oid else str(index))
+            seen = [{"_id": oid}] if oid else []
+            seen += [{"client_id": client_id}] if client_id else []
+            # shortcut: unindexed _id/client_id lookup per entry; fine while team_data is small,
+            # index client_id if imports slow down.
+            if seen and self.db.team_data.find_one({"$or": seen}, {"_id": 1}):
+                results.append({"key": key, "status": "already_have"})
+                continue
+            scouter = _object_id(entry.get("scouter_id"))
+            if not scouter or (str(scouter) != str(uploader_id)
+                               and not self.db.users.find_one({"_id": scouter, "teamNumber": uploader_team})):
+                results.append({"key": key, "status": "rejected", "reason": "scout is not on your team"})
+                continue
+            data = {k: v for k, v in entry.items() if not k.startswith("_") and k not in IMPORT_PROTECTED}
+            data["_event_key"] = entry.get("event_key") or entry.get("_event_key")
+            status, detail = self._insert_record(
+                data, str(scouter), uploader_team, _id=oid, client_id=client_id,
+                created_at=_parse_time(entry.get("created_at")),
+                uploaded_by=None if str(scouter) == str(uploader_id) else uploader_id)
+            results.append({"key": key, "status": status, **({"id": detail} if status == "saved" else {"reason": detail})})
+        return results
 
     @with_mongodb_retry(retries=3, delay=2)
     def get_all_scouting_data(self, user_team_number=None, user_id=None, *,
