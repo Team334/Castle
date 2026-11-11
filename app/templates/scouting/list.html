@@ -41,7 +41,12 @@
       <h1 class="page-title">Scouting data</h1>
       <p class="page-subtitle">Match records from you and your team.</p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="{{ url_for('scouting.export_entries') }}" class="btn btn-secondary" title="Every entry you can see this season, for a backup or a venue laptop">Download all (JSON)</a>
+      <label class="btn btn-secondary cursor-pointer" title="Add entries from a Castle JSON file; ones already here are skipped">
+        Import file
+        <input type="file" id="importFile" accept=".json,application/json" class="sr-only">
+      </label>
       <button id="exportCSV" type="button" class="btn btn-secondary">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
         Export CSV
@@ -52,6 +57,7 @@
       </a>
     </div>
   </div>
+  <p id="importStatus" class="help -mt-4 mb-4 empty:hidden" role="status"></p>
 
   <nav class="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Scouting tools">
     <a href="{{ url_for('scouting.pit_scouting') }}" class="btn btn-secondary btn-sm">Pit scouting</a>
@@ -89,7 +95,7 @@
   <script src="{{ url_for('static', filename='js/team-stats.js', v='11') }}"></script>
 
   <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/scout/list.js', v='11') }}"></script>
+  <script src="{{ url_for('static', filename='js/scout/list.js', v='12') }}"></script>
   <script src="{{ url_for('static', filename='js/scout/fuel-estimates.js', v='11') }}"></script>
   {% endblock %}
 </div>

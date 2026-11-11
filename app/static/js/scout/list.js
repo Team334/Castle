@@ -232,6 +232,32 @@ document.addEventListener('DOMContentLoaded', function() {
         listController?.abort();
     }, {once: true});
 
+    // Import a Castle JSON file (backup, venue laptop, another device); the server skips entries it already has.
+    const importFile = document.getElementById('importFile');
+    const importStatus = document.getElementById('importStatus');
+    importFile?.addEventListener('change', async () => {
+        const file = importFile.files[0];
+        if (!file) return;
+        importStatus.textContent = 'Importing…';
+        const body = new FormData();
+        body.append('file', file);
+        try {
+            const response = await fetch('/scouting/import', {method: 'POST', body});
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                importStatus.textContent = result.error || `Import failed (${response.status}).`;
+            } else {
+                const c = result.counts || {};
+                importStatus.textContent = `Imported: ${c.saved || 0} saved, ${c.already_have || 0} already here, ` +
+                    `${c.duplicate || 0} duplicates, ${c.rejected || 0} rejected.`;
+            }
+        } catch {
+            importStatus.textContent = 'Import failed: no connection.';
+        } finally {
+            importFile.value = '';
+        }
+    });
+
     // Add CSV export button listener
     const exportButton = document.getElementById('exportCSV');
     if (exportButton) {
