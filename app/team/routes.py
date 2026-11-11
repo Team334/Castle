@@ -14,7 +14,7 @@ from app.notifications import routes as notifications
 from app.team.team_utils import TeamManager
 from app.utils import (allowed_file, error_response, get_gridfs,
                        handle_route_errors, limiter, save_file_to_gridfs,
-                       success_response)
+                       send_gridfs_file, success_response)
 
 from .forms import CreateTeamForm
 
@@ -399,18 +399,11 @@ def delete_team(team_number):
 def team_logo(team_number):
     try:
         team = team_manager.db.teams.find_one({"team_number": team_number})
-        
         if team and team.get("logo_id"):
-            logo_id = ObjectId(team["logo_id"]) if isinstance(team["logo_id"], str) else team["logo_id"]
-            logo = get_gridfs().get(logo_id)
-            return send_file(
-                BytesIO(logo.read()),
-                mimetype=logo.content_type,
-                download_name=logo.filename
-            )
+            return send_gridfs_file(team["logo_id"], "static/images/default_logo.png")
     except Exception as e:
         current_app.logger.error(f"Error fetching team logo: {str(e)}", exc_info=True)
-    
+
     # Return default logo on any error
     return send_file("static/images/default_logo.png")
 
