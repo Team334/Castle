@@ -57,9 +57,13 @@
     {{ event_matches | tojson | safe }}
   </script>
 
-  <form method="POST" class="space-y-6" id="scoutingForm" autocomplete="off">
+  <div id="draftBanner" class="mb-6 space-y-2 empty:hidden" aria-live="polite"></div>
+
+  <form method="POST" class="space-y-6" id="scoutingForm" autocomplete="off" data-user-id="{{ current_user.get_id() }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="_event_key" value="" />
+    <input type="hidden" name="_station" value="" />
+    <input type="hidden" name="_draft_id" value="" />
 
     <!-- Match -->
     <section class="card">
@@ -448,6 +452,7 @@
 <script src="{{ url_for('static', filename='js/scout/fuel-input.js', v='11') }}"></script>
 <script src="{{ url_for('static', filename='js/Canvas.js') }}"></script>
 <script src="{{ url_for('static', filename='js/scout/form-canvas.js') }}"></script>
-<script src="{{ url_for('static', filename='js/scout/add.js', v='11') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/add-flow.js', v='1') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/add.js', v='13') }}"></script>
 
 {% endblock %}

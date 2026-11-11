@@ -19,6 +19,8 @@ from pathlib import Path
 from bson import ObjectId
 import requests
 
+from .TBA import tba_match_key
+
 logger = logging.getLogger(__name__)
 PHASES = {
     "auto_fuel": "autoCount", "transition_fuel": "transitionCount",
@@ -36,17 +38,7 @@ def zero_scored_fuel(data):
 
 
 def match_key(event, label):
-    if not EVENT_PATTERN.fullmatch(event):
-        return None
-    if re.fullmatch(re.escape(event) + r"_(?:qm\d+|sf\d+m\d+|f\d+m\d+)", label):
-        return label
-    for pattern, suffix in [(r"Qual(?:ification)? (\d+)", "qm{}"),
-                            (r"(?:Semifinal|Semi-Finals) (\d+)-(\d+)", "sf{}m{}"),
-                            (r"Finals? (\d+)", "f1m{}")]:
-        found = re.fullmatch(pattern, label, re.I)
-        if found:
-            return event + "_" + suffix.format(*found.groups())
-    return None
+    return tba_match_key(event, label) if EVENT_PATTERN.fullmatch(event) else None
 
 
 def apportioned(total, weights):

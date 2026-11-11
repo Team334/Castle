@@ -453,7 +453,7 @@ class RouteTests(unittest.TestCase):
         self.app = Flask(__name__)
         self.app.config.update(LOGIN_DISABLED=True, SECRET_KEY='test-only')
         self.app.add_url_rule('/scouting', endpoint='scouting.home', view_func=lambda: 'ok')
-        self.app.add_url_rule('/scouting/add', view_func=records.add, methods=['POST'])
+        self.app.add_url_rule('/scouting/add', endpoint='scouting.add', view_func=records.add, methods=['POST'])
         self.app.add_url_rule('/api/fuel_estimates', view_func=records.fuel_estimates, methods=['POST'])
         self.service = MagicMock()
         self.app.extensions['match13_fuel'] = self.service

@@ -9,6 +9,8 @@ from bson import ObjectId
 from app.models import Team, TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
 
+from .TBA import EVENT_KEY_PATTERN, tba_match_key
+
 logger = logging.getLogger(__name__)
 
 SCOUTER_LOOKUP = {"$lookup": {
@@ -18,6 +20,8 @@ SCOUTER_LOOKUP = {"$lookup": {
     "as": "scouter"
 }}
 UNWIND_SCOUTER = {"$unwind": "$scouter"}
+# Stats skip records marked "Exclude from stats"; lists and scout counts keep them.
+COUNTED = {"$match": {"excluded": {"$ne": True}}}
 
 PIT_PROJECTION = {
     "_id": 1,
@@ -146,13 +150,33 @@ class ScoutingManager(DatabaseManager):
     # ============ Match records ============
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_scouting_data(self, data: dict, scouter_id: str) -> tuple[bool, str]:
-        """Add new scouting data with retry mechanism"""
+    def add_scouting_data(self, data: dict, scouter_id: str, team_number=None) -> tuple[bool, str]:
+        """Add a match record; team_number is the scout's team. Refuses a same-team duplicate."""
+        scout_team = team_number
         try:
             # Validate team number
             team_number = int(data["team_number"])
             if team_number <= 0:
                 return False, "Invalid team number"
+
+            event_key = str(data.get("_event_key") or "")
+            keys = {}
+            if EVENT_KEY_PATTERN.fullmatch(event_key) and (key := tba_match_key(event_key, str(data["match_number"]))):
+                keys = {"event_key": event_key, "match_key": key}
+                # shortcut: check-then-insert can race when two scouts save in the same second;
+                # a unique index needs the scout's team on the record.
+                scope = {"scouter.teamNumber": scout_team} if scout_team else {"scouter_id": ObjectId(scouter_id)}
+                duplicate = next(iter(self.db.team_data.aggregate([
+                    {"$match": {"match_key": key, "team_number": team_number, "excluded": {"$ne": True}}},
+                    SCOUTER_LOOKUP,
+                    UNWIND_SCOUTER,
+                    {"$match": scope},
+                    {"$limit": 1},
+                ])), None)
+                if duplicate:
+                    scout = duplicate.get("scouter", {}).get("username", "another scout")
+                    return False, (f"Team {team_number} in {data['match_number']} was already scouted by {scout}. "
+                                   "Edit that entry from the scouting list instead.")
 
             team_data = {
                 "team_number": team_number,
@@ -161,6 +185,7 @@ class ScoutingManager(DatabaseManager):
                 "alliance": data.get("alliance", "red"),
                 "auto_climb": bool(data.get("auto_climb", False)),
                 **_record_fields(data),
+                **keys,
 
                 # Metadata
                 "scouter_id": ObjectId(scouter_id),
@@ -217,7 +242,8 @@ class ScoutingManager(DatabaseManager):
                     "scouter_id": 1,
                     "scouter_name": "$scouter.username",
                     "scouter_team": "$scouter.teamNumber",
-                    "device_type": 1
+                    "device_type": 1,
+                    "excluded": 1
                 }
             })
 
@@ -362,11 +388,20 @@ class ScoutingManager(DatabaseManager):
                 "match_number": match_number,
                 "alliance": alliance,
                 **_record_fields(data),
+                "excluded": _is_checked(data.get("excluded")),
             }
+
+            # Hand-typed identity can't be mapped back to TBA: unlink rather than mislink.
+            if existing_data.get("event_code") != event_code:
+                unset = {"event_key": "", "match_key": ""}
+            elif existing_data.get("match_number") != match_number:
+                unset = {"match_key": ""}
+            else:
+                unset = {}
 
             result = self.db.team_data.update_one(
                 {"_id": ObjectId(team_id)},
-                {"$set": updated_data},
+                {"$set": updated_data, **({"$unset": unset} if unset else {})},
             )
             return result.matched_count > 0
         except Exception as e:
@@ -429,6 +464,7 @@ class ScoutingManager(DatabaseManager):
     def get_match_alliances(self, user_id, team_number) -> list[dict]:
         """Visible records grouped by (event, match), each team's fuel and climb defaulted."""
         return list(self.db.team_data.aggregate([
+            COUNTED,
             *self._visible_records(user_id, team_number),
             {"$group": {
                 "_id": {
@@ -464,6 +500,7 @@ class ScoutingManager(DatabaseManager):
         """Averages for one team over the user's visible records, or None without data."""
         stats = list(self.db.team_data.aggregate([
             {"$match": {"team_number": team}},
+            COUNTED,
             *self._visible_records(user_id, team_number),
             {"$group": {
                 "_id": "$team_number",
@@ -545,6 +582,7 @@ class ScoutingManager(DatabaseManager):
         """A team's visible records that drew an auto path, newest match first."""
         return list(self.db.team_data.aggregate([
             {"$match": {"team_number": team}},
+            COUNTED,
             SCOUTER_LOOKUP,
             {"$unwind": {"path": "$scouter", "preserveNullAndEmptyArrays": True}},
             access_match(user_id, team_number),
@@ -580,7 +618,7 @@ class ScoutingManager(DatabaseManager):
     def get_team_leaderboard(self, user_id, team_number, event="all", sort_field=None,
                              min_matches=1) -> list[dict]:
         """Per-team averages over visible records; sorted descending by sort_field when given."""
-        pipeline = self._visible_records(user_id, team_number)
+        pipeline = [COUNTED, *self._visible_records(user_id, team_number)]
         if event != 'all':
             pipeline.append({"$match": {"event_code": event}})
         pipeline.extend([

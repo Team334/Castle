@@ -40,9 +40,13 @@ const updateMatchResult = () => {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
+  let canvasField = null;
   const { updatePathData } = initScoutFormCanvas({
     updateUIControls,
     resizeOnHome: true,
+    onCanvasReady(field) {
+      canvasField = field;
+    },
   });
 
   // Form submission handling
@@ -79,7 +83,15 @@ document.addEventListener("DOMContentLoaded", function () {
       //     form.submit();
       // }
       form.elements._event_key.value = eventSelect.options[eventSelect.selectedIndex]?.dataset.key || "";
-      form.submit();
+      form.elements._station.value = stationOf(teamSelect.options[teamSelect.selectedIndex]);
+      // Keep the entry recoverable until the server confirms the save (?saved=<draft id>),
+      // but never let draft code (e.g. add-flow.js failing to load) block the save itself.
+      try {
+        dirty = true;
+        persistDraft();
+      } finally {
+        form.submit();
+      }
     });
   }
 
@@ -300,13 +312,13 @@ document.addEventListener("DOMContentLoaded", function () {
   refreshEvents();
 
   // Load matches when event is selected
-  eventSelect.addEventListener("change", async function () {
+  async function loadMatchesForSelectedEvent() {
     matchesController?.abort();
     const controller = matchesController = new AbortController();
     currentMatches = null;
     matchStatus.textContent = "";
     matchSelect.disabled = false;
-    const selectedOption = this.options[this.selectedIndex];
+    const selectedOption = eventSelect.options[eventSelect.selectedIndex];
     const selectedEventKey = selectedOption?.dataset.key;
     matchSelect.innerHTML = '<option value="">Select Match</option>';
     matchSearchable.clear();
@@ -404,6 +416,11 @@ document.addEventListener("DOMContentLoaded", function () {
         matchSearchable.updateOptions();
       }
     }
+  }
+  // Preselection and draft restore await the load the latest event change started.
+  let matchesLoading = Promise.resolve();
+  eventSelect.addEventListener("change", () => {
+    matchesLoading = loadMatchesForSelectedEvent();
   });
 
   // Load teams when match is selected
@@ -489,6 +506,168 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
   });
+
+  // ---- Drafts (add-flow.js) and next-match preselection ----
+  let storage = null;
+  try {
+    storage = window.localStorage;
+  } catch {}
+  const userId = form.dataset.userId;
+  const NOT_SAVED = new Set(["csrf_token", "_draft_id", "_event_key", "_station"]);
+  // Identity is restored through the dropdowns; the path through the canvas.
+  const NOT_FILLED = new Set([...NOT_SAVED, "event_code", "match_number", "team_number", "alliance", "auto_path"]);
+  const isData = el => el.name && !["button", "submit", "reset", "file"].includes(el.type);
+  let dirty = false;
+  let saveTimer;
+  let preselectRun = 0;
+
+  function stationOf(option) {
+    const alliance = option?.dataset.alliance;
+    if (!alliance) return "";
+    const same = [...teamSelect.options].filter(o => o.dataset.alliance === alliance);
+    return alliance + (same.indexOf(option) + 1);
+  }
+
+  function stationOption(station) {
+    const found = /^(red|blue)([1-3])$/.exec(station || "");
+    if (!found) return null;
+    return [...teamSelect.options].filter(o => o.dataset.alliance === found[1])[found[2] - 1] || null;
+  }
+
+  function readFields() {
+    const fields = {};
+    for (const el of form.elements) {
+      if (!isData(el) || NOT_SAVED.has(el.name)) continue;
+      fields[el.name] = el.type === "checkbox" ? el.checked : el.value;
+    }
+    return fields;
+  }
+
+  function fillFields(fields) {
+    for (const el of form.elements) {
+      if (!isData(el) || NOT_FILLED.has(el.name) || !(el.name in fields)) continue;
+      if (el.type === "checkbox") el.checked = fields[el.name] === true;
+      else el.value = fields[el.name];
+      el.dispatchEvent(new Event("change", {bubbles: true}));
+    }
+  }
+
+  function restorePath(path) {
+    if (!canvasField) return;
+    try {
+      canvasField.drawingHistory = JSON.parse(path || "[]");
+    } catch {
+      canvasField.drawingHistory = [];
+    }
+    canvasField.redrawCanvas();
+    updatePathData();
+  }
+
+  function persistDraft() {
+    clearTimeout(saveTimer);
+    if (!dirty) return;
+    updatePathData();
+    saveDraft(storage, userId, form.elements._draft_id.value, {
+      fields: readFields(),
+      event_key: eventSelect.options[eventSelect.selectedIndex]?.dataset.key || "",
+      match: matchSelect.value,
+      team: teamSelect.value,
+    });
+  }
+
+  // Only the scout's own actions save: preselection and restore fill fields by code (untrusted
+  // events). Counter buttons fire a synthetic change, so their trusted click counts instead.
+  function markDirty(e) {
+    if (!e.isTrusted) return;
+    if (e.type === "click" && !e.target.closest?.(".counter-group")) return;
+    if (e.type === "pointerup" && e.target.id !== "autoPath") return;
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persistDraft, 500);
+  }
+  for (const type of ["input", "change", "click", "pointerup"]) form.addEventListener(type, markDirty);
+  window.addEventListener("pagehide", persistDraft);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") persistDraft();
+  });
+
+  // Select the event, then a match (exact label, or the one after `after`), then a team
+  // (exact number, or the one at `station`); stop quietly at the first step that can't resolve.
+  async function preselect({event, match, after, station, team}) {
+    const run = ++preselectRun;
+    const eventOption = event && [...eventSelect.options].find(o => o.dataset.key === event);
+    if (!eventOption) return;
+    eventSelect.value = eventOption.value;
+    eventSelect.dispatchEvent(new Event("change"));
+    await matchesLoading;
+    if (run !== preselectRun) return;
+    const values = [...matchSelect.options].map(o => o.value);
+    const label = match ? (values.includes(match) ? match : null) : after ? nextMatchValue(values, after) : null;
+    if (!label) return;
+    matchSelect.value = label;
+    matchSelect.dispatchEvent(new Event("change"));
+    const teamOption = team ? [...teamSelect.options].find(o => o.value === team) : stationOption(station);
+    if (!teamOption) return;
+    teamSelect.value = teamOption.value;
+    teamSelect.dispatchEvent(new Event("change"));
+  }
+
+  function savedAgo(savedAt) {
+    const minutes = Math.max(1, Math.round((Date.now() - savedAt) / 60000));
+    return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+  }
+
+  function renderDraftBanner() {
+    const banner = document.getElementById("draftBanner");
+    if (!banner) return;
+    banner.replaceChildren();
+    for (const draft of otherDrafts(loadDrafts(storage, userId), form.elements._draft_id.value)) {
+      const item = document.createElement("div");
+      item.className = "card";
+      const body = document.createElement("div");
+      body.className = "card-body flex flex-wrap items-center justify-between gap-3";
+      const text = document.createElement("p");
+      text.className = "text-sm";
+      text.textContent = `Unsaved entry: Team ${draft.team || "?"}, ${draft.match || "no match"} (saved ${savedAgo(draft.savedAt)})`;
+      const actions = document.createElement("div");
+      actions.className = "flex gap-2";
+      const discard = document.createElement("button");
+      discard.type = "button";
+      discard.className = "btn btn-secondary";
+      discard.textContent = "Discard";
+      discard.addEventListener("click", () => {
+        removeDraft(storage, userId, draft.id);
+        item.remove();
+      });
+      const restore = document.createElement("button");
+      restore.type = "button";
+      restore.className = "btn btn-primary";
+      restore.textContent = "Restore";
+      restore.addEventListener("click", async () => {
+        // Keep the entry being replaced (saved only if the scout touched it); it is offered back.
+        persistDraft();
+        form.elements._draft_id.value = draft.id;
+        dirty = false;
+        // Fill before the (possibly slow) match load: changing event/match only resets the
+        // match, team and alliance fields, so nothing filled here is lost.
+        fillFields(draft.fields || {});
+        restorePath(draft.fields?.auto_path);
+        renderDraftBanner();
+        await preselect({event: draft.event_key, match: draft.match, team: draft.team});
+      });
+      actions.append(discard, restore);
+      body.append(text, actions);
+      item.append(body);
+      banner.append(item);
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("saved")) removeDraft(storage, userId, params.get("saved"));
+  form.elements._draft_id.value = newDraftId();
+  renderDraftBanner();
+  preselect({event: params.get("event"), match: params.get("match"), after: params.get("after"),
+             station: params.get("station")});
 });
 
 // Update the updateUIControls method to be more specific

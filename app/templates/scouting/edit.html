@@ -386,6 +386,11 @@
       </div>
     </section>
 
+    <label class="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <input type="checkbox" name="excluded" value="true" {% if team_data.excluded %}checked{% endif %} class="checkbox h-5 w-5 accent-blue-600">
+      Exclude from stats (keeps the record and its notes)
+    </label>
+
     <!-- Actions -->
     <div class="sticky bottom-0 z-20 -mx-4 flex gap-2 border-t border-zinc-200 bg-zinc-50/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none dark:border-zinc-800 dark:bg-zinc-950/95 sm:dark:bg-transparent">
       <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary btn-lg flex-1 sm:flex-none">Cancel</a>
