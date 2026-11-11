@@ -20,6 +20,8 @@ SCOUTER_LOOKUP = {"$lookup": {
     "as": "scouter"
 }}
 UNWIND_SCOUTER = {"$unwind": "$scouter"}
+# Stats skip records marked "Exclude from stats"; lists and scout counts keep them.
+COUNTED = {"$match": {"excluded": {"$ne": True}}}
 
 PIT_PROJECTION = {
     "_id": 1,
@@ -240,7 +242,8 @@ class ScoutingManager(DatabaseManager):
                     "scouter_id": 1,
                     "scouter_name": "$scouter.username",
                     "scouter_team": "$scouter.teamNumber",
-                    "device_type": 1
+                    "device_type": 1,
+                    "excluded": 1
                 }
             })
 
@@ -461,6 +464,7 @@ class ScoutingManager(DatabaseManager):
     def get_match_alliances(self, user_id, team_number) -> list[dict]:
         """Visible records grouped by (event, match), each team's fuel and climb defaulted."""
         return list(self.db.team_data.aggregate([
+            COUNTED,
             *self._visible_records(user_id, team_number),
             {"$group": {
                 "_id": {
@@ -496,6 +500,7 @@ class ScoutingManager(DatabaseManager):
         """Averages for one team over the user's visible records, or None without data."""
         stats = list(self.db.team_data.aggregate([
             {"$match": {"team_number": team}},
+            COUNTED,
             *self._visible_records(user_id, team_number),
             {"$group": {
                 "_id": "$team_number",
@@ -577,6 +582,7 @@ class ScoutingManager(DatabaseManager):
         """A team's visible records that drew an auto path, newest match first."""
         return list(self.db.team_data.aggregate([
             {"$match": {"team_number": team}},
+            COUNTED,
             SCOUTER_LOOKUP,
             {"$unwind": {"path": "$scouter", "preserveNullAndEmptyArrays": True}},
             access_match(user_id, team_number),
@@ -612,7 +618,7 @@ class ScoutingManager(DatabaseManager):
     def get_team_leaderboard(self, user_id, team_number, event="all", sort_field=None,
                              min_matches=1) -> list[dict]:
         """Per-team averages over visible records; sorted descending by sort_field when given."""
-        pipeline = self._visible_records(user_id, team_number)
+        pipeline = [COUNTED, *self._visible_records(user_id, team_number)]
         if event != 'all':
             pipeline.append({"$match": {"event_code": event}})
         pipeline.extend([

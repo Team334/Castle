@@ -11,7 +11,7 @@ from flask import Flask
 
 from app.scout.match13_fuel import match_key
 from app.scout.routes import common, records
-from app.scout.scouting_utils import ScoutingManager
+from app.scout.scouting_utils import COUNTED, ScoutingManager
 from app.scout.TBA import tba_match_key
 from tests.app_harness import USER_ID
 
@@ -165,6 +165,32 @@ class EditTests(unittest.TestCase):
     def test_excluded_checkbox_round_trips(self):
         self.assertIs(self.update(excluded="true")["$set"]["excluded"], True)
         self.assertIs(self.update()["$set"]["excluded"], False)
+
+
+class ExclusionTests(unittest.TestCase):
+    def setUp(self):
+        self.m = manager()
+
+    def pipeline(self):
+        return self.m.db.team_data.aggregate.call_args.args[0]
+
+    def test_stat_pipelines_skip_excluded_records(self):
+        calls = {"match view": lambda: self.m.get_match_alliances(USER_ID, 334),
+                 "compare": lambda: self.m.get_compare_stats(254, USER_ID, 334),
+                 "auto paths": lambda: self.m.get_auto_paths(254, USER_ID, 334),
+                 "leaderboard": lambda: self.m.get_team_leaderboard(USER_ID, 334)}
+        for name, call in calls.items():
+            self.m.db.team_data.aggregate.reset_mock()
+            call()
+            self.assertIn(COUNTED, self.pipeline(), name)
+
+    def test_list_and_scouter_counts_keep_excluded_records(self):
+        self.m.get_scouter_leaderboard()
+        self.assertNotIn(COUNTED, self.pipeline())
+        self.m.get_all_scouting_data(334, USER_ID, page=1)
+        pipeline = self.pipeline()
+        self.assertNotIn(COUNTED, pipeline)
+        self.assertEqual(next(stage for stage in pipeline if "$project" in stage)["$project"]["excluded"], 1)
 
 
 if __name__ == '__main__':
