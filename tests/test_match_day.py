@@ -2,11 +2,15 @@
 
 MongoDB is never contacted: managers are built with __new__ and a MagicMock db."""
 import unittest
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 from bson import ObjectId
+from flask import Flask
 
 from app.scout.match13_fuel import match_key
+from app.scout.routes import common, records
 from app.scout.scouting_utils import ScoutingManager
 from app.scout.TBA import tba_match_key
 from tests.app_harness import USER_ID
@@ -83,6 +87,54 @@ class AddRecordTests(unittest.TestCase):
         self.m.add_scouting_data(form(), USER_ID, None)
         pipeline = self.m.db.team_data.aggregate.call_args.args[0]
         self.assertIn({"$match": {"scouter_id": ObjectId(USER_ID)}}, pipeline)
+
+
+class AddRedirectTests(unittest.TestCase):
+    BASE = {"team_number": "254", "event_code": "NYC Regional", "alliance": "red"}
+    GOOD = {"_event_key": "2026nyny", "match_number": "Qual 12", "_station": "red2", "_draft_id": "abc-123"}
+
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config.update(LOGIN_DISABLED=True, SECRET_KEY="test-only")
+        self.app.add_url_rule("/scouting", endpoint="scouting.home", view_func=lambda: "ok")
+        self.app.add_url_rule("/scouting/add", endpoint="scouting.add", view_func=records.add, methods=["GET", "POST"])
+        self.manager = MagicMock()
+        self.manager.add_scouting_data.return_value = (True, str(ObjectId()))
+        user = SimpleNamespace(get_id=lambda: USER_ID, teamNumber=334, is_authenticated=True, username="tester")
+        for item in (patch.object(records, "current_user", user), patch.object(common, "scouting_manager", self.manager)):
+            item.start()
+            self.addCleanup(item.stop)
+
+    def post(self, data):
+        response = self.app.test_client().post("/scouting/add", data={**self.BASE, **data})
+        self.assertEqual(response.status_code, 302)
+        url = urlparse(response.location)
+        return url.path, parse_qs(url.query)
+
+    def test_success_redirects_to_next_match_with_validated_params(self):
+        path, query = self.post(self.GOOD)
+        self.assertEqual(path, "/scouting/add")
+        self.assertEqual(query, {"event": ["2026nyny"], "after": ["Qual 12"], "station": ["red2"], "saved": ["abc-123"]})
+
+    def test_failure_redirects_to_same_match_without_saved(self):
+        self.manager.add_scouting_data.return_value = (False, "dup")
+        path, query = self.post(self.GOOD)
+        self.assertEqual(path, "/scouting/add")
+        self.assertEqual(query, {"event": ["2026nyny"], "match": ["Qual 12"], "station": ["red2"]})
+
+    def test_invalid_redirect_params_are_dropped(self):
+        _, query = self.post({"_event_key": "javascript:", "match_number": "x" * 500,
+                              "_station": "../x", "_draft_id": "a b<"})
+        self.assertNotIn("event", query)
+        self.assertNotIn("station", query)
+        self.assertNotIn("saved", query)
+        self.assertEqual(query["after"], ["x" * 32])
+
+    def test_bad_auto_path_json_returns_to_add_form(self):
+        path, query = self.post({"auto_path": "{not json", "_event_key": "2026nyny", "match_number": "Qual 1"})
+        self.assertEqual(path, "/scouting/add")
+        self.assertEqual(query, {"event": ["2026nyny"], "match": ["Qual 1"]})
+        self.manager.add_scouting_data.assert_not_called()
 
 
 if __name__ == '__main__':

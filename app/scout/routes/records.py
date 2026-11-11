@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 
 from bson import ObjectId
@@ -12,11 +13,28 @@ from flask_login import current_user, login_required
 from app.utils import handle_route_errors
 
 from ..match13_fuel import FUEL_FIELDS, zero_scored_fuel
-from ..TBA import TBAInterface
+from ..TBA import EVENT_KEY_PATTERN, TBAInterface
 from . import common
 from .common import TELEOP_SHIFT_FIELDS, actor_name, fuel_total, scouting_bp
 
 SCOUTING_PAGE_SIZE = 20
+STATION_PATTERN = re.compile(r"(red|blue)[1-3]\Z")
+DRAFT_ID_PATTERN = re.compile(r"[A-Za-z0-9-]{1,64}\Z")
+
+
+def _add_form_url(data: dict, saved: bool) -> str:
+    """Back to the add form: the next match after a save, the same match after a failure.
+    Only validated values reach the URL; the label is only compared in JS, never rendered."""
+    params = {}
+    if EVENT_KEY_PATTERN.fullmatch(event := str(data.get("_event_key") or "")):
+        params["event"] = event
+    if label := str(data.get("match_number") or "")[:32]:
+        params["after" if saved else "match"] = label
+    if STATION_PATTERN.fullmatch(station := str(data.get("_station") or "")):
+        params["station"] = station
+    if saved and DRAFT_ID_PATTERN.fullmatch(draft := str(data.get("_draft_id") or "")):
+        params["saved"] = draft
+    return url_for("scouting.add", **params)
 
 
 def _user_team():
@@ -49,7 +67,7 @@ def add():
                     data["auto_path"] = []
         except json.JSONDecodeError:
             flash("Invalid path coordinates format", "error")
-            return redirect(url_for("scouting.home"))
+            return redirect(_add_form_url(data, saved=False))
 
     use_estimate = zero_scored_fuel(data)
     for field in FUEL_FIELDS:
@@ -70,7 +88,7 @@ def add():
     else:
         flash(f"Error adding data: {message}", "error")
 
-    return redirect(url_for("scouting.home"))
+    return redirect(_add_form_url(data, saved=success))
 
 
 @scouting_bp.route("/scouting/list")
