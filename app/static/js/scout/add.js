@@ -98,13 +98,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.createElement("input");
     searchInput.type = "text";
     searchInput.placeholder = `Search ${placeholder}...`;
-    searchInput.className =
-      "w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white";
+    searchInput.className = "input";
 
     // Create dropdown container
     const dropdownContainer = document.createElement("div");
     dropdownContainer.className =
-      "absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto hidden dark:bg-gray-700 dark:border-gray-600";
+      "absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-zinc-200 bg-white py-1 text-sm shadow-md hidden dark:border-zinc-700 dark:bg-zinc-900";
 
     // Insert new elements
     selectElement.parentNode.insertBefore(wrapper, selectElement);
@@ -137,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } // Skip placeholder option
 
         const option = document.createElement("div");
-        option.className = "px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600";
+        option.className = "cursor-pointer px-3 py-2.5 text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800";
         option.textContent = opt.text;
 
         option.addEventListener("click", () => {
@@ -245,11 +244,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const matchSearchable = createSearchableDropdown(matchSelect, "Matches");
 
   const eventStatus = document.createElement("p");
-  eventStatus.className = "text-sm text-gray-500 mt-1";
+  eventStatus.className = "help";
   eventStatus.setAttribute("role", "status");
   eventSelect.parentElement.appendChild(eventStatus);
   const matchStatus = document.createElement("p");
-  matchStatus.className = "text-sm text-gray-500 mt-1";
+  matchStatus.className = "help";
   matchStatus.setAttribute("role", "status");
   matchSelect.parentElement.appendChild(matchStatus);
   const eventsController = new AbortController();
@@ -456,11 +455,11 @@ document.addEventListener("DOMContentLoaded", function () {
       allianceInput.value = selectedOption.dataset.alliance;
 
       // Optional: Add visual feedback of selected alliance
-      this.classList.remove("border-red-500", "border-blue-500");
-      this.classList.add(`border-${selectedOption.dataset.alliance}-500`);
+      this.classList.remove("border-red-500", "border-blue-500", "dark:border-red-500", "dark:border-blue-500");
+      this.classList.add(`border-${selectedOption.dataset.alliance}-500`, `dark:border-${selectedOption.dataset.alliance}-500`);
     } else {
       allianceInput.value = "";
-      this.classList.remove("border-red-500", "border-blue-500");
+      this.classList.remove("border-red-500", "border-blue-500", "dark:border-red-500", "dark:border-blue-500");
     }
   });
 
@@ -474,11 +473,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Update button states
       tabButtons.forEach((btn) => {
-        btn.classList.remove("border-blue-500", "text-blue-600");
-        btn.classList.add("border-transparent", "text-gray-500");
+        btn.classList.remove("active");
       });
-      button.classList.remove("border-transparent", "text-gray-500");
-      button.classList.add("border-blue-500", "text-blue-600");
+      button.classList.add("active");
 
       // Update content visibility
       tabContents.forEach((content) => {

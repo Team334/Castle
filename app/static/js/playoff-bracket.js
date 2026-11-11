@@ -209,7 +209,7 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser, isChampion) {
     const seedEl = el.querySelector('.seed-badge');
     const winnerIcon = el.querySelector('.winner-icon');
 
-    el.classList.remove('bg-green-50', 'bg-gray-100', 'opacity-50', 'grayscale', 'border-green-500', 'cursor-not-allowed', 'bg-gray-50');
+    el.classList.remove('bg-green-50', 'border-green-500/40', 'dark:bg-green-500/10', 'opacity-50', 'grayscale', 'cursor-not-allowed', 'bg-zinc-50', 'dark:bg-zinc-800/40');
     el.classList.add('cursor-pointer'); // Default back to pointer
 
     // Reset icon & crown
@@ -221,8 +221,8 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser, isChampion) {
     let crown = el.querySelector('.champion-crown');
     if (!crown) {
         crown = document.createElement('div');
-        crown.className = 'champion-crown absolute -top-2 -right-2 text-yellow-500 transform scale-0 transition-transform duration-300 pointer-events-none z-20 filter drop-shadow-md';
-        crown.innerHTML = '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>';
+        crown.className = 'champion-crown pointer-events-none absolute -right-2 -top-2 z-20 scale-0 transform text-amber-500 transition-transform duration-300 dark:text-amber-400';
+        crown.innerHTML = '<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>';
         el.appendChild(crown);
     }
     crown.classList.remove('scale-100');
@@ -241,28 +241,28 @@ function updateAllianceOption(el, allianceData, isWinner, isLoser, isChampion) {
        }
 
         if (isWinner) {
-            el.classList.add('bg-green-50', 'border-green-500');
+            el.classList.add('bg-green-50', 'border-green-500/40', 'dark:bg-green-500/10');
             if (winnerIcon) {
                 winnerIcon.classList.remove('opacity-0', 'scale-0');
                 winnerIcon.classList.add('opacity-100', 'scale-100');
             }
         } else if (isLoser) {
-            el.classList.add('bg-gray-100', 'opacity-50', 'grayscale');
+            el.classList.add('opacity-50', 'grayscale');
         }
         
         if (isChampion) {
              crown.classList.remove('scale-0');
              crown.classList.add('scale-100');
-             el.classList.add('ring-2', 'ring-yellow-400', 'ring-offset-2');
+             el.classList.add('ring-2', 'ring-amber-400', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-zinc-900');
         } else {
-             el.classList.remove('ring-2', 'ring-yellow-400', 'ring-offset-2');
+             el.classList.remove('ring-2', 'ring-amber-400', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-zinc-900');
         }
 
     } else {
         teamEl.textContent = 'TBD';
         seedEl.textContent = '?';
         el.classList.remove('cursor-pointer');
-        el.classList.add('cursor-not-allowed', 'bg-gray-50');
+        el.classList.add('cursor-not-allowed', 'bg-zinc-50', 'dark:bg-zinc-800/40');
     }
 }
 

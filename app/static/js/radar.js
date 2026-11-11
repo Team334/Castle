@@ -49,34 +49,34 @@ function createRadarChart(canvasId, data, isCombo = false) {
             {
                 label: `Team ${data[0].team}`,
                 data: data[0].values,
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: 'rgb(37, 99, 235)',
                 borderWidth: 2,
-                pointBackgroundColor: 'rgb(54, 162, 235)',
+                pointBackgroundColor: 'rgb(37, 99, 235)',
                 pointBorderColor: '#fff',
                 pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgb(54, 162, 235)'
+                pointHoverBorderColor: 'rgb(37, 99, 235)'
             },
             {
                 label: `Team ${data[1].team}`,
                 data: data[1].values,
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                borderColor: 'rgb(245, 158, 11)',
                 borderWidth: 2,
-                pointBackgroundColor: 'rgb(255, 99, 132)',
+                pointBackgroundColor: 'rgb(245, 158, 11)',
                 pointBorderColor: '#fff',
                 pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgb(255, 99, 132)'
+                pointHoverBorderColor: 'rgb(245, 158, 11)'
             }
         ] : [{
             data: data.values,
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+            borderColor: 'rgb(37, 99, 235)',
             borderWidth: 2,
-            pointBackgroundColor: 'rgb(54, 162, 235)',
+            pointBackgroundColor: 'rgb(37, 99, 235)',
             pointBorderColor: '#fff',
             pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgb(54, 162, 235)'
+            pointHoverBorderColor: 'rgb(37, 99, 235)'
         }]
     };
 

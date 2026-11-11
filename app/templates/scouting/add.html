@@ -10,1114 +10,439 @@
   href="{{ url_for('static', filename='css/scouting.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <!-- Header Section -->
-  <div class="mb-8">
-    <div class="sm:flex sm:items-center sm:justify-between">
-      <div class="sm:flex-auto">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Add Match Scouting Data
-        </h1>
-        <p class="mt-2 text-base text-gray-600 dark:text-gray-400">
-          Enter match scouting information for a team
-        </p>
-      </div>
-      <div class="mt-4 sm:mt-0 sm:flex-none">
-        <a
-          href="{{ url_for('scouting.home') }}"
-          class="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
-        >
-          <svg
-            class="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          Back to Home
-        </a>
-      </div>
+{% macro step(method, amount, text) -%}
+<button type="button" class="btn btn-secondary tabular-nums md:w-[4.25rem]" onclick="let i=this.closest('.counter-group').querySelector('input');i.{{ method }}({{ amount }});i.dispatchEvent(new Event('change'));">{{ text }}</button>
+{%- endmacro %}
+{% macro counter(name, label, help=none, big=true) -%}
+<div class="py-4 first:pt-0 last:pb-0 md:flex md:items-center md:justify-between md:gap-6">
+  <div class="mb-2 md:mb-0">
+    <label class="label mb-0">{{ label }}</label>
+    {% if help %}<p class="help mt-0.5">{{ help }}</p>{% endif %}
+  </div>
+  <div class="counter-group">
+    <div class="counter-decrements">
+      {% if big %}{{ step('stepDown', 10, '−10') }}
+      {{ step('stepDown', 5, '−5') }}
+      {% endif %}{{ step('stepDown', '', '−') }}
+    </div>
+    <input type="number" name="{{ name }}" value="" placeholder="—" min="0" aria-label="{{ label }}" class="input text-center tabular-nums" />
+    <div class="counter-increments">
+      {{ step('stepUp', '', '+') }}{% if big %}
+      {{ step('stepUp', 5, '+5') }}
+      {{ step('stepUp', 10, '+10') }}{% endif %}
     </div>
   </div>
+</div>
+{%- endmacro %}
+{% set tab_class = "tab-button flex min-h-[40px] items-center justify-center rounded-md px-1 text-[13px] font-medium text-zinc-600 transition-colors hover:text-zinc-900 sm:text-sm dark:text-zinc-400 dark:hover:text-zinc-100 [&.active]:bg-white [&.active]:text-zinc-900 [&.active]:shadow-sm dark:[&.active]:bg-zinc-700 dark:[&.active]:text-zinc-50" %}
+{% set tool_class = "btn btn-ghost btn-icon h-10 w-full sm:h-9 sm:w-9 [&.active]:bg-blue-50 [&.active]:text-blue-700 dark:[&.active]:bg-blue-500/15 dark:[&.active]:text-blue-300" %}
+{% set group_class = "rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900" %}
+<div class="mx-auto max-w-4xl dark:[color-scheme:dark]">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Add match</h1>
+      <p class="page-subtitle">Record how one team played in a match.</p>
+    </div>
+    <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary self-start sm:self-auto">
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+      Back
+    </a>
+  </div>
 
-  <!-- Form Section -->
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none overflow-hidden text-center">
-    <!-- Pre-loaded TBA data -->
-    <script id="events" type="application/json">
-      {{ events | tojson | safe }}
-    </script>
-    <script id="event_matches" type="application/json">
-      {{ event_matches | tojson | safe }}
-    </script>
+  <!-- Pre-loaded TBA data -->
+  <script id="events" type="application/json">
+    {{ events | tojson | safe }}
+  </script>
+  <script id="event_matches" type="application/json">
+    {{ event_matches | tojson | safe }}
+  </script>
 
-    <form
-      method="POST"
-      class="divide-y divide-gray-200 dark:divide-gray-700"
-      id="scoutingForm"
-      autocomplete="off"
-    >
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="_event_key" value="" />
-      <p class="px-8 py-4 text-sm text-gray-600 dark:text-gray-400" id="fuelEstimateHint">
-        When all scored-fuel counts are zero or blank, Castle uses automatic Match13 estimates when results become available.
-        Any nonzero scored count keeps scored fuel manual. Ferried fuel is saved separately.
-      </p>
-      <!-- Team & Event Info Section -->
-      <div class="p-8 bg-gray-50 dark:bg-gray-900/50">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          Basic Information
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >Event</label
-            >
-            <select
-              id="event_select"
-              name="event_code"
-              required
-              class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">Select Event</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >Match Number</label
-            >
-            <select
-              id="match_select"
-              name="match_number"
-              required
-              class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">Select Match</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >Team Number</label
-            >
-            <select
-              id="team_select"
-              name="team_number"
-              required
-              class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">Select Team</option>
-            </select>
-            <input type="hidden" id="alliance_color" name="alliance" value="" />
-          </div>
+  <form method="POST" class="space-y-6" id="scoutingForm" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="_event_key" value="" />
+
+    <!-- Match -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="section-title">Match</h2>
+      </div>
+      <div class="card-body grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label class="label" for="event_select">Event</label>
+          <select id="event_select" name="event_code" required class="input">
+            <option value="">Select Event</option>
+          </select>
+        </div>
+        <div>
+          <label class="label" for="match_select">Match</label>
+          <select id="match_select" name="match_number" required class="input">
+            <option value="">Select Match</option>
+          </select>
+        </div>
+        <div>
+          <label class="label" for="team_select">Team</label>
+          <select id="team_select" name="team_number" required class="input">
+            <option value="">Select Team</option>
+          </select>
+          <input type="hidden" id="alliance_color" name="alliance" value="" />
         </div>
       </div>
+    </section>
 
-      <!-- Auto Path Section -->
-      <div class="p-8">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Auto Path</h3>
-        <p class="text-gray-600 dark:text-gray-400 secondary mb-4 text-center">
-          Pan: Shift+Drag or Middle Mouse Button | Zoom: Scroll Wheel
-        </p>
-        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-          <!-- Add canvas container -->
-          <div
-            id="autoPathContainer"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-none mb-4 mx-auto w-full h-[400px]"
-          >
-            <canvas
-              id="autoPath"
-              class="w-full h-full rounded border border-gray-200 dark:border-gray-700"
-            ></canvas>
+    <!-- Auto path -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="section-title">Auto path</h2>
+        <p class="hidden text-xs text-zinc-500 sm:block dark:text-zinc-400">Shift+drag or middle mouse to pan · scroll to zoom</p>
+      </div>
+      <div class="card-body space-y-4">
+        <!-- Toolbar -->
+        <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Path tools">
+          <div class="{{ group_class }} grid w-full grid-cols-8 gap-0.5 sm:flex sm:w-auto">
+            <button id="selectTool" type="button" class="{{ tool_class }}" title="Select (Ctrl+A)" aria-label="Select">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" /></svg>
+            </button>
+            <button id="penTool" type="button" class="{{ tool_class }} active" title="Pen (Ctrl+P)" aria-label="Pen">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+            </button>
+            <button id="rectangleTool" type="button" class="{{ tool_class }}" title="Rectangle (Ctrl+R)" aria-label="Rectangle">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" /></svg>
+            </button>
+            <button id="circleTool" type="button" class="{{ tool_class }}" title="Circle (Ctrl+C)" aria-label="Circle">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+            <button id="lineTool" type="button" class="{{ tool_class }}" title="Line (Ctrl+L)" aria-label="Line">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" /></svg>
+            </button>
+            <button id="arrowTool" type="button" class="{{ tool_class }}" title="Arrow (Ctrl+W)" aria-label="Arrow">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </button>
+            <button id="hexagonTool" type="button" class="{{ tool_class }}" title="Hexagon (Ctrl+H)" aria-label="Hexagon">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" /></svg>
+            </button>
+            <button id="starTool" type="button" class="{{ tool_class }}" title="Star (Ctrl+S)" aria-label="Star">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>
+            </button>
           </div>
 
-          <!-- Controls -->
-          <div
-            class="controls space-y-4 flex flex-col items-center text-center p-4"
-          >
-            <!-- Color and Thickness Controls -->
-            <div
-              class="flex flex-col sm:flex-row items-center gap-4 w-full sm:justify-center"
-            >
-              <div class="color-picker-container w-full sm:w-auto">
-                <input
-                  type="text"
-                  id="pathColorPicker"
-                  class="w-full sm:w-36 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  value="#2563eb"
-                  data-coloris
-                />
-              </div>
-              <div class="flex items-center gap-2 w-full sm:w-auto">
-                <label
-                  for="pathThickness"
-                  class="text-gray-700 dark:text-gray-300 whitespace-nowrap"
-                  >Thickness:</label
-                >
-                <input
-                  type="range"
-                  id="pathThickness"
-                  min="1"
-                  max="20"
-                  value="3"
-                  class="w-full sm:w-48 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
-                <span
-                  id="pathThicknessValue"
-                  class="text-gray-700 dark:text-gray-300 w-8 text-center"
-                  >3</span
-                >
-              </div>
-              <div class="w-full sm:w-auto">
-                <button
-                  id="fillToggle"
-                  type="button"
-                  class="w-full sm:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-                  title="Fill: Off"
-                >
-                  Fill: Off
-                </button>
-              </div>
-            </div>
-
-            <!-- Tool Buttons -->
-            <div
-              class="flex flex-col lg:flex-row gap-4 w-full items-center justify-center"
-            >
-              <!-- Drawing Tools -->
-              <div class="tools-group">
-                <button
-                  id="selectTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Select (Ctrl+A)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="penTool"
-                  type="button"
-                  class="tool-btn active rounded-xl"
-                  title="Pen (Ctrl+P)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="rectangleTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Rectangle (Ctrl+R)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="circleTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Circle (Ctrl+C)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="lineTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Line (Ctrl+L)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3.75 9h16.5m-16.5 6.75h16.5"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="arrowTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Arrow (Ctrl+W)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="hexagonTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Hexagon (Ctrl+H)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="starTool"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Star (Ctrl+S)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="goHome"
-                  type="button"
-                  class="tool-btn bg-blue-50 dark:bg-blue-900/20 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 border-blue-300 rounded-xl"
-                  title="Reset View"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="flipHorizontal"
-                  type="button"
-                  class="tool-btn bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-300 rounded-xl"
-                  title="Flip Horizontally"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="flipVertical"
-                  type="button"
-                  class="tool-btn bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-300 rounded-xl"
-                  title="Flip Vertically"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="rotateCw"
-                  type="button"
-                  class="tool-btn bg-green-50 text-green-700 hover:bg-green-100 border-green-300 rounded-xl"
-                  title="Rotate Clockwise"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="rotateCcw"
-                  type="button"
-                  class="tool-btn bg-green-50 text-green-700 hover:bg-green-100 border-green-300 rounded-xl"
-                  title="Rotate Counter-Clockwise"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Action Buttons -->
-              <div class="actions-group">
-                <button
-                  id="undoPath"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Undo (Ctrl+Z)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="redoPath"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Redo (Ctrl+Y or Ctrl+Shift+Z)"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="clearPath"
-                  type="button"
-                  class="tool-btn bg-red-50 text-red-700 hover:bg-red-100 border-red-300 rounded-xl"
-                  title="Clear"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="savePath"
-                  type="button"
-                  class="tool-btn bg-green-50 text-green-700 hover:bg-green-100 border-green-300 rounded-xl"
-                  title="Save"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="loadPath"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Load"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                    />
-                  </svg>
-                </button>
-                <button
-                  id="readonlyToggle"
-                  type="button"
-                  class="tool-btn rounded-xl"
-                  title="Toggle Read-only Mode"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                    />
-                  </svg>
-                </button>
-                <input
-                  type="file"
-                  id="loadFile"
-                  class="hidden dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  accept=".json"
-                />
-              </div>
-            </div>
+          <div class="{{ group_class }} flex gap-0.5">
+            <button id="undoPath" type="button" class="{{ tool_class }} w-10" title="Undo (Ctrl+Z)" aria-label="Undo">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+            </button>
+            <button id="redoPath" type="button" class="{{ tool_class }} w-10" title="Redo (Ctrl+Y or Ctrl+Shift+Z)" aria-label="Redo">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" /></svg>
+            </button>
           </div>
 
-          <!-- Hidden input to store path data -->
-          <input type="hidden" name="auto_path" id="autoPathData" />
+          <div class="{{ group_class }} flex gap-0.5">
+            <button id="goHome" type="button" class="{{ tool_class }} w-10" title="Reset View" aria-label="Reset view">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
+            </button>
+            <button id="flipHorizontal" type="button" class="{{ tool_class }} w-10" title="Flip Horizontally" aria-label="Flip horizontally">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+            </button>
+            <button id="flipVertical" type="button" class="{{ tool_class }} w-10" title="Flip Vertically" aria-label="Flip vertically">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" /></svg>
+            </button>
+            <button id="rotateCw" type="button" class="{{ tool_class }} w-10" title="Rotate Clockwise" aria-label="Rotate clockwise">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+            </button>
+            <button id="rotateCcw" type="button" class="{{ tool_class }} w-10" title="Rotate Counter-Clockwise" aria-label="Rotate counter-clockwise">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" /></svg>
+            </button>
+          </div>
+
+          <div class="{{ group_class }} flex gap-0.5">
+            <button id="savePath" type="button" class="{{ tool_class }} w-10" title="Save" aria-label="Save path to file">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            </button>
+            <button id="loadPath" type="button" class="{{ tool_class }} w-10" title="Load" aria-label="Load path from file">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+            </button>
+            <button id="readonlyToggle" type="button" class="{{ tool_class }} w-10" title="Toggle Read-only Mode" aria-label="Toggle read-only mode">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+            </button>
+            <input type="file" id="loadFile" class="hidden" accept=".json" />
+          </div>
+
+          <div class="{{ group_class }} flex">
+            <button id="clearPath" type="button" class="{{ tool_class }} w-10 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400" title="Clear" aria-label="Clear path">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+            </button>
+          </div>
         </div>
 
-        <div class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Auto Notes</label
-          >
+        <!-- Stroke controls -->
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <input type="text" id="pathColorPicker" class="input w-32 font-mono" value="#2563eb" aria-label="Path colour" data-coloris />
+          <button id="fillToggle" type="button" class="btn btn-secondary [&.active]:border-blue-600 [&.active]:bg-blue-50 [&.active]:text-blue-700 dark:[&.active]:border-blue-500 dark:[&.active]:bg-blue-500/15 dark:[&.active]:text-blue-300" title="Fill: Off">
+            Fill: Off
+          </button>
+          <div class="flex w-full items-center gap-3 sm:w-auto sm:flex-1">
+            <label for="pathThickness" class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Thickness</label>
+            <input type="range" id="pathThickness" min="1" max="20" value="3" class="h-2 w-full cursor-pointer accent-blue-600 sm:max-w-xs" />
+            <span id="pathThicknessValue" class="w-6 text-right text-sm tabular-nums text-zinc-600 dark:text-zinc-400">3</span>
+          </div>
+        </div>
+
+        <div
+          id="autoPathContainer"
+          class="mx-auto aspect-[16/9] w-full overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200 sm:aspect-auto sm:h-[420px] dark:ring-zinc-800"
+        >
+          <canvas id="autoPath" class="h-full w-full"></canvas>
+        </div>
+        <p class="text-xs text-zinc-500 sm:hidden dark:text-zinc-400">Drag with two fingers to pan, pinch to zoom.</p>
+
+        <!-- Hidden input to store path data -->
+        <input type="hidden" name="auto_path" id="autoPathData" />
+
+        <div>
+          <label class="label" for="auto_notes">Auto notes</label>
           <textarea
+            id="auto_notes"
             name="auto_notes"
             rows="2"
-            class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-            placeholder="Enter any observations about autonomous..."
+            class="input"
+            placeholder="What did the robot do in autonomous?"
             autocomplete="off"
           ></textarea>
         </div>
       </div>
+    </section>
 
-      <!-- Tabbed Scoring Sections -->
-      <div class="p-8">
-        <div class="mb-4">
-          <div
-            class="border-b border-gray-200 dark:border-gray-700 overflow-hidden flex flex-row justify-center text-center"
-          >
-            <div
-              class="overflow-x-auto -mb-px hide-scrollbar"
-              style="scrollbar-width: none"
-            >
-              <nav class="flex whitespace-nowrap min-w-full" aria-label="Tabs">
-                <button
-                  type="button"
-                  class="tab-button flex-none px-4 py-4 text-sm font-medium text-blue-600 border-b-2 border-blue-500 whitespace-nowrap active"
-                  data-tab="auto"
-                >
-                  Auto Period
-                </button>
-                <button
-                  type="button"
-                  class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap"
-                  data-tab="teleop"
-                >
-                  Teleop Period
-                </button>
-                <button
-                  type="button"
-                  class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap"
-                  data-tab="endgame"
-                >
-                  Endgame
-                </button>
-                <button
-                  type="button"
-                  class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap"
-                  data-tab="defense"
-                >
-                  Defense
-                </button>
-                <button
-                  type="button"
-                  class="tab-button flex-none px-4 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 border-b-2 border-transparent whitespace-nowrap"
-                  data-tab="other"
-                >
-                  Other Stats
-                </button>
-              </nav>
+    <!-- Scoring -->
+    <section class="card">
+      <div class="border-b border-zinc-200 px-4 py-3 sm:px-5 dark:border-zinc-800">
+        <h2 class="section-title">Scoring</h2>
+        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400" id="fuelEstimateHint">
+          When all scored-fuel counts are zero or blank, Castle uses automatic Match13 estimates when results become available.
+          Any nonzero scored count keeps scored fuel manual. Ferried fuel is saved separately.
+        </p>
+      </div>
+      <div class="card-body">
+        <nav class="grid grid-cols-5 gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" aria-label="Match periods">
+          <button type="button" class="{{ tab_class }} active" data-tab="auto">Auto</button>
+          <button type="button" class="{{ tab_class }}" data-tab="teleop">Teleop</button>
+          <button type="button" class="{{ tab_class }}" data-tab="endgame">Endgame</button>
+          <button type="button" class="{{ tab_class }}" data-tab="defense">Defense</button>
+          <button type="button" class="{{ tab_class }}" data-tab="other">Other</button>
+        </nav>
+
+        <!-- Auto period -->
+        <div class="tab-content active mt-5" data-tab="auto">
+          <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {{ counter('auto_fuel', 'Auto fuel') }}
+            <div class="py-4 last:pb-0">
+              <label class="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <input
+                  type="checkbox"
+                  name="auto_climb"
+                  value="true"
+                  class="checkbox h-5 w-5 accent-blue-600"
+                />
+                Successful auto climb
+              </label>
             </div>
           </div>
         </div>
 
-        <!-- Auto Period Tab -->
-        <div class="tab-content active" data-tab="auto">
-          <div class="space-y-8">
-            <!-- Auto Fuel -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Auto Fuel
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Fuel Count</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="auto_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Auto Climb -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Auto Climb
-              </h2>
-              <div class="flex items-center">
-                <label class="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="auto_climb"
-                    value="true"
-                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 transition duration-150 ease-in-out dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  />
-                  <span class="text-gray-700 dark:text-gray-300 font-medium"
-                    >Successful Auto Climb</span
-                  >
-                </label>
-              </div>
-            </div>
+        <!-- Teleop period -->
+        <div class="tab-content hidden mt-5" data-tab="teleop">
+          <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {{ counter('transition_fuel', 'Transition shift fuel') }}
+            {{ counter('teleop_shift_1_fuel', 'Shift 1 fuel') }}
+            {{ counter('teleop_shift_2_fuel', 'Shift 2 fuel') }}
+            {{ counter('teleop_shift_3_fuel', 'Shift 3 fuel') }}
+            {{ counter('teleop_shift_4_fuel', 'Shift 4 fuel') }}
+            {{ counter('ferried_fuel', 'Times ferried fuel', help='Saved separately from scored fuel', big=false) }}
           </div>
         </div>
 
-        <!-- Teleop Period Tab -->
-        <div class="tab-content hidden" data-tab="teleop">
-          <div class="space-y-8">
-            <!-- Transition Shift Fuel -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Transition Shift Fuel
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Fuel Count</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="transition_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Ferried Fuel -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                How Many Times Ferried Fuel
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Count</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="ferried_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Teleop Fuel -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Teleop Shifts Fuel
-              </h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Shift 1 Fuel</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="teleop_shift_1_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Shift 2 Fuel</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="teleop_shift_2_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Shift 3 Fuel</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="teleop_shift_3_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Shift 4 Fuel</label
-                  >
-                  <div class="counter-group">
-                    <div class="counter-decrements">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                    </div>
-                    <input type="number" name="teleop_shift_4_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                    <div class="counter-increments">
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                      <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Endgame Tab -->
-        <div class="tab-content hidden" data-tab="endgame">
-          <div class="space-y-8">
-            <!-- Endgame Fuel -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Endgame Fuel
-              </h2>
+        <!-- Endgame -->
+        <div class="tab-content hidden mt-5" data-tab="endgame">
+          <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {{ counter('endgame_fuel', 'Endgame fuel') }}
+            <div class="space-y-3 py-4 last:pb-0">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Fuel Count</label
-                >
-                <div class="counter-group">
-                  <div class="counter-decrements">
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(10);i.dispatchEvent(new Event('change'));">-10</button>
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown(5);i.dispatchEvent(new Event('change'));">-5</button>
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepDown();i.dispatchEvent(new Event('change'));">-</button>
-                  </div>
-                  <input type="number" name="endgame_fuel" value="" placeholder="—" min="0" class="px-4 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
-                  <div class="counter-increments">
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp();i.dispatchEvent(new Event('change'));">+</button>
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(5);i.dispatchEvent(new Event('change'));">+5</button>
-                    <button type="button" class="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:bg-gray-600 rounded font-medium" onclick="let i=this.closest('.counter-group').querySelector('input');i.stepUp(10);i.dispatchEvent(new Event('change'));">+10</button>
-                  </div>
+                <label class="label" for="climb_level">Climb level</label>
+                <select id="climb_level" name="climb_level" class="input">
+                  <option value="0">None</option>
+                  <option value="1">Level 1</option>
+                  <option value="2">Level 2</option>
+                  <option value="3">Level 3</option>
+                </select>
+              </div>
+              <label class="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <input
+                  type="checkbox"
+                  name="climb_success"
+                  class="checkbox h-5 w-5 accent-blue-600"
+                />
+                Climb successful
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Defense -->
+        <div class="tab-content hidden mt-5" data-tab="defense">
+          <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <div class="space-y-4 pb-5">
+              <div>
+                <label class="label" for="defense_rating">Defense rating</label>
+                <input
+                  type="range"
+                  id="defense_rating"
+                  name="defense_rating"
+                  min="0"
+                  max="5"
+                  value="0"
+                  class="h-2 w-full cursor-pointer accent-blue-600"
+                />
+                <div class="mt-1 flex justify-between px-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400" aria-hidden="true">
+                  <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
                 </div>
+              </div>
+              <div>
+                <label class="label" for="defense_notes">Defense notes</label>
+                <textarea
+                  id="defense_notes"
+                  name="defense_notes"
+                  rows="3"
+                  class="input"
+                  placeholder="How did this team play defense?"
+                  autocomplete="off"
+                ></textarea>
               </div>
             </div>
 
-            <!-- Climb Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Climb</h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Climb Level</label
-                  >
-                  <select
-                    name="climb_level"
-                    class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                  >
-                    <option value="0">None</option>
-                    <option value="1">Level 1</option>
-                    <option value="2">Level 2</option>
-                    <option value="3">Level 3</option>
-                  </select>
+            <div class="space-y-4 pt-5">
+              <div>
+                <label class="label" for="response_to_defense_rating">Response to defense</label>
+                <input
+                  type="range"
+                  id="response_to_defense_rating"
+                  name="response_to_defense_rating"
+                  min="0"
+                  max="5"
+                  value="0"
+                  class="h-2 w-full cursor-pointer accent-blue-600"
+                />
+                <div class="mt-1 flex justify-between px-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400" aria-hidden="true">
+                  <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
                 </div>
-                <div class="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="climb_success"
-                    class="h-4 w-4 text-blue-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  />
-                  <label class="ml-2 text-sm text-gray-700 dark:text-gray-300"
-                    >Climb Successful</label
-                  >
-                </div>
+              </div>
+              <div>
+                <label class="label" for="defense_response_notes">How did this team respond to being defended?</label>
+                <textarea
+                  id="defense_response_notes"
+                  name="defense_response_notes"
+                  rows="3"
+                  class="input"
+                  placeholder="Broke away easily, struggled, avoided defenders…"
+                  autocomplete="off"
+                ></textarea>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Defense Tab -->
-        <div class="tab-content hidden" data-tab="defense">
-          <div class="space-y-8">
-            <!-- Defense Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Defense Rating
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Rating (0-5)
-                    <span class="text-xs text-gray-500 dark:text-gray-400">(0 = N/A)</span></label
-                  >
-                  <div class="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      name="defense_rating"
-                      min="0"
-                      max="5"
-                      value="0"
-                      class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Defense Notes</label
-                  >
-                  <textarea
-                    name="defense_notes"
-                    rows="4"
-                    class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    placeholder="Enter any observations about defense..."
-                    autocomplete="off"
-                  ></textarea>
-                </div>
-              </div>
+        <!-- Other -->
+        <div class="tab-content hidden mt-5" data-tab="other">
+          <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <div class="pb-5">
+              <label class="label" for="robot_disabled">Was the robot disabled?</label>
+              <select id="robot_disabled" name="robot_disabled" class="input">
+                <option value="None">No, it was not disabled</option>
+                <option value="Partially">Partially, for part of the match</option>
+                <option value="Full">Fully, for the entire match</option>
+              </select>
             </div>
 
-            <!-- Response to Defense Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Response to Defense
-              </h2>
-                <div class="p-3">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Rating (0-5)
-                    <span class="text-xs text-gray-500 dark:text-gray-400">(0 = N/A)</span></label
-                  >
-                  <div class="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      name="response_to_defense_rating"
-                      min="0"
-                      max="5"
-                      value="0"
-                      class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    />
-                  </div>
-                  </div class="p-3">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >How did this team respond to being defended?</label
-                    >
-                    <textarea
-                      name="defense_response_notes"
-                      rows="3"
-                      class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                      placeholder="Describe how the team handled defense (e.g. broke away easily, struggled, avoided defenders)..."
-                      autocomplete="off"
-                    >
-                  </textarea>
-                </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Other Stats Tab -->
-        <div class="tab-content hidden" data-tab="other">
-          <div class="space-y-8">
-            <!-- Robot Disabled Status Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Robot Disabled Status
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Was the robot disabled during the match?</label
-                  >
-                  <select
-                    name="robot_disabled"
-                    class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                  >
-                    <option value="None">None - Robot was not disabled</option>
-                    <option value="Partially">
-                      Partially - Robot was disabled for part of the match
-                    </option>
-                    <option value="Full">
-                      Full - Robot was disabled for the entire match
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Herd (Pushing Balls) Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Herd (Pushing Balls)
-              </h2>
-              <div class="space-y-4">
-                <div class="flex items-center space-x-3">
+            <div class="space-y-3 py-5">
+              <label for="herd_balls" class="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <input
+                  type="checkbox"
+                  id="herd_balls"
+                  name="herd_balls"
+                  value="true"
+                  class="checkbox h-5 w-5 accent-blue-600"
+                  onchange="document.getElementById('herd_rating_group').classList.toggle('hidden', !this.checked);"
+                />
+                Herded (pushed) balls
+              </label>
+              <div id="herd_rating_group" class="hidden">
+                <label class="label" for="herd_rating">Herd effectiveness</label>
+                <div class="flex items-center gap-3">
                   <input
-                    type="checkbox"
-                    id="herd_balls"
-                    name="herd_balls"
-                    value="true"
-                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    onchange="document.getElementById('herd_rating_group').classList.toggle('hidden', !this.checked);"
+                    type="range"
+                    id="herd_rating"
+                    name="herd_rating"
+                    min="1"
+                    max="10"
+                    value="5"
+                    class="h-2 w-full cursor-pointer accent-blue-600"
+                    oninput="document.getElementById('herd_rating_val').textContent = this.value;"
                   />
-                  <label for="herd_balls" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">Did this team herd (push) balls?</label>
+                  <span id="herd_rating_val" class="w-6 text-right text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">5</span>
                 </div>
-                <div id="herd_rating_group" class="hidden space-y-2">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Herd Effectiveness (1-10)</label
-                  >
-                  <div class="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      name="herd_rating"
-                      min="1"
-                      max="10"
-                      value="5"
-                      class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                      oninput="document.getElementById('herd_rating_val').textContent = this.value;"
-                    />
-                    <span id="herd_rating_val" class="text-sm font-semibold text-blue-600 w-6">5</span>
-                  </div>
-                </div>
+                <p class="help">1 = barely moved any, 10 = very effective</p>
               </div>
             </div>
 
-            <!-- Ferrying Section -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Ferrying
-              </h2>
-              <div class="space-y-4">
-                <div class="flex items-center space-x-3">
+            <div class="space-y-3 py-5">
+              <label for="ferrying_did" class="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <input
+                  type="checkbox"
+                  id="ferrying_did"
+                  name="ferrying_did"
+                  value="true"
+                  class="checkbox h-5 w-5 accent-blue-600"
+                  onchange="document.getElementById('ferrying_rating_group').classList.toggle('hidden', !this.checked);"
+                />
+                Ferried
+              </label>
+              <div id="ferrying_rating_group" class="hidden">
+                <label class="label" for="ferrying_rating">Ferrying effectiveness</label>
+                <div class="flex items-center gap-3">
                   <input
-                    type="checkbox"
-                    id="ferrying_did"
-                    name="ferrying_did"
-                    value="true"
-                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                    onchange="document.getElementById('ferrying_rating_group').classList.toggle('hidden', !this.checked);"
+                    type="range"
+                    id="ferrying_rating"
+                    name="ferrying_rating"
+                    min="1"
+                    max="10"
+                    value="5"
+                    class="h-2 w-full cursor-pointer accent-blue-600"
+                    oninput="document.getElementById('ferrying_rating_val').textContent = this.value;"
                   />
-                  <label for="ferrying_did" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">Did this team ferry?</label>
+                  <span id="ferrying_rating_val" class="w-6 text-right text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">5</span>
                 </div>
-                <div id="ferrying_rating_group" class="hidden space-y-2">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Ferrying Effectiveness (1-10)</label
-                  >
-                  <div class="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      name="ferrying_rating"
-                      min="1"
-                      max="10"
-                      value="5"
-                      class="w-full dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                      oninput="document.getElementById('ferrying_rating_val').textContent = this.value;"
-                    />
-                    <span id="ferrying_rating_val" class="text-sm font-semibold text-blue-600 w-6">5</span>
-                  </div>
-                </div>
+                <p class="help">1 = rarely useful, 10 = very effective</p>
               </div>
             </div>
 
-            <!-- Additional Notes -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Additional Notes
-              </h2>
+            <div class="pt-5">
+              <label class="label" for="notes">Additional notes</label>
               <textarea
+                id="notes"
                 name="notes"
                 rows="4"
-                class="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                placeholder="Enter any general observations about the team's performance..."
+                class="input"
+                placeholder="Anything else worth knowing about this team's match?"
                 autocomplete="off"
               ></textarea>
             </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Submit Buttons -->
-      <div class="p-8 bg-white dark:bg-gray-800">
-        <div class="flex justify-end gap-4">
-          <a
-            href="{{ url_for('scouting.home') }}"
-            class="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
-          >
-            Cancel
-          </a>
-          <button
-            type="submit"
-            class="px-6 py-3 rounded-lg border border-transparent bg-indigo-600 dark:bg-indigo-500 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
+    <!-- Actions -->
+    <div class="sticky bottom-0 z-20 -mx-4 flex gap-2 border-t border-zinc-200 bg-zinc-50/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none dark:border-zinc-800 dark:bg-zinc-950/95 sm:dark:bg-transparent">
+      <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary btn-lg flex-1 sm:flex-none">Cancel</a>
+      <button type="submit" class="btn btn-primary btn-lg flex-1 sm:flex-none">Save match</button>
+    </div>
+  </form>
 </div>
 
 <script src="{{ url_for('static', filename='js/scout/fuel-input.js', v='11') }}"></script>

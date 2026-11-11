@@ -1,86 +1,64 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-4xl mx-auto">
-        <!-- Team Header Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 sm:p-6">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <!-- Team Logo -->
-                    <div class="flex-shrink-0">
-                        <img src="{{ url_for('team.team_logo', team_number=team.team_number) }}"
-                             alt="Team {{ team.team_number }} Logo"
-                             class="h-20 w-20 sm:h-24 sm:w-24 rounded-xl object-cover bg-white dark:bg-gray-800 p-2">
-                    </div>
-                    
-                    <!-- Team Info -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <h1 class="text-xl sm:text-2xl font-bold text-white truncate">
-                                Team {{ team.team_number }}
-                            </h1>
-                            {% if team.team_name %}
-                                <div class="flex items-center">
-                                    <span class="hidden sm:inline text-white mx-2">-</span>
-                                    <span class="text-lg sm:text-2xl font-bold text-white truncate">
-                                        {{ team.team_name }}
-                                    </span>
-                                </div>
-                            {% endif %}
-                        </div>
-                        {% if is_member %}
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mt-2">
-                                <svg class="mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
-                                    <circle cx="4" cy="4" r="3" />
-                                </svg>
-                                Team Member
-                            </span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Team Description -->
-            {% if team.description %}
-            <div class="p-4 sm:p-6 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">About the Team</h3>
-                <p class="text-gray-600 dark:text-gray-400">{{ team.description }}</p>
-            </div>
+<div class="mx-auto max-w-4xl space-y-6">
+    <!-- Team header -->
+    <div class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:p-6">
+        <img src="{{ url_for('team.team_logo', team_number=team.team_number) }}"
+             alt="Team {{ team.team_number }} Logo"
+             class="h-20 w-20 shrink-0 rounded-xl border border-zinc-200 bg-white object-cover p-1 dark:border-zinc-800">
+        <div class="min-w-0 flex-1">
+            <h1 class="page-title truncate">
+                Team {{ team.team_number }}{% if team.team_name %}<span class="text-zinc-400 dark:text-zinc-500"> · </span>{{ team.team_name }}{% endif %}
+            </h1>
+            {% if is_member %}
+                <span class="badge badge-green mt-2">
+                    <svg class="h-1.5 w-1.5" fill="currentColor" viewBox="0 0 8 8" aria-hidden="true">
+                        <circle cx="4" cy="4" r="3" />
+                    </svg>
+                    Team member
+                </span>
             {% endif %}
+        </div>
+        {% if is_member %}
+            <a href="{{ url_for('team.manage', team_number=team.team_number) }}"
+               class="btn btn-primary w-full sm:w-auto">
+                Go to team dashboard
+            </a>
+        {% endif %}
+    </div>
 
-            <!-- Team Members Section -->
-            <div class="p-4 sm:p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Team Members</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {% for member in team_members %}
-                    <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <img src="{{ url_for('auth.profile_picture', user_id=member.id) }}"
-                             alt="{{ member.username }}"
-                             class="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover">
-                        <div class="min-w-0 flex-1">
-                            <a href="{{ url_for('auth.profile', username=member.username) }}"
-                               class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 truncate block">
-                                {{ member.username }}
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+    <!-- Team Description -->
+    {% if team.description %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="section-title">About the team</h2>
+        </div>
+        <div class="card-body">
+            <p class="break-words text-sm text-zinc-700 dark:text-zinc-300">{{ team.description }}</p>
+        </div>
+    </div>
+    {% endif %}
 
-            <!-- Action Buttons -->
-            <div class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-                <div class="flex justify-between items-center">
-                    {% if is_member %}
-                        <a href="{{ url_for('team.manage', team_number=team.team_number) }}"
-                           class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Go to Team Dashboard
-                        </a>
-                    {% endif %}
-                </div>
+    <!-- Team Members Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="section-title">Team members</h2>
+            <span class="badge badge-gray">{{ team_members|length }}</span>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {% for member in team_members %}
+                <a href="{{ url_for('auth.profile', username=member.username) }}"
+                   class="flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200 p-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50">
+                    <img src="{{ url_for('auth.profile_picture', user_id=member.id) }}"
+                         alt="{{ member.username }}"
+                         class="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700">
+                    <span class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ member.username }}</span>
+                </a>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

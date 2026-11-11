@@ -1,205 +1,115 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-7xl mx-auto p-4">
-    <!-- Header Section -->
-    <div class="mb-3">
-        <h1 class="text-3xl font-bold mb-2">Match List</h1>
-        <p class="text-gray-600 dark:text-gray-400">View all recorded matches and alliance performance data</p>
-    </div>
-
-    <!-- Search Bar Section -->
-    <div class="mb-6">
-        <div class="relative max-w-md">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-            <input id="teamSearchInput" type="text" class="block w-full p-2.5 pl-10 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-blue-500 focus:border-blue-500" placeholder="Search by team number...">
+<div>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Match view</h1>
+            <p class="page-subtitle">Recorded matches with per-team and alliance fuel totals.</p>
         </div>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Enter a team number to filter matches</p>
-    </div>
-
-    <div class="flex flex-col gap-4 mb-8">
-        <!-- Live Team Schedule Section -->
-        <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg mb-2">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Live Team Schedule</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Check a team's current ranking, previous and upcoming matches at an event.</p>
-            <a href="{{ url_for('scouting.live_match_status') }}" 
-                class="bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                View Live Team Schedule
-            </a>
-        </div>
-        
-        <div class="flex gap-4">
-            <a href="{{ url_for('scouting.leaderboard') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Leaderboard
-            </a>
-            <a href="{{ url_for('scouting.home') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-                Game Scouting
-            </a>
-            <a href="{{ url_for('scouting.pit_scouting') }}" 
-               class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Pit Scouting
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('scouting.live_match_status') }}" class="btn btn-secondary">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                Live team schedule
             </a>
         </div>
     </div>
 
-    <!-- Match Cards Container -->
+    <nav class="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Scouting tools">
+        <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary btn-sm">Match scouting</a>
+        <a href="{{ url_for('scouting.pit_scouting') }}" class="btn btn-secondary btn-sm">Pit scouting</a>
+        <a href="{{ url_for('scouting.leaderboard') }}" class="btn btn-secondary btn-sm">Leaderboard</a>
+    </nav>
+
+    <div class="mb-6 sm:max-w-sm">
+        <div class="relative">
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            <input id="teamSearchInput" type="text" inputmode="numeric" class="input pl-9" placeholder="Search by team number" aria-label="Search by team number">
+        </div>
+    </div>
+
+    <!-- Match cards -->
     <div class="space-y-6">
         {% for match in matches %}
-        <div data-match-card class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-lg overflow-hidden">
-            <!-- Match Header -->
-            <div class="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-2xl font-bold">
-                    {{ match.event_code }} - {{ match.match_number }}
-                </h2>
+        <section data-match-card class="card overflow-hidden">
+            <div class="card-header">
+                <h2 class="section-title">Match {{ match.match_number }}</h2>
+                <span class="badge badge-gray">{{ match.event_code }}</span>
             </div>
 
-            <!-- Match Content -->
-            <div class="p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Red Alliance -->
-                    <div class="space-y-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-4 h-4 bg-red-500 rounded-full"></div>
-                            <h3 class="text-xl font-semibold text-red-600">Red Alliance</h3>
-                        </div>
-                        
-                        <!-- Red Teams -->
-                        {% for team in match.red_teams %}
-                        <div data-team-number="{{ team.number }}" class="bg-red-50 rounded-lg p-4">
-                            <div class="font-bold mb-2">Team {{ team.number }}</div>
-                            {% if team.fuel_estimate %}<p class="text-sm text-blue-600 dark:text-blue-400 mb-2">{{ team.fuel_estimate.label }}</p>{% endif %}
-                            
-                            <!-- Team Stats Grid -->
-                            <div class="grid grid-cols-1 gap-4">
-                                <!-- Fuel Stats -->
-                                <div class="bg-white dark:bg-gray-800 rounded p-3">
-                                    <h4 class="font-semibold mb-2">Fuel Scoring</h4>
-                                    <div class="flex justify-between items-center text-sm">
-                                        <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel or 0 }}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Climb Status -->
-                            <div class="mt-3 flex gap-2">
-                                {% if team.auto_climb %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800">
-                                    🤖 Auto Climb
-                                </div>
-                                {% endif %}
-                                {% if team.climb_success %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                    ⬆️ L{{ team.climb_level }} Success
-                                </div>
-                                {% else %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                                    L{{ team.climb_level }} Attempt
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        
-                        <!-- Red Alliance Totals -->
-                        <div class="bg-red-100 rounded-lg p-4 mt-4">
-                            <h4 class="font-bold text-red-800 mb-3">Alliance Totals</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h5 class="font-medium mb-1 dark:text-black">Fuel</h5>
-                                    <div class="text-sm space-y-1">
-                                        <div class="dark:text-black">Auto: <span class="font-bold dark:text-black">{{ match.red_fuel.auto }}</span></div>
-                                        <div class="dark:text-black">Transition: <span class="font-bold dark:text-black">{{ match.red_fuel.transition }}</span></div>
-                                        <div class="dark:text-black">Teleop: <span class="font-bold dark:text-black">{{ match.red_fuel.teleop }}</span></div>
-                                        <div class="dark:text-black">Endgame: <span class="font-bold dark:text-black">{{ match.red_fuel.endgame }}</span></div>
-                                        <div class="pt-2 border-t border-red-200 font-bold dark:text-black dark:border-red-200">Total: {{ match.red_fuel.total }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="grid grid-cols-1 divide-y divide-zinc-200 lg:grid-cols-2 lg:divide-x lg:divide-y-0 dark:divide-zinc-800">
+                {% for side in ['red', 'blue'] %}
+                {% set teams = match.red_teams if side == 'red' else match.blue_teams %}
+                {% set fuel = match.red_fuel if side == 'red' else match.blue_fuel %}
+                <div class="card-body space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="badge {{ 'badge-red' if side == 'red' else 'badge-blue' }}">{{ 'Red' if side == 'red' else 'Blue' }} alliance</span>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                            Total <span class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{{ fuel.total }}</span>
+                        </p>
                     </div>
 
-                    <!-- Blue Alliance (mirror of Red Alliance structure) -->
-                    <div class="space-y-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
-                            <h3 class="text-xl font-semibold text-blue-600">Blue Alliance</h3>
-                        </div>
-                        
-                        {% for team in match.blue_teams %}
-                        <div data-team-number="{{ team.number }}" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                            <div class="font-bold mb-2">Team {{ team.number }}</div>
-                            {% if team.fuel_estimate %}<p class="text-sm text-blue-600 dark:text-blue-400 mb-2">{{ team.fuel_estimate.label }}</p>{% endif %}
-                            
-                            <div class="grid grid-cols-1 gap-4">
-                                <div class="bg-white dark:bg-gray-800 rounded p-3">
-                                    <h4 class="font-semibold mb-2">Fuel Scoring</h4>
-                                    <div class="flex justify-between items-center text-sm">
-                                        <div>Count: <span class="font-bold text-lg">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</span></div>
-                                        <div>Ferried: <span class="font-bold text-lg">{{ team.ferried_fuel or 0 }}</span></div>
+                    <div class="divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+                        {% for team in teams %}
+                        <div data-team-number="{{ team.number }}" class="px-3 py-3 sm:px-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span class="font-semibold text-zinc-900 dark:text-zinc-100">Team {{ team.number }}</span>
+                                        {% if team.auto_climb %}
+                                        <span class="badge badge-blue">Auto climb</span>
+                                        {% endif %}
+                                        {% if team.climb_success %}
+                                        <span class="badge badge-green">L{{ team.climb_level }} climb</span>
+                                        {% else %}
+                                        <span class="badge badge-gray">L{{ team.climb_level }} attempt</span>
+                                        {% endif %}
                                     </div>
+                                    {% if team.fuel_estimate %}<p class="mt-1 text-xs text-blue-600 dark:text-blue-400">{{ team.fuel_estimate.label }}</p>{% endif %}
                                 </div>
+                                <dl class="flex shrink-0 gap-5 text-right tabular-nums">
+                                    <div>
+                                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Fuel</dt>
+                                        <dd class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ '…' if team.fuel_estimate and not team.fuel_estimate.estimated else team.fuel_total }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Ferried</dt>
+                                        <dd class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ team.ferried_fuel or 0 }}</dd>
+                                    </div>
+                                </dl>
                             </div>
-                            
-                            <div class="mt-3 flex gap-2">
-                                {% if team.auto_climb %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800">
-                                    🤖 Auto Climb
-                                </div>
-                                {% endif %}
-                                {% if team.climb_success %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                    ⬆️ L{{ team.climb_level }} Success
-                                </div>
-                                {% else %}
-                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                                    L{{ team.climb_level }} Attempt
-                                </div>
-                                {% endif %}
-                            </div>
+
                         </div>
+                        {% else %}
+                        <p class="px-3 py-3 text-sm text-zinc-500 sm:px-4 dark:text-zinc-400">No teams scouted on this alliance.</p>
                         {% endfor %}
-                        
-                        <!-- Blue Alliance Totals -->
-                        <div class="bg-blue-100 dark:bg-blue-900/40 rounded-lg p-4 mt-4">
-                            <h4 class="font-bold text-blue-800 mb-3">Alliance Totals</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h5 class="font-medium mb-1">Fuel</h5>
-                                    <div class="text-sm space-y-1">
-                                        <div>Auto: <span class="font-bold">{{ match.blue_fuel.auto }}</span></div>
-                                        <div>Transition: <span class="font-bold">{{ match.blue_fuel.transition }}</span></div>
-                                        <div>Teleop: <span class="font-bold">{{ match.blue_fuel.teleop }}</span></div>
-                                        <div>Endgame: <span class="font-bold">{{ match.blue_fuel.endgame }}</span></div>
-                                        <div class="pt-2 border-t border-blue-200 font-bold">Total: {{ match.blue_fuel.total }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
+
+                    <dl class="grid grid-cols-4 gap-2 rounded-lg p-3 text-center tabular-nums {{ 'bg-red-50/60 dark:bg-red-500/5' if side == 'red' else 'bg-blue-50/60 dark:bg-blue-500/5' }}">
+                        <div>
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">Auto</dt>
+                            <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ fuel.auto }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">Transition</dt>
+                            <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ fuel.transition }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">Teleop</dt>
+                            <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ fuel.teleop }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">Endgame</dt>
+                            <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ fuel.endgame }}</dd>
+                        </div>
+                    </dl>
                 </div>
+                {% endfor %}
             </div>
+        </section>
+        {% else %}
+        <div class="card px-4 py-12 text-center">
+            <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">No matches yet</p>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Matches appear here once you or your team scout them.</p>
         </div>
         {% endfor %}
     </div>
@@ -214,13 +124,13 @@ document.addEventListener('DOMContentLoaded', function() {
         teamNumbers: [...card.querySelectorAll('[data-team-number]')]
             .map(team => team.dataset.teamNumber)
     }));
-    
+
     searchInput.addEventListener('input', function() {
         const searchTerm = searchInput.value.trim();
-        
+
         matchCards.forEach(({card, teamNumbers}) => {
             const matchFound = teamNumbers.some(number => number.includes(searchTerm));
-            
+
             // Show/hide the card based on search results
             card.style.display = searchTerm === '' || matchFound ? 'block' : 'none';
         });

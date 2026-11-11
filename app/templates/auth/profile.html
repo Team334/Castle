@@ -1,98 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-            <!-- Profile Header -->
-            <div class="relative">
-                <div class="bg-gradient-to-r from-blue-600 to-blue-800 py-12">
-                    <div class="relative text-center">
-                        <img src="{{ url_for('auth.profile_picture', user_id=profile_user.id) }}"
-                             class="w-40 h-40 rounded-full border-4 border-white shadow-md dark:shadow-none mx-auto object-cover -mb-6"
-                             alt="{{ profile_user.username }}'s profile picture">
-                        <h2 class="text-white text-2xl font-bold mt-6 mb-1">{{ profile_user.username }}</h2>
-                        {% if profile_user.teamNumber %}
-                        <span class="inline-block bg-white dark:bg-gray-800 text-blue-600 px-4 py-1 rounded-full text-sm font-semibold">
-                            Team {{ profile_user.teamNumber }}
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% if current_user.id == profile_user.id %}
-                <div class="absolute top-4 right-4">
-                    <a href="{{ url_for('auth.settings') }}"
-                       class="p-2rounded-full shadow-lg dark:shadow-none hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="p-6 md:p-8 space-y-6">
-                <!-- About Section -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                    <h4 class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        About
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg">
-                        {% if profile_user.description %}
-                            {{ profile_user.description }}
-                        {% else %}
-                            <span class="text-gray-400 italic">No description provided.</span>
-                        {% endif %}
-                    </p>
-                </div>
-
-                <!-- Stats Grid -->
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                        <h4 class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Activity
-                        </h4>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-500 dark:text-gray-400">Member Since</span>
-                                <span class="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">
-                                    {{ profile_user.created_at.strftime('%B %d, %Y') }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-500 dark:text-gray-400">Last Active</span>
-                                <span class="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">
-                                    {{ profile_user.last_login.strftime('%B %d, %Y') if profile_user.last_login else 'Never' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if profile_user.teamNumber %}
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                        <h4 class="flex items-center text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            Current Team
-                        </h4>
-                        <a href="{{ url_for('team.view', team_number=profile_user.teamNumber) }}">
-                            <div class="text-center">
-                                <div class="text-4xl font-bold text-blue-600 mb-1">{{ profile_user.teamNumber }}</div>
-                            </div>
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+<div class="mx-auto max-w-3xl space-y-6">
+    <!-- Profile header -->
+    <div class="card card-body flex flex-col items-center gap-4 text-center sm:flex-row sm:p-6 sm:text-left">
+        <img src="{{ url_for('auth.profile_picture', user_id=profile_user.id) }}"
+             class="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+             alt="{{ profile_user.username }}'s profile picture">
+        <div class="min-w-0 flex-1">
+            <h1 class="page-title truncate">{{ profile_user.username }}</h1>
+            {% if profile_user.teamNumber %}
+            <a href="{{ url_for('team.view', team_number=profile_user.teamNumber) }}" class="badge badge-blue mt-2 hover:bg-blue-100 dark:hover:bg-blue-500/20">
+                Team {{ profile_user.teamNumber }}
+            </a>
+            {% endif %}
         </div>
+        {% if current_user.id == profile_user.id %}
+        <a href="{{ url_for('auth.settings') }}" class="btn btn-secondary w-full sm:w-auto">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Edit profile
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- About -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="section-title">About</h2>
+        </div>
+        <div class="card-body">
+            <p class="whitespace-pre-line break-words text-sm text-zinc-700 dark:text-zinc-300">
+                {%- if profile_user.description -%}
+                    {{ profile_user.description }}
+                {%- else -%}
+                    <span class="italic text-zinc-400 dark:text-zinc-500">No description provided.</span>
+                {%- endif -%}
+            </p>
+        </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+        <!-- Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="section-title">Activity</h2>
+            </div>
+            <dl class="divide-y divide-zinc-100 px-4 sm:px-5 dark:divide-zinc-800">
+                <div class="flex items-center justify-between gap-4 py-3 text-sm">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Member since</dt>
+                    <dd class="font-medium text-zinc-900 dark:text-zinc-100">{{ profile_user.created_at.strftime('%B %d, %Y') }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3 text-sm">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Last active</dt>
+                    <dd class="font-medium text-zinc-900 dark:text-zinc-100">{{ profile_user.last_login.strftime('%B %d, %Y') if profile_user.last_login else 'Never' }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        {% if profile_user.teamNumber %}
+        <!-- Team -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="section-title">Current team</h2>
+            </div>
+            <a href="{{ url_for('team.view', team_number=profile_user.teamNumber) }}"
+               class="group flex items-center justify-between gap-4 rounded-b-xl px-4 py-4 transition-colors hover:bg-zinc-50 sm:px-5 dark:hover:bg-zinc-800/50">
+                <span>
+                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">Team number</span>
+                    <span class="text-2xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{{ profile_user.teamNumber }}</span>
+                </span>
+                <span class="text-sm font-medium text-blue-600 group-hover:text-blue-700 dark:text-blue-400 dark:group-hover:text-blue-300">View team &rarr;</span>
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

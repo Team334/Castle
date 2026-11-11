@@ -2,105 +2,82 @@
 {% extends "base.html" %}
 {% block title %}Register{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
-{% endblock %}
-
 {% block content %}
-<div class="relative flex min-h-screen flex-col overflow-hidden bg-[#f6f5f3] dark:bg-gray-900 w-full rounded-md z-0">
-    <div class="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <h2 class="text-center text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl animate-fade-in-up">
-                Join Castle
-            </h2>
-            <p class="mt-4 text-center text-lg text-gray-600 dark:text-gray-400 animate-fade-in-up delay-200">
-                Create your account to start scouting
-            </p>
-        </div>
-
-        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg dark:shadow-none sm:rounded-xl sm:px-10">
-                <form method="POST" autocomplete="off" class="space-y-6">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
-                        <div class="mt-1">
-                            <input type="email" 
-                                   id="email" 
-                                   name="email" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                                   value="{{ form_data.get('email', '') }}"
-                                   required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
-                        <div class="mt-1">
-                            <input type="text" 
-                                   id="username" 
-                                   name="username" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                                   value="{{ form_data.get('username', '') }}"
-                                   required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                        <div class="mt-1">
-                            <input type="password" 
-                                   id="password" 
-                                   name="password" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                                   required>
-                        </div>
-                        <div class="password-strength-meter mt-2">
-                            <div class="strength-bar transition-all duration-300"></div>
-                        </div>
-                        <div class="password-requirements mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                            <div class="requirement-item flex items-center gap-2" data-requirement="length">
-                                <span class="check-icon unmet w-4 h-4 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600">•</span>
-                                At least 8 characters
-                            </div>
-                            <div class="requirement-item flex items-center gap-2" data-requirement="match">
-                                <span class="check-icon unmet w-4 h-4 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600">•</span>
-                                Passwords match
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
-                        <div class="mt-1">
-                            <input type="password" 
-                                   id="confirm_password" 
-                                   name="confirm_password" 
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                                   required>
-                        </div>
-                    </div>
-                    <div>
-                        <button type="submit" 
-                                id="register-button"
-                                class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors hover-lift disabled:opacity-50 disabled:cursor-not-allowed">
-                            Create Account
-                        </button>
-                    </div>
-                </form>
-
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Already have an account? 
-                        <a href="{{ url_for('auth.login') }}" class="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
-                            Sign in
-                        </a>
-                    </p>
-                </div>
-            </div>
-        </div>
+<div class="mx-auto w-full max-w-sm py-4 sm:py-10">
+    <div class="mb-6 text-center">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="mx-auto -my-3 h-20 w-auto dark:hidden">
+        <img src="{{ url_for('static', filename='logo-dark.png') }}" alt="" class="mx-auto -my-3 hidden h-20 w-auto dark:block">
+        <h1 class="page-title mt-4">Create your account</h1>
+        <p class="page-subtitle">Sign up to start scouting with your team.</p>
     </div>
 
+    <div class="card p-5 sm:p-6">
+        <form method="POST" autocomplete="off" class="flex flex-col gap-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label for="email" class="label">Email address</label>
+                <input type="email"
+                       id="email"
+                       name="email"
+                       class="input py-2.5"
+                       value="{{ form_data.get('email', '') }}"
+                       required>
+            </div>
+
+            <div>
+                <label for="username" class="label">Username</label>
+                <input type="text"
+                       id="username"
+                       name="username"
+                       class="input py-2.5"
+                       value="{{ form_data.get('username', '') }}"
+                       autocapitalize="none"
+                       required>
+            </div>
+
+            <div>
+                <label for="password" class="label">Password</label>
+                <input type="password"
+                       id="password"
+                       name="password"
+                       class="input py-2.5"
+                       required>
+                <div class="password-strength-meter mt-2 h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <div class="strength-bar h-full w-0 rounded-full transition-all duration-300"></div>
+                </div>
+                <div class="password-requirements mt-3 space-y-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                    <div class="requirement-item flex items-center gap-2" data-requirement="length">
+                        <span class="check-icon unmet flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 text-[10px] leading-none dark:border-zinc-600">•</span>
+                        At least 8 characters
+                    </div>
+                    <div class="requirement-item flex items-center gap-2" data-requirement="match">
+                        <span class="check-icon unmet flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 text-[10px] leading-none dark:border-zinc-600">•</span>
+                        Passwords match
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="confirm_password" class="label">Confirm password</label>
+                <input type="password"
+                       id="confirm_password"
+                       name="confirm_password"
+                       class="input py-2.5"
+                       required>
+            </div>
+
+            <button type="submit"
+                    id="register-button"
+                    class="btn btn-primary w-full py-2.5">
+                Create account
+            </button>
+        </form>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        Already have an account?
+        <a href="{{ url_for('auth.login') }}" class="link">Log in</a>
+    </p>
 </div>
 
 <script>
@@ -120,28 +97,28 @@ document.addEventListener('DOMContentLoaded', function() {
         Object.entries(checks).forEach(([requirement, isPassing]) => {
             const reqElement = document.querySelector(`[data-requirement="${requirement}"]`);
             const checkIcon = reqElement.querySelector('.check-icon');
-            
+
             if (isPassing) {
-                reqElement.classList.add('met');
-                checkIcon.classList.remove('unmet');
-                checkIcon.classList.add('met', 'bg-green-50', 'border-green-500', 'text-green-500');
+                reqElement.classList.add('met', 'text-green-700', 'dark:text-green-400');
+                checkIcon.classList.remove('unmet', 'border-zinc-300', 'dark:border-zinc-600');
+                checkIcon.classList.add('met', 'bg-green-50', 'border-green-500', 'text-green-600', 'dark:bg-green-500/10', 'dark:text-green-400');
                 checkIcon.textContent = '✓';
             } else {
-                reqElement.classList.remove('met');
-                checkIcon.classList.remove('met', 'bg-green-50', 'border-green-500', 'text-green-500');
-                checkIcon.classList.add('unmet');
+                reqElement.classList.remove('met', 'text-green-700', 'dark:text-green-400');
+                checkIcon.classList.remove('met', 'bg-green-50', 'border-green-500', 'text-green-600', 'dark:bg-green-500/10', 'dark:text-green-400');
+                checkIcon.classList.add('unmet', 'border-zinc-300', 'dark:border-zinc-600');
                 checkIcon.textContent = '•';
             }
         });
 
-        strengthBar.className = 'strength-bar transition-all duration-300';
-        
+        strengthBar.className = 'strength-bar h-full rounded-full transition-all duration-300';
+
         if (password.length === 0) {
             strengthBar.classList.add('w-0');
         } else if (password.length >= 2 && password.length < 4) {
             strengthBar.classList.add('w-1/4', 'bg-red-500');
         } else if (password.length >= 4 && password.length < 6) {
-            strengthBar.classList.add('w-2/4', 'bg-yellow-500');
+            strengthBar.classList.add('w-2/4', 'bg-amber-500');
         } else if (password.length >= 6 && password.length < 8) {
             strengthBar.classList.add('w-3/4', 'bg-blue-500');
         } else if (password.length >= 8) {
@@ -156,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const confirmPassword = confirmPasswordInput.value;
         const isStrong = checkPasswordStrength(password);
         const isMatching = password === confirmPassword;
-        
+
         registerButton.disabled = !(isStrong && isMatching && confirmPassword.length > 0);
     }
 

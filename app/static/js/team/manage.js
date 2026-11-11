@@ -167,23 +167,23 @@ function updateStatusBadge(selectElement, newStatus) {
     }
     
     const statusClasses = {
-        'completed': isLate ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800',
-        'in_progress': isLate ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800',
-        'pending': isLate ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+        'completed': isLate ? 'badge-red' : 'badge-green',
+        'in_progress': isLate ? 'badge-red' : 'badge-amber',
+        'pending': isLate ? 'badge-red' : 'badge-gray'
     };
     
     let statusText = '';
     if (isLate) {
-        statusText = sanitizedStatus === 'in_progress' ? 'In Progress (Late)' : 
-                    sanitizedStatus === 'completed' ? 'Completed (Late)' : 
-                    'Pending (Late)';
+        statusText = sanitizedStatus === 'in_progress' ? 'In progress (late)' : 
+                    sanitizedStatus === 'completed' ? 'Completed (late)' : 
+                    'Pending (late)';
     } else {
-        statusText = sanitizedStatus === 'in_progress' ? 'In Progress' : 
+        statusText = sanitizedStatus === 'in_progress' ? 'In progress' : 
                     sanitizedStatus.charAt(0).toUpperCase() + sanitizedStatus.slice(1);
     }
     
     statusCell.textContent = statusText;
-    statusCell.className = `px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge ${statusClasses[sanitizedStatus] || statusClasses['pending']}`;
+    statusCell.className = `badge status-badge ${statusClasses[sanitizedStatus] || statusClasses['pending']}`;
 }
 
 async function deleteAssignment(assignmentId) {
@@ -469,17 +469,17 @@ function initializeEditAssignment() {
 function createAssignmentRow(assignment) {
     const isCurrentUserAssigned = assignment.assigned_to.includes(currentUserId);
     const row = document.createElement('tr');
-    row.className = `assignment-row ${isCurrentUserAssigned ? 'bg-blue-50' : ''} hover:bg-gray-50`;
+    row.className = `assignment-row ${isCurrentUserAssigned ? 'bg-blue-50/70 dark:bg-blue-500/10' : ''}`;
     
     const formattedDate = assignment.due_date ? 
         new Date(assignment.due_date).toLocaleString() : 
         'No due date';
 
     const cells = [
-        { text: assignment.title, class: 'px-6 py-4 whitespace-nowrap' },
-        { text: assignment.description, class: 'px-6 py-4 whitespace-normal' },
-        { text: assignment.assigned_to_names.join(', '), class: 'px-6 py-4 whitespace-nowrap' },
-        { text: formattedDate, class: 'px-6 py-4 whitespace-nowrap' }
+        { text: assignment.title, class: 'font-medium' },
+        { text: assignment.description, class: 'min-w-[14rem] !whitespace-normal' },
+        { text: assignment.assigned_to_names.join(', '), class: '' },
+        { text: formattedDate, class: 'tabular-nums' }
     ];
 
     cells.forEach(cellData => {
@@ -491,17 +491,17 @@ function createAssignmentRow(assignment) {
 
     // Status cell
     const statusTd = document.createElement('td');
-    statusTd.className = 'px-6 py-4 whitespace-nowrap';
+    statusTd.className = '';
     const statusSpan = document.createElement('span');
-    statusSpan.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge bg-gray-100 text-gray-800';
+    statusSpan.className = 'badge status-badge badge-gray';
     statusSpan.textContent = 'Pending (Offline)';
     statusTd.appendChild(statusSpan);
     row.appendChild(statusTd);
 
     const actionTd = document.createElement('td');
-    actionTd.className = 'px-6 py-4 whitespace-nowrap text-sm';
+    actionTd.className = '';
     const actionSpan = document.createElement('span');
-    actionSpan.className = 'text-gray-500';
+    actionSpan.className = 'text-sm text-zinc-500 dark:text-zinc-400';
     actionSpan.textContent = 'Pending sync...';
     actionTd.appendChild(actionSpan);
     row.appendChild(actionTd);

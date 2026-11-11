@@ -1,31 +1,36 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-none p-6">
-        <h1 class="text-2xl font-bold mb-6">Join a Team</h1>
-        
-        <form method="POST" class="space-y-4">
+<div class="mx-auto w-full max-w-sm py-4 sm:py-10">
+    <div class="mb-6 text-center">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+            </svg>
+        </div>
+        <h1 class="page-title">Join a team</h1>
+        <p class="page-subtitle">Enter the join code your team admin shared with you.</p>
+    </div>
+
+    <div class="card p-5 sm:p-6">
+        <form method="POST" class="flex flex-col gap-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
-                <label class="block text-sm font-medium mb-2">Team Join Code</label>
-                <input type="text" name="join_code" required autocomplete="off"
-                       class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+                <label for="join_code" class="label">Team join code</label>
+                <input type="text" id="join_code" name="join_code" required autocomplete="off"
+                       autocapitalize="characters" spellcheck="false"
+                       class="input py-2.5 font-mono tracking-wider">
             </div>
-            
-            <button type="submit" 
-                    class="w-full bg-blue-600 dark:bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600">
-                Join Team
+
+            <button type="submit" class="btn btn-primary w-full py-2.5">
+                Join team
             </button>
         </form>
-
-        <div class="mt-6 text-center">
-            <p class="text-gray-600 dark:text-gray-400">Don't have a team code?</p>
-            <a href="{{ url_for('team.create') }}" 
-               class="text-blue-600 hover:text-blue-800 font-medium">
-                Create a New Team
-            </a>
-        </div>
     </div>
+
+    <p class="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        Don't have a team code?
+        <a href="{{ url_for('team.create') }}" class="link">Create a new team</a>
+    </p>
 </div>
 {% endblock %}
