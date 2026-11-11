@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import re
 from datetime import datetime
 
 from .api_cache import public_api_cache
@@ -11,6 +12,22 @@ from .artificial_data import (_generate_test_matches, _generate_test_rankings,
 logger = logging.getLogger(__name__)
 
 STATBOTICS_URL = "https://api.statbotics.io/v3"
+EVENT_KEY_PATTERN = re.compile(r"\d{4}[a-z0-9]+\Z")
+
+
+def tba_match_key(event_key: str, label: str) -> str | None:
+    """TBA match key (e.g. 2026nyny_qm12) for an event key and a scouting form label, or None."""
+    if not EVENT_KEY_PATTERN.fullmatch(event_key or ""):
+        return None
+    if re.fullmatch(re.escape(event_key) + r"_(?:qm\d+|sf\d+m\d+|f\d+m\d+)", label):
+        return label
+    for pattern, suffix in [(r"Qual(?:ification)? (\d+)", "qm{}"),
+                            (r"(?:Semifinal|Semi-Finals) (\d+)-(\d+)", "sf{}m{}"),
+                            (r"Finals? (\d+)", "f1m{}")]:
+        found = re.fullmatch(pattern, label, re.I)
+        if found:
+            return event_key + "_" + suffix.format(*found.groups())
+    return None
 
 
 def get_team_epa(team_number: int, year: int, background=False):
