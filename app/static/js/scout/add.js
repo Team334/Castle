@@ -84,10 +84,14 @@ document.addEventListener("DOMContentLoaded", function () {
       // }
       form.elements._event_key.value = eventSelect.options[eventSelect.selectedIndex]?.dataset.key || "";
       form.elements._station.value = stationOf(teamSelect.options[teamSelect.selectedIndex]);
-      // Keep the entry recoverable until the server confirms the save (?saved=<draft id>).
-      dirty = true;
-      persistDraft();
-      form.submit();
+      // Keep the entry recoverable until the server confirms the save (?saved=<draft id>),
+      // but never let draft code (e.g. add-flow.js failing to load) block the save itself.
+      try {
+        dirty = true;
+        persistDraft();
+      } finally {
+        form.submit();
+      }
     });
   }
 
@@ -640,13 +644,16 @@ document.addEventListener("DOMContentLoaded", function () {
       restore.className = "btn btn-primary";
       restore.textContent = "Restore";
       restore.addEventListener("click", async () => {
-        removeDraft(storage, userId, form.elements._draft_id.value);
+        // Keep the entry being replaced (saved only if the scout touched it); it is offered back.
+        persistDraft();
         form.elements._draft_id.value = draft.id;
         dirty = false;
-        item.remove();
-        await preselect({event: draft.event_key, match: draft.match, team: draft.team});
+        // Fill before the (possibly slow) match load: changing event/match only resets the
+        // match, team and alliance fields, so nothing filled here is lost.
         fillFields(draft.fields || {});
         restorePath(draft.fields?.auto_path);
+        renderDraftBanner();
+        await preselect({event: draft.event_key, match: draft.match, team: draft.team});
       });
       actions.append(discard, restore);
       body.append(text, actions);
