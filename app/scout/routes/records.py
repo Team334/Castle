@@ -13,13 +13,13 @@ from flask_login import current_user, login_required
 from app.utils import handle_route_errors
 
 from ..match13_fuel import FUEL_FIELDS, zero_scored_fuel
+from ..scouting_utils import CLIENT_ID_PATTERN
 from ..TBA import EVENT_KEY_PATTERN, TBAInterface
 from . import common
 from .common import TELEOP_SHIFT_FIELDS, actor_name, fuel_total, scouting_bp
 
 SCOUTING_PAGE_SIZE = 20
 STATION_PATTERN = re.compile(r"(red|blue)[1-3]\Z")
-DRAFT_ID_PATTERN = re.compile(r"[A-Za-z0-9-]{1,64}\Z")
 
 
 def _add_form_url(data: dict, saved: bool) -> str:
@@ -32,7 +32,7 @@ def _add_form_url(data: dict, saved: bool) -> str:
         params["after" if saved else "match"] = label
     if STATION_PATTERN.fullmatch(station := str(data.get("_station") or "")):
         params["station"] = station
-    if saved and DRAFT_ID_PATTERN.fullmatch(draft := str(data.get("_draft_id") or "")):
+    if saved and CLIENT_ID_PATTERN.fullmatch(draft := str(data.get("_draft_id") or "")):
         params["saved"] = draft
     return url_for("scouting.add", **params)
 
@@ -74,7 +74,7 @@ def add():
         if data.get(field) in (None, ""):
             data[field] = 0
     success, message = common.scouting_manager.add_scouting_data(
-        data, current_user.get_id(), team_number=current_user.teamNumber)
+        data, current_user.get_id(), team_number=current_user.teamNumber, client_id=data.get("_draft_id"))
     service = current_app.extensions.get("match13_fuel")
     if success and use_estimate and service:
         try:

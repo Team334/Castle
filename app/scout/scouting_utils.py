@@ -25,6 +25,8 @@ SCOUTER_LOOKUP = {"$lookup": {
     "as": "scouter"
 }}
 UNWIND_SCOUTER = {"$unwind": "$scouter"}
+# Phone/browser-generated entry ids (the add form's draft id); makes uploads safe to repeat.
+CLIENT_ID_PATTERN = re.compile(r"[A-Za-z0-9-]{1,64}\Z")
 # Stats skip records marked "Exclude from stats"; lists and scout counts keep them.
 COUNTED = {"$match": {"excluded": {"$ne": True}}}
 
@@ -155,14 +157,19 @@ class ScoutingManager(DatabaseManager):
     # ============ Match records ============
 
     @with_mongodb_retry(retries=3, delay=2)
-    def add_scouting_data(self, data: dict, scouter_id: str, team_number=None) -> tuple[bool, str]:
+    def add_scouting_data(self, data: dict, scouter_id: str, team_number=None, client_id=None) -> tuple[bool, str]:
         """Add a match record; team_number is the scout's team. Refuses a same-team duplicate."""
-        scout_team = team_number
+        status, detail = self._insert_record(data, scouter_id, team_number, client_id=client_id)
+        return status == "saved", detail
+
+    def _insert_record(self, data: dict, scouter_id: str, scout_team, *, _id=None, client_id=None,
+                       created_at=None, uploaded_by=None) -> tuple[str, str]:
+        """Build and insert one match record: ("saved", id), ("duplicate", message) or ("rejected", reason)."""
         try:
             # Validate team number
             team_number = int(data["team_number"])
             if team_number <= 0:
-                return False, "Invalid team number"
+                return "rejected", "Invalid team number"
 
             event_key = str(data.get("_event_key") or "")
             keys = {}
@@ -180,8 +187,8 @@ class ScoutingManager(DatabaseManager):
                 ])), None)
                 if duplicate:
                     scout = duplicate.get("scouter", {}).get("username", "another scout")
-                    return False, (f"Team {team_number} in {data['match_number']} was already scouted by {scout}. "
-                                   "Edit that entry from the scouting list instead.")
+                    return "duplicate", (f"Team {team_number} in {data['match_number']} was already scouted by {scout}. "
+                                         "Edit that entry from the scouting list instead.")
 
             team_data = {
                 "team_number": team_number,
@@ -194,15 +201,21 @@ class ScoutingManager(DatabaseManager):
 
                 # Metadata
                 "scouter_id": ObjectId(scouter_id),
-                "created_at": datetime.now(timezone.utc),
+                "created_at": created_at if isinstance(created_at, datetime) else datetime.now(timezone.utc),
             }
+            if _id is not None:
+                team_data["_id"] = ObjectId(_id)
+            if isinstance(client_id, str) and CLIENT_ID_PATTERN.fullmatch(client_id):
+                team_data["client_id"] = client_id
+            if uploaded_by is not None:
+                team_data["uploaded_by"] = ObjectId(uploaded_by)
 
             result = self.db.team_data.insert_one(team_data)
-            return True, str(result.inserted_id)
+            return "saved", str(result.inserted_id)
 
         except Exception as e:
             logger.error(f"Error adding team data: {str(e)}")
-            return False, "An internal error has occurred."
+            return "rejected", "An internal error has occurred."
 
     @with_mongodb_retry(retries=3, delay=2)
     def get_all_scouting_data(self, user_team_number=None, user_id=None, *,
