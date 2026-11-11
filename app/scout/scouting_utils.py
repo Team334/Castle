@@ -88,6 +88,19 @@ def _parse_time(value) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _jsonable(value):
+    """Copy of value with ObjectIds as strings and datetimes as ISO strings, for JSON export."""
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, ObjectId):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
 def access_match(user_id, team_number=None) -> dict:
     """$match stage (after SCOUTER_LOOKUP + unwind) limiting records to the user's own or their team's."""
     access = {"scouter._id": ObjectId(user_id)}
@@ -269,6 +282,20 @@ class ScoutingManager(DatabaseManager):
                 uploaded_by=None if str(scouter) == str(uploader_id) else uploader_id)
             results.append({"key": key, "status": status, **({"id": detail} if status == "saved" else {"reason": detail})})
         return results
+
+    def export_data(self, user_id: str, team_number, now: datetime | None = None) -> dict:
+        """The user's visible current-season match records, pit records and team roster (public fields), JSON-safe."""
+        now = now or datetime.now(timezone.utc)
+        matches = self.db.team_data.aggregate([
+            *self._visible_records(user_id, team_number),
+            {"$match": {"created_at": {"$gte": datetime(now.year, 1, 1, tzinfo=timezone.utc)}}},
+            {"$project": {"scouter": 0}},
+        ])
+        pits = self.db.pit_scouting.aggregate([*self._visible_records(user_id, team_number), {"$project": {"scouter": 0}}])
+        roster = {"teamNumber": team_number} if team_number else {"_id": ObjectId(user_id)}
+        users = self.db.users.find(roster, {"_id": 1, "username": 1, "teamNumber": 1})
+        return _jsonable({"format": "castle-entries", "version": 1, "exported_at": now, "team": team_number,
+                          "users": list(users), "matches": list(matches), "pits": list(pits)})
 
     @with_mongodb_retry(retries=3, delay=2)
     def get_all_scouting_data(self, user_team_number=None, user_id=None, *,

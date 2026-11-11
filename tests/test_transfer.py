@@ -123,5 +123,44 @@ class ImportTests(unittest.TestCase):
         self.assertGreater(self.m.db.team_data.insert_one.call_args.args[0]["created_at"].year, 2025)
 
 
+class ExportTests(unittest.TestCase):
+    def setUp(self):
+        self.m = manager()
+        self.m.db.pit_scouting.aggregate.return_value = []
+        self.m.db.users.find.return_value = []
+
+    def test_export_shape_season_filter_and_roster(self):
+        oid = ObjectId()
+        self.m.db.team_data.aggregate.return_value = [{"_id": oid, "scouter_id": ObjectId(USER_ID),
+                                                       "created_at": datetime(2026, 3, 1, tzinfo=timezone.utc),
+                                                       "auto_path": [{"points": [{"x": 1}]}]}]
+        self.m.db.users.find.return_value = [{"_id": ObjectId(USER_ID), "username": "tester", "teamNumber": 334}]
+        data = self.m.export_data(USER_ID, 334, now=datetime(2026, 11, 11, tzinfo=timezone.utc))
+        self.assertEqual((data["format"], data["version"], data["team"]), ("castle-entries", 1, 334))
+        self.assertEqual(data["matches"][0]["_id"], str(oid))
+        self.assertEqual(data["matches"][0]["scouter_id"], USER_ID)
+        self.assertEqual(data["matches"][0]["created_at"], "2026-03-01T00:00:00+00:00")
+        self.assertEqual(data["users"], [{"_id": USER_ID, "username": "tester", "teamNumber": 334}])
+        pipeline = self.m.db.team_data.aggregate.call_args.args[0]
+        self.assertIn({"$match": {"created_at": {"$gte": datetime(2026, 1, 1, tzinfo=timezone.utc)}}}, pipeline)
+        self.assertIn({"$project": {"scouter": 0}}, pipeline)
+        self.assertIn({"$project": {"scouter": 0}}, self.m.db.pit_scouting.aggregate.call_args.args[0])
+        self.assertEqual(self.m.db.users.find.call_args.args,
+                         ({"teamNumber": 334}, {"_id": 1, "username": 1, "teamNumber": 1}))
+        json.dumps(data)
+
+    def test_export_never_asks_for_secrets(self):
+        self.m.db.team_data.aggregate.return_value = []
+        self.m.export_data(USER_ID, 334)
+        projection = self.m.db.users.find.call_args.args[1]
+        self.assertEqual(set(projection), {"_id", "username", "teamNumber"})
+
+    def test_teamless_user_exports_own_profile(self):
+        self.m.db.team_data.aggregate.return_value = []
+        self.m.db.users.find.return_value = [{"_id": ObjectId(USER_ID), "username": "solo"}]
+        self.m.export_data(USER_ID, None)
+        self.assertEqual(self.m.db.users.find.call_args.args[0], {"_id": ObjectId(USER_ID)})
+
+
 if __name__ == '__main__':
     unittest.main()
