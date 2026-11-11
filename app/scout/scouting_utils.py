@@ -385,11 +385,20 @@ class ScoutingManager(DatabaseManager):
                 "match_number": match_number,
                 "alliance": alliance,
                 **_record_fields(data),
+                "excluded": _is_checked(data.get("excluded")),
             }
+
+            # Hand-typed identity can't be mapped back to TBA: unlink rather than mislink.
+            if existing_data.get("event_code") != event_code:
+                unset = {"event_key": "", "match_key": ""}
+            elif existing_data.get("match_number") != match_number:
+                unset = {"match_key": ""}
+            else:
+                unset = {}
 
             result = self.db.team_data.update_one(
                 {"_id": ObjectId(team_id)},
-                {"$set": updated_data},
+                {"$set": updated_data, **({"$unset": unset} if unset else {})},
             )
             return result.matched_count > 0
         except Exception as e:

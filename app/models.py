@@ -94,6 +94,7 @@ class TeamData:
         
         # Notes
         self.notes: str = data.get('notes', '')
+        self.excluded: bool = data.get('excluded', False)
         
         # Scouter information
         self.scouter_id: ObjectId = data.get('scouter_id')

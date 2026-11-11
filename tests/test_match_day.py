@@ -137,5 +137,35 @@ class AddRedirectTests(unittest.TestCase):
         self.manager.add_scouting_data.assert_not_called()
 
 
+class EditTests(unittest.TestCase):
+    OID = ObjectId()
+    EXISTING = {"_id": OID, "event_code": "A", "match_number": "Qual 1", "team_number": 334, "alliance": "red",
+                "event_key": "2026a", "match_key": "2026a_qm1"}
+
+    def setUp(self):
+        self.m = manager()
+        self.m.db.team_data.find_one.return_value = dict(self.EXISTING)
+        self.m.db.team_data.update_one.return_value.matched_count = 1
+
+    def update(self, **change):
+        payload = {"event_code": "A", "match_number": "Qual 1", "team_number": "334", "alliance": "red", **change}
+        self.assertTrue(self.m.update_team_data(str(self.OID), payload, USER_ID))
+        return self.m.db.team_data.update_one.call_args.args[1]
+
+    def test_event_change_unsets_both_keys(self):
+        self.assertEqual(self.update(event_code="B")["$unset"], {"event_key": "", "match_key": ""})
+
+    def test_match_change_unsets_match_key_only(self):
+        self.assertEqual(self.update(match_number="Qual 2")["$unset"], {"match_key": ""})
+
+    def test_edit_without_identity_change_sends_no_unset(self):
+        for change in [{}, {"team_number": "335"}]:
+            self.assertNotIn("$unset", self.update(**change), change)
+
+    def test_excluded_checkbox_round_trips(self):
+        self.assertIs(self.update(excluded="true")["$set"]["excluded"], True)
+        self.assertIs(self.update()["$set"]["excluded"], False)
+
+
 if __name__ == '__main__':
     unittest.main()
