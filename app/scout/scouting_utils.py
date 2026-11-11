@@ -13,10 +13,15 @@ from .TBA import EVENT_KEY_PATTERN, tba_match_key
 
 logger = logging.getLogger(__name__)
 
+# Join only the scouter's public fields: results reach the browser (e.g. /api/compare pushes $$ROOT),
+# so password_hash and email must never be in the joined document.
 SCOUTER_LOOKUP = {"$lookup": {
     "from": "users",
-    "localField": "scouter_id",
-    "foreignField": "_id",
+    "let": {"scouter_id": "$scouter_id"},
+    "pipeline": [
+        {"$match": {"$expr": {"$eq": ["$_id", "$$scouter_id"]}}},
+        {"$project": {"_id": 1, "username": 1, "teamNumber": 1}},
+    ],
     "as": "scouter"
 }}
 UNWIND_SCOUTER = {"$unwind": "$scouter"}

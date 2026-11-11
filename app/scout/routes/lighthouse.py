@@ -87,7 +87,7 @@ def compare_teams():
             return jsonify({"error": "No data available for the selected teams"}), 404
 
         current_app.logger.info(f"Compared teams {sorted(teams_data)} for user {actor_name(current_user)}")
-        return json_util.dumps(teams_data)
+        return json_util.dumps(teams_data), 200, {'Content-Type': 'application/json'}
 
     except Exception as e:
         current_app.logger.error(f"Error in compare_teams: {str(e)}", exc_info=True)

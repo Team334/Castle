@@ -73,6 +73,8 @@ logger: logging.Logger = setup_logger()
 
 # File handling constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# Uploads store the client's Content-Type, so only these are ever served inline.
+SAFE_IMAGE_TYPES = {'image/png', 'image/jpeg', 'image/gif'}
 
 load_dotenv()
 
@@ -239,16 +241,20 @@ def save_file_to_gridfs(file, prefix: str = '') -> str | None:
     return None
 
 def send_gridfs_file(file_id, default_path: str = None):
-    """Send file from GridFS or return default file"""
+    """Send an uploaded image from GridFS, or the default file if it is missing or not a safe image type"""
     try:
         if isinstance(file_id, str):
             file_id = ObjectId(file_id)
         file_data = get_gridfs().get(file_id)
-        return send_file(
+        if file_data.content_type not in SAFE_IMAGE_TYPES:
+            raise ValueError(f"Refusing to serve stored type {file_data.content_type!r}")
+        response = send_file(
             BytesIO(file_data.read()),
             mimetype=file_data.content_type,
             download_name=file_data.filename
         )
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
     except Exception as e:
         logger.error(f"Error retrieving file: {str(e)}")
         if default_path:
