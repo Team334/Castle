@@ -38,6 +38,8 @@ def create_app():
         REMEMBER_COOKIE_SECURE=True,
         REMEMBER_COOKIE_SAMESITE="Lax",
         WTF_CSRF_ENABLED=True,
+        # Entry files (/scouting/import) can hold a whole season of auto paths.
+        MAX_CONTENT_LENGTH=50 * 1024 * 1024,
         # Scouting pages stay open all event and queue submissions offline; a
         # token is valid for the whole session rather than expiring after an hour.
         WTF_CSRF_TIME_LIMIT=None,

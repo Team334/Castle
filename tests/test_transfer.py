@@ -162,5 +162,93 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(self.m.db.users.find.call_args.args[0], {"_id": ObjectId(USER_ID)})
 
 
+def envelope(matches, **extra):
+    return {"format": "castle-entries", "version": 1, "matches": matches, **extra}
+
+
+class RouteTests(unittest.TestCase):
+    def setUp(self):
+        from app.scout.routes import transfer
+        self.app = Flask(__name__)
+        self.app.config.update(LOGIN_DISABLED=True, SECRET_KEY="test-only", RATELIMIT_ENABLED=False)
+        self.app.add_url_rule("/scouting/export", endpoint="scouting.export_entries", view_func=transfer.export_entries)
+        self.app.add_url_rule("/scouting/import", endpoint="scouting.import_entries",
+                              view_func=transfer.import_entries, methods=["POST"])
+        self.service = MagicMock()
+        self.app.extensions["match13_fuel"] = self.service
+        self.manager = MagicMock()
+        self.manager.db.pit_scouting.find_one.return_value = None
+        self.user = SimpleNamespace(get_id=lambda: USER_ID, teamNumber=334, is_authenticated=True, username="tester")
+        for item in (patch.object(transfer, "current_user", self.user), patch.object(common, "scouting_manager", self.manager)):
+            item.start()
+            self.addCleanup(item.stop)
+        self.client = self.app.test_client()
+
+    def test_export_downloads_a_dated_json_file(self):
+        self.manager.export_data.return_value = {"format": "castle-entries", "version": 1, "matches": []}
+        response = self.client.get("/scouting/export")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["format"], "castle-entries")
+        self.assertRegex(response.headers["Content-Disposition"],
+                         r'attachment; filename="castle-334-\d{4}-\d{2}-\d{2}\.json"')
+        self.assertEqual(self.manager.export_data.call_args.args, (USER_ID, 334))
+
+    def test_json_import_returns_results_counts_and_enrolls_zero_fuel(self):
+        self.manager.import_matches.return_value = [{"key": "c1", "status": "saved", "id": "rid"},
+                                                    {"key": "c2", "status": "duplicate", "reason": "x"}]
+        response = self.client.post("/scouting/import", json=envelope(
+            [{"client_id": "c1", "event_key": "2026nyny"}, {"client_id": "c2", "auto_fuel": 4}]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["counts"], {"saved": 1, "duplicate": 1})
+        self.assertEqual(self.manager.import_matches.call_args.args[1:], (USER_ID, 334))
+        self.service.enroll.assert_called_once()
+        self.assertEqual(self.service.enroll.call_args.args[0], "rid")
+        self.assertEqual(self.service.enroll.call_args.args[1]["_event_key"], "2026nyny")
+
+    def test_saved_entry_with_fuel_is_not_enrolled(self):
+        self.manager.import_matches.return_value = [{"key": "c1", "status": "saved", "id": "rid"}]
+        self.client.post("/scouting/import", json=envelope([{"client_id": "c1", "auto_fuel": 3}]))
+        self.service.enroll.assert_not_called()
+
+    def test_file_import(self):
+        self.manager.import_matches.return_value = []
+        upload = {"file": (io.BytesIO(json.dumps(envelope([])).encode()), "castle.json")}
+        response = self.client.post("/scouting/import", data=upload, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 200)
+        self.manager.import_matches.assert_called_once()
+
+    def test_bad_payloads_are_400(self):
+        for body in [b"{not json", b"[]", json.dumps({"format": "other", "version": 1}).encode(),
+                     json.dumps({"format": "castle-entries", "version": 2}).encode(),
+                     json.dumps({"format": "castle-entries", "version": 1, "matches": "x"}).encode()]:
+            response = self.client.post("/scouting/import", data=body, content_type="application/json")
+            self.assertEqual(response.status_code, 400, body)
+            self.assertIn("error", response.json)  # the list page shows this message
+        bad_file = {"file": (io.BytesIO(b"nope"), "x.json")}
+        self.assertEqual(self.client.post("/scouting/import", data=bad_file,
+                                          content_type="multipart/form-data").status_code, 400)
+        self.manager.import_matches.assert_not_called()
+
+    def test_too_many_or_too_large_json_is_413(self):
+        self.assertEqual(self.client.post("/scouting/import", json=envelope([{}] * 501)).status_code, 413)
+        big = json.dumps(envelope([{"notes": "x" * (5 * 1024 * 1024)}])).encode()
+        self.assertEqual(self.client.post("/scouting/import", data=big, content_type="application/json").status_code, 413)
+
+    def test_pit_entries_outside_venue_mode(self):
+        existing = ObjectId()
+        self.manager.import_matches.return_value = []
+        self.manager.db.pit_scouting.find_one.side_effect = (
+            lambda query, *args: {"_id": existing} if query == {"_id": existing} else None)
+        response = self.client.post("/scouting/import", json=envelope([], pits=[{"_id": str(existing)},
+                                                                                {"_id": str(ObjectId())}, {}, "x"]))
+        self.assertEqual([p["status"] for p in response.json["pit_results"]],
+                         ["already_have", "rejected", "rejected", "rejected"])
+
+    def test_teamless_uploader_is_403(self):
+        self.user.teamNumber = None
+        self.assertEqual(self.client.post("/scouting/import", json=envelope([])).status_code, 403)
+        self.manager.import_matches.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()
