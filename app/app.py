@@ -40,6 +40,8 @@ def create_app():
         WTF_CSRF_ENABLED=True,
         # Entry files (/scouting/import) can hold a whole season of auto paths.
         MAX_CONTENT_LENGTH=50 * 1024 * 1024,
+        # The lead's laptop at a venue with no signal (docs/venue-mode.md); never set on castlescouting.com.
+        VENUE_MODE=os.getenv("VENUE_MODE") == "1",
         # Scouting pages stay open all event and queue submissions offline; a
         # token is valid for the whole session rather than expiring after an hour.
         WTF_CSRF_TIME_LIMIT=None,

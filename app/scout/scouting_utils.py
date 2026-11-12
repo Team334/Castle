@@ -11,7 +11,7 @@ from bson.errors import InvalidId
 from app.models import Team, TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
 
-from .match13_fuel import FUEL_FIELDS
+from .match13_fuel import FUEL_FIELDS, zero_scored_fuel
 from .TBA import EVENT_KEY_PATTERN, tba_match_key
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,19 @@ def _parse_time(value) -> datetime | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _normalise_entry(data: dict) -> dict:
+    """The add route's clean-up for uploaded entries: phones queue raw form values."""
+    for field in FUEL_FIELDS:
+        if data.get(field) in (None, ""):
+            data[field] = 0
+    if isinstance(data.get("auto_path"), str):
+        try:
+            data["auto_path"] = json.loads(data["auto_path"]) if data["auto_path"].strip() else []
+        except ValueError:
+            data["auto_path"] = []
+    return data
 
 
 def _jsonable(value):
@@ -199,7 +212,7 @@ class ScoutingManager(DatabaseManager):
         return status == "saved", detail
 
     def _insert_record(self, data: dict, scouter_id: str, scout_team, *, _id=None, client_id=None,
-                       created_at=None, uploaded_by=None) -> tuple[str, str]:
+                       created_at=None, uploaded_by=None, extra: dict | None = None) -> tuple[str, str]:
         """Build and insert one match record: ("saved", id), ("duplicate", message) or ("rejected", reason)."""
         try:
             # Validate team number
@@ -245,6 +258,7 @@ class ScoutingManager(DatabaseManager):
                 team_data["client_id"] = client_id
             if uploaded_by is not None:
                 team_data["uploaded_by"] = ObjectId(uploaded_by)
+            team_data.update(extra or {})
 
             result = self.db.team_data.insert_one(team_data)
             return "saved", str(result.inserted_id)
@@ -253,9 +267,12 @@ class ScoutingManager(DatabaseManager):
             logger.error(f"Error adding team data: {str(e)}")
             return "rejected", "An internal error has occurred."
 
-    def import_matches(self, entries: list, uploader_id: str, uploader_team: int) -> list[dict]:
-        """Insert uploaded match entries (phone sync, QR, files); safe to repeat. One result per entry, in order."""
+    def import_matches(self, entries: list, uploader_id: str, uploader_team: int, venue: bool = False) -> list[dict]:
+        """Insert uploaded match entries (phone sync, QR, files); safe to repeat. One result per entry, in order.
+        venue: the lead's own laptop (VENUE_MODE). Exported records are kept as exact copies with their _id,
+        and entries created here are marked origin "venue" (fuel pending when no fuel was counted)."""
         results = []
+        now = datetime.now(timezone.utc)
         for index, entry in enumerate(entries):
             if not isinstance(entry, dict):
                 results.append({"key": str(index), "status": "rejected", "reason": "not an entry"})
@@ -267,11 +284,12 @@ class ScoutingManager(DatabaseManager):
             seen = [{"_id": oid}] if oid else []
             seen += [{"client_id": client_id}] if client_id else []
             # Only records the uploader can see count, so a result never reveals another team's record ids.
+            # (The venue laptop holds one team's data, so there every record counts.)
             # shortcut: unindexed _id/client_id lookup per entry; fine while team_data is small,
             # index client_id if imports slow down.
-            if seen and next(iter(self.db.team_data.aggregate([
-                    {"$match": {"$or": seen}}, SCOUTER_LOOKUP, UNWIND_SCOUTER,
-                    access_match(uploader_id, uploader_team), {"$limit": 1}])), None):
+            if seen and (self.db.team_data.find_one({"$or": seen}, {"_id": 1}) if venue else next(iter(
+                    self.db.team_data.aggregate([{"$match": {"$or": seen}}, SCOUTER_LOOKUP, UNWIND_SCOUTER,
+                                                 access_match(uploader_id, uploader_team), {"$limit": 1}])), None)):
                 results.append({"key": key, "status": "already_have"})
                 continue
             scouter = _object_id(entry.get("scouter_id"))
@@ -279,23 +297,83 @@ class ScoutingManager(DatabaseManager):
                                and not self.db.users.find_one({"_id": scouter, "teamNumber": uploader_team})):
                 results.append({"key": key, "status": "rejected", "reason": "scout is not on your team"})
                 continue
-            data = {k: v for k, v in entry.items() if not k.startswith("_") and k not in IMPORT_PROTECTED}
+            data = _normalise_entry({k: v for k, v in entry.items()
+                                     if not k.startswith("_") and k not in IMPORT_PROTECTED})
             data["_event_key"] = entry.get("event_key") or entry.get("_event_key")
-            # Same clean-up the add route does: phones queue raw form values.
-            for field in FUEL_FIELDS:
-                if data.get(field) in (None, ""):
-                    data[field] = 0
-            if isinstance(data.get("auto_path"), str):
-                try:
-                    data["auto_path"] = json.loads(data["auto_path"]) if data["auto_path"].strip() else []
-                except ValueError:
-                    data["auto_path"] = []
-            # Never reuse the incoming _id here: an insert collision would reveal that another team's id exists.
-            status, detail = self._insert_record(
-                data, str(scouter), uploader_team, client_id=client_id,
-                created_at=_parse_time(entry.get("created_at")),
-                uploaded_by=None if str(scouter) == str(uploader_id) else uploader_id)
+            if venue and oid:
+                status, detail = self._insert_exact_copy(entry, data, oid, scouter, client_id, now)
+            else:
+                # Never reuse the incoming _id here: an insert collision would reveal that another team's id exists.
+                extra = {"origin": "venue", "venue_at": now,
+                         **({"fuel_pending": True} if zero_scored_fuel(entry) else {})} if venue else None
+                status, detail = self._insert_record(
+                    data, str(scouter), uploader_team, client_id=client_id,
+                    created_at=_parse_time(entry.get("created_at")),
+                    uploaded_by=None if str(scouter) == str(uploader_id) else uploader_id, extra=extra)
             results.append({"key": key, "status": status, **({"id": detail} if status == "saved" else {"reason": detail})})
+        return results
+
+    def _insert_exact_copy(self, entry: dict, data: dict, oid, scouter, client_id, now) -> tuple[str, str]:
+        """Venue laptop: store an exported record as it is on the main server, so both show the same stats."""
+        try:
+            doc = {
+                "_id": oid,
+                "team_number": int(data["team_number"]),
+                "event_code": data.get("event_code"),
+                "match_number": data.get("match_number"),
+                "alliance": data.get("alliance", "red"),
+                "auto_climb": bool(data.get("auto_climb", False)),
+                **_record_fields(data),
+                "excluded": entry.get("excluded") is True,
+                "scouter_id": scouter,
+                "created_at": _parse_time(entry.get("created_at")) or now,
+            }
+            for field in ("event_key", "match_key"):
+                if isinstance(entry.get(field), str):
+                    doc[field] = entry[field]
+            if client_id:
+                doc["client_id"] = client_id
+            if uploaded_by := _object_id(entry.get("uploaded_by")):
+                doc["uploaded_by"] = uploaded_by
+            self.db.team_data.insert_one(doc)
+            return "saved", str(oid)
+        except Exception as e:
+            logger.error(f"Error copying exported record {oid}: {e}")
+            return "rejected", "could not copy this record"
+
+    def ensure_stub_users(self, users: list, team) -> int:
+        """Venue laptop: name-only stand-ins (no password, cannot log in) for the team's scouts, so their
+        entries are accepted and show a name. Only the lead's own team; existing users are left alone."""
+        created = 0
+        for user in users:
+            oid = _object_id(user.get("_id")) if isinstance(user, dict) else None
+            username = user.get("username") if oid else None
+            if not (oid and isinstance(username, str) and username and user.get("teamNumber") == team):
+                continue
+            if self.db.users.find_one({"_id": oid}, {"_id": 1}):
+                continue
+            self.db.users.insert_one({"_id": oid, "username": username, "teamNumber": team, "venue_stub": True})
+            created += 1
+        return created
+
+    def import_pits_venue(self, pits: list) -> list[dict]:
+        """Venue laptop: copy exported pit records once (by _id) so the pit pages work offline."""
+        results = []
+        for index, pit in enumerate(pits):
+            oid = _object_id(pit.get("_id")) if isinstance(pit, dict) else None
+            if not oid:
+                results.append({"key": str(index), "status": "rejected", "reason": "not an exported pit record"})
+                continue
+            if self.db.pit_scouting.find_one({"_id": oid}, {"_id": 1}):
+                results.append({"key": str(oid), "status": "already_have"})
+                continue
+            doc = {k: v for k, v in pit.items() if isinstance(k, str) and not k.startswith("$") and "." not in k}
+            doc.update(_id=oid, scouter_id=_object_id(pit.get("scouter_id")))
+            for field in ("created_at", "updated_at"):
+                if field in doc:
+                    doc[field] = _parse_time(doc[field]) or doc[field]
+            self.db.pit_scouting.insert_one(doc)
+            results.append({"key": str(oid), "status": "saved"})
         return results
 
     def visible_pit_ids(self, user_id: str, team_number) -> set:

@@ -55,16 +55,28 @@ def import_entries():
     if too_many:
         return jsonify(error="Too many entries in one upload; split it up."), 413
 
-    results = common.scouting_manager.import_matches(matches, current_user.get_id(), current_user.teamNumber)
-    service = current_app.extensions.get("match13_fuel")
+    venue = bool(current_app.config.get("VENUE_MODE"))
+    if venue:
+        # The lead's laptop: make sure every scout in the file or QR (rookies too) has a name-only stand-in.
+        people = [user for user in payload.get("users", []) if isinstance(user, dict)]             if isinstance(payload.get("users"), list) else []
+        if isinstance(payload.get("scout"), dict):
+            people.append(payload["scout"])
+        common.scouting_manager.ensure_stub_users(people, current_user.teamNumber)
+    results = common.scouting_manager.import_matches(matches, current_user.get_id(), current_user.teamNumber,
+                                                     venue=venue)
+    # AI fuel estimates need the internet; venue entries are signed up when they reach castlescouting.com.
+    service = None if venue else current_app.extensions.get("match13_fuel")
     for result, entry in zip(results, matches):
         if result["status"] == "saved" and service and isinstance(entry, dict) and zero_scored_fuel(entry):
             try:
                 service.enroll(result["id"], {**entry, "_event_key": entry.get("event_key") or entry.get("_event_key")})
             except Exception:
                 current_app.logger.exception("Imported scouting record; could not enroll its fuel estimate")
-    visible_pits = common.scouting_manager.visible_pit_ids(current_user.get_id(), current_user.teamNumber) if pits else set()
-    pit_results = [_pit_result(index, pit, visible_pits) for index, pit in enumerate(pits)]
+    if venue:
+        pit_results = common.scouting_manager.import_pits_venue(pits)
+    else:
+        visible_pits = common.scouting_manager.visible_pit_ids(current_user.get_id(), current_user.teamNumber) if pits else set()
+        pit_results = [_pit_result(index, pit, visible_pits) for index, pit in enumerate(pits)]
 
     counts = Counter(result["status"] for result in results)
     current_app.logger.info(f"Imported entries for user {actor_name(current_user)}: {dict(counts)}")

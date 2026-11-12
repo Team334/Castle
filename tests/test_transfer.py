@@ -277,6 +277,80 @@ class RouteTests(unittest.TestCase):
         self.manager.import_matches.assert_not_called()
 
 
+class VenueImportTests(unittest.TestCase):
+    def setUp(self):
+        self.m = manager()
+        self.m.db.team_data.find_one.return_value = None
+
+    def test_exact_copies_keep_id_and_protected_fields(self):
+        oid = ObjectId()
+        copy = entry(_id=str(oid), excluded=True, match_key="2026nyny_qm12", event_key="2026nyny", auto_fuel=7,
+                     created_at="2026-03-01T10:00:00+00:00", hacked="yes")
+        [result] = self.m.import_matches([copy], USER_ID, 334, venue=True)
+        self.assertEqual(result["status"], "saved")
+        doc = self.m.db.team_data.insert_one.call_args.args[0]
+        self.assertEqual((doc["_id"], doc["excluded"], doc["match_key"], doc["client_id"], doc["auto_fuel"]),
+                         (oid, True, "2026nyny_qm12", "c1", 7))
+        self.assertEqual(doc["created_at"], datetime(2026, 3, 1, 10, tzinfo=timezone.utc))
+        self.assertEqual(doc["scouter_id"], ObjectId(USER_ID))
+        self.assertNotIn("hacked", doc)
+        self.assertNotIn("origin", doc)
+
+    def test_exact_copies_are_not_overwritten(self):
+        self.m.db.team_data.find_one.return_value = {"_id": ObjectId()}
+        [result] = self.m.import_matches([entry(_id=str(ObjectId()))], USER_ID, 334, venue=True)
+        self.assertEqual(result["status"], "already_have")
+        self.m.db.team_data.insert_one.assert_not_called()
+
+    def test_venue_created_records_are_marked(self):
+        self.m.import_matches([entry(auto_fuel="")], USER_ID, 334, venue=True)
+        doc = self.m.db.team_data.insert_one.call_args.args[0]
+        self.assertEqual(doc["origin"], "venue")
+        self.assertIsInstance(doc["venue_at"], datetime)
+        self.assertIs(doc["fuel_pending"], True)
+        self.m.import_matches([entry(client_id="c2", auto_fuel=3)], USER_ID, 334, venue=True)
+        self.assertNotIn("fuel_pending", self.m.db.team_data.insert_one.call_args.args[0])
+
+    def test_stub_users_only_for_the_leads_team(self):
+        self.m.db.users.find_one.return_value = None
+        rookie, rival = ObjectId(), ObjectId()
+        created = self.m.ensure_stub_users([{"_id": str(rookie), "username": "rookie", "teamNumber": 334},
+                                            {"_id": str(rival), "username": "rival", "teamNumber": 999}, "junk"], 334)
+        self.assertEqual(created, 1)
+        self.assertEqual(self.m.db.users.insert_one.call_args.args[0],
+                         {"_id": rookie, "username": "rookie", "teamNumber": 334, "venue_stub": True})
+
+    def test_venue_pits_are_copied_once(self):
+        existing, new = ObjectId(), ObjectId()
+        self.m.db.pit_scouting.find_one.side_effect = lambda q, *a: {"_id": existing} if q == {"_id": existing} else None
+        results = self.m.import_pits_venue([{"_id": str(existing)}, {"_id": str(new), "scouter_id": USER_ID,
+                                                                      "team_number": 254}, {"team_number": 1}])
+        self.assertEqual([r["status"] for r in results], ["already_have", "saved", "rejected"])
+        doc = self.m.db.pit_scouting.insert_one.call_args.args[0]
+        self.assertEqual((doc["_id"], doc["scouter_id"]), (new, ObjectId(USER_ID)))
+
+
+class VenueRouteTests(RouteTests):
+    def test_rookie_from_qr_payload(self):
+        self.app.config["VENUE_MODE"] = True
+        self.manager.import_matches.return_value = []
+        rookie = str(ObjectId())
+        self.client.post("/scouting/import", json=envelope([{"scouter_id": rookie}],
+                                                           scout={"_id": rookie, "username": "rookie", "teamNumber": 334},
+                                                           users=[{"_id": str(ObjectId()), "username": "a", "teamNumber": 334}]))
+        stubs = self.manager.ensure_stub_users.call_args.args
+        self.assertEqual(len(stubs[0]), 2)
+        self.assertEqual(stubs[1], 334)
+        self.assertIs(self.manager.import_matches.call_args.kwargs.get("venue"), True)
+        self.service.enroll.assert_not_called()
+
+    def test_main_server_ignores_venue_fields(self):
+        self.manager.import_matches.return_value = [{"key": "c1", "status": "saved", "id": "rid"}]
+        self.client.post("/scouting/import", json=envelope([{"client_id": "c1"}], scout={"_id": USER_ID}))
+        self.manager.ensure_stub_users.assert_not_called()
+        self.assertFalse(self.manager.import_matches.call_args.kwargs.get("venue", False))
+
+
 class ScanPageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
