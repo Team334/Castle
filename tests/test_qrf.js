@@ -131,3 +131,31 @@ test('a single-chunk payload works', () => {
   assert.equal(dec.add(enc.frame(5)), true);
   assert.ok(same(Array.from(dec.result()), Array.from(data)));
 });
+
+test('vendored QR libraries draw and read back a frame', () => {
+  const scope = {TextEncoder, TextDecoder, Uint8Array, Uint8ClampedArray, Math, JSON, btoa, atob, Array, Object,
+                 String, Number, Error, Int32Array, Uint16Array, Float32Array, Map, Set};
+  scope.window = scope;
+  vm.runInNewContext(fs.readFileSync('app/static/js/qrf.js', 'utf8'), scope);
+  vm.runInNewContext(fs.readFileSync('app/static/vendor/qrcode-generator-1.4.4.js', 'utf8'), scope);
+  vm.runInNewContext(fs.readFileSync('app/static/vendor/jsQR-1.4.0.js', 'utf8'), scope);
+  const frame = scope.qrfEncoder(randomBytes(2000, 11)).frame(20);
+  const qr = scope.qrcode(0, 'L');
+  qr.addData(frame);
+  qr.make();
+  const modules = qr.getModuleCount();
+  const scale = 4, quiet = 4, size = (modules + 2 * quiet) * scale;
+  const pixels = new Uint8ClampedArray(size * size * 4).fill(255);
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      if (!qr.isDark(r, c)) continue;
+      for (let y = 0; y < scale; y++) {
+        for (let x = 0; x < scale; x++) {
+          const offset = (((r + quiet) * scale + y) * size + (c + quiet) * scale + x) * 4;
+          pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 0;
+        }
+      }
+    }
+  }
+  assert.equal(scope.jsQR(pixels, size, size).data, frame);
+});
