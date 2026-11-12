@@ -1,0 +1,29 @@
+{% extends "base.html" %} {% block content %}
+<div class="mx-auto max-w-2xl">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Scan entries</h1>
+      <p class="page-subtitle">Point this camera at a scout's "Show QR" screen. Frames can arrive in any order.</p>
+    </div>
+    <a href="{{ url_for('scouting.home') }}" class="btn btn-secondary self-start sm:self-auto">Back</a>
+  </div>
+
+  <section class="card">
+    <div class="card-body space-y-4">
+      <video id="scanVideo" class="mx-auto block aspect-square w-full max-w-md rounded-lg bg-black object-cover" playsinline muted></video>
+      <canvas id="scanCanvas" class="hidden"></canvas>
+      <div class="h-2 w-full overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
+        <div id="scanBar" class="h-full w-0 bg-blue-600 transition-all"></div>
+      </div>
+      <p id="scanProgress" class="help">Waiting for a QR…</p>
+      <p id="scanMessage" class="text-sm empty:hidden" role="status"></p>
+      <ul id="scanResults" class="space-y-1 text-sm empty:hidden"></ul>
+      <button type="button" id="scanNext" class="btn btn-primary hidden">Scan next scout</button>
+    </div>
+  </section>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jsQR-1.4.0.js') }}"></script>
+<script src="{{ url_for('static', filename='js/qrf.js', v='1') }}"></script>
+<script src="{{ url_for('static', filename='js/scout/qr-scan.js', v='1') }}"></script>
+{% endblock %}

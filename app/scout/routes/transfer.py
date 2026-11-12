@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, render_template, request
 from flask_login import current_user, login_required
 
 from app.utils import limiter
@@ -81,3 +81,10 @@ def _pit_result(index: int, pit, visible: set) -> dict:
     if oid in visible:
         return {"key": str(oid), "status": "already_have"}
     return {"key": str(oid or index), "status": "rejected", "reason": "pit entries are only accepted in venue mode"}
+
+
+@scouting_bp.route("/scouting/scan")
+@login_required
+def scan_entries():
+    """The lead's camera page for QR transfers from scouts' phones."""
+    return render_template("scouting/scan.html")

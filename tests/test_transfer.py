@@ -277,5 +277,27 @@ class RouteTests(unittest.TestCase):
         self.manager.import_matches.assert_not_called()
 
 
+class ScanPageTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tests.app_harness import start_app
+        cls.app, cls.patches = start_app()
+
+    @classmethod
+    def tearDownClass(cls):
+        for item in reversed(cls.patches):
+            item.stop()
+
+    def test_scan_page_has_camera_view_and_vendored_reader(self):
+        from tests.app_harness import logged_in_client
+        client, _ = logged_in_client(self.app)
+        response = client.get("/scouting/scan")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('id="scanVideo"', html)
+        self.assertIn("vendor/jsQR-1.4.0.js", html)
+        self.assertIn("js/scout/qr-scan.js", html)
+
+
 if __name__ == '__main__':
     unittest.main()
