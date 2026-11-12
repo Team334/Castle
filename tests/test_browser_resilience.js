@@ -273,3 +273,18 @@ test('CSRF token is added only to same-origin writes', async () => {
   assert.equal(new Headers(calls[0].init.headers).get('Content-Type'), 'application/json');
   assert.equal(new Headers(calls[1].init.headers).get('X-Requested-With'), 'XMLHttpRequest');
 });
+
+test('cache names share one version', () => {
+  const src = fs.readFileSync('app/static/js/service-worker.js', 'utf8');
+  const versions = [...src.matchAll(/'castle-app-(?:static-|dynamic-|pages-)?v(\d+)'/g)].map(m => m[1]);
+  assert.equal(versions.length, 4);
+  assert.equal(new Set(versions).size, 1);
+});
+
+test('the scout form loads no CDN scripts', () => {
+  for (const page of ['add', 'edit', 'list']) {
+    const html = fs.readFileSync(`app/templates/scouting/${page}.html`, 'utf8');
+    assert.doesNotMatch(html, /<script[^>]+src="https?:/, page);
+  }
+  assert.doesNotMatch(fs.readFileSync('app/templates/base.html', 'utf8'), /popperjs/);
+});
