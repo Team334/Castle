@@ -50,8 +50,12 @@ class VenueAppTests(unittest.TestCase):
         self.db.team_data.aggregate.return_value = []
         self.db.pit_scouting.aggregate.return_value = []
         self.db.users.find.return_value = []
-        client, _ = logged_in_client(self.app)
-        response = client.get("/scouting/export?scope=venue")
+        client, token = logged_in_client(self.app)
+        # Recording the push changes what venue-reset may delete, so it is a CSRF-protected POST, never a GET.
+        self.assertEqual(client.get("/scouting/export/venue").status_code, 405)
+        self.assertIn(client.post("/scouting/export/venue").status_code, (302, 400))  # no CSRF token: refused
+        self.db.venue_meta.update_one.assert_not_called()
+        response = client.post("/scouting/export/venue", data={"csrf_token": token})
         self.assertEqual(response.status_code, 200)
         self.assertIn("venue", response.headers["Content-Disposition"])
         update = self.db.venue_meta.update_one.call_args
@@ -59,7 +63,7 @@ class VenueAppTests(unittest.TestCase):
         self.assertIsInstance(update.args[1]["$set"]["at"], datetime)
         self.assertTrue(update.kwargs.get("upsert"))
         self.app.config["VENUE_MODE"] = False
-        self.assertEqual(client.get("/scouting/export?scope=venue").status_code, 404)
+        self.assertEqual(client.post("/scouting/export/venue", data={"csrf_token": token}).status_code, 404)
 
     def test_reset_refuses_unpushed_venue_entries(self):
         pushed = datetime(2026, 11, 10, tzinfo=timezone.utc)
@@ -95,6 +99,35 @@ class VenueAppTests(unittest.TestCase):
             result = self.run_cli("venue-user", "--username", "lead", "--password", "secret123", "--team", "334")
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(users.return_value.create_user.call_args.args, ("lead@venue.local", "lead", "secret123", 334))
+
+
+FUEL = ("auto_fuel", "transition_fuel", "ferried_fuel", "teleop_shift_1_fuel", "teleop_shift_2_fuel",
+        "teleop_shift_3_fuel", "teleop_shift_4_fuel", "endgame_fuel")
+
+
+def group_stage(pipeline):
+    return next(stage["$group"] for stage in pipeline if "$group" in stage)
+
+
+class FuelPendingTests(unittest.TestCase):
+    def test_fuel_averages_skip_pending(self):
+        m = manager()
+        pending = lambda field: {"$avg": {"$cond": [{"$eq": ["$fuel_pending", True]}, None,
+                                                    {"$ifNull": ["$" + field, 0]}]}}
+        m.get_compare_stats(254, USER_ID, 334)
+        compare = group_stage(m.db.team_data.aggregate.call_args.args[0])
+        m.get_team_leaderboard(USER_ID, 334)
+        board = group_stage(m.db.team_data.aggregate.call_args.args[0])
+        for field in FUEL:
+            self.assertEqual(compare["avg_" + field], pending(field), field)
+            self.assertEqual(board[field], pending(field), field)
+        self.assertNotIn('{"$avg": {"$ifNull": ["$auto_fuel"', str(compare) + str(board))
+
+    def test_list_shows_fuel_pending(self):
+        m = manager()
+        m.get_all_scouting_data(334, USER_ID, page=1)
+        project = next(stage for stage in m.db.team_data.aggregate.call_args.args[0] if "$project" in stage)["$project"]
+        self.assertEqual(project["fuel_pending"], 1)
 
 
 if __name__ == '__main__':
