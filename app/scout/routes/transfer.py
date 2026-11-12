@@ -25,8 +25,16 @@ FILE_MAX_ENTRIES = 20000  # matches + pits in one file: a season's export, with 
 @scouting_bp.route("/scouting/export")
 @login_required
 def export_entries():
-    data = common.scouting_manager.export_data(current_user.get_id(), current_user.teamNumber)
-    name = f"castle-{current_user.teamNumber or 'me'}-{datetime.now(timezone.utc):%Y-%m-%d}.json"
+    venue = request.args.get("scope") == "venue"
+    if venue and not current_app.config.get("VENUE_MODE"):
+        return jsonify(error="Only the venue laptop has this export."), 404
+    now = datetime.now(timezone.utc)
+    data = common.scouting_manager.export_data(current_user.get_id(), current_user.teamNumber,
+                                               **({"scope": "venue"} if venue else {}))
+    if venue:
+        # Lets venue-reset tell whether entries scouted here were downloaded before it deletes them.
+        common.scouting_manager.db.venue_meta.update_one({"_id": "push"}, {"$set": {"at": now}}, upsert=True)
+    name = f"castle-{current_user.teamNumber or 'me'}-{'venue-' if venue else ''}{now:%Y-%m-%d}.json"
     response = jsonify(data)
     response.headers["Content-Disposition"] = f'attachment; filename="{name}"'
     current_app.logger.info(f"Exported {len(data.get('matches', []))} entries for user {actor_name(current_user)}")

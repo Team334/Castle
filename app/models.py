@@ -34,7 +34,8 @@ class User(UserMixin):
         return str(self._id)
 
     def check_password(self, password: str) -> bool:
-        return check_password_hash(self.password_hash, password)
+        # Venue-laptop stand-ins for scouts have no password and can never log in.
+        return bool(self.password_hash) and check_password_hash(self.password_hash, password)
 
     @classmethod
     def create_from_db(cls, data):

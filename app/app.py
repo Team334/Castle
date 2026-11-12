@@ -179,6 +179,9 @@ def create_app():
     def offline():
         return render_template('offline.html')
 
+    from app.venue import register_venue_commands
+    register_venue_commands(app)
+
     return app
 
 # if __name__ == "__main__":

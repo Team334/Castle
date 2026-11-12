@@ -381,12 +381,15 @@ class ScoutingManager(DatabaseManager):
         return {doc["_id"] for doc in self.db.pit_scouting.aggregate(
             [*self._visible_records(user_id, team_number), {"$project": {"_id": 1}}])}
 
-    def export_data(self, user_id: str, team_number, now: datetime | None = None) -> dict:
-        """The user's visible current-season match records, pit records and team roster (public fields), JSON-safe."""
+    def export_data(self, user_id: str, team_number, now: datetime | None = None, scope: str = "all") -> dict:
+        """The user's visible current-season match records, pit records and team roster (public fields), JSON-safe.
+        scope "venue": only the records created on this venue laptop, whatever their date."""
         now = now or datetime.now(timezone.utc)
+        which = {"origin": "venue"} if scope == "venue" else {
+            "created_at": {"$gte": datetime(now.year, 1, 1, tzinfo=timezone.utc)}}
         matches = self.db.team_data.aggregate([
             *self._visible_records(user_id, team_number),
-            {"$match": {"created_at": {"$gte": datetime(now.year, 1, 1, tzinfo=timezone.utc)}}},
+            {"$match": which},
             {"$project": {"scouter": 0}},
         ])
         pits = self.db.pit_scouting.aggregate([*self._visible_records(user_id, team_number), {"$project": {"scouter": 0}}])
