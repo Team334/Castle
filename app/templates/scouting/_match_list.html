@@ -67,6 +67,7 @@
               <td>
                 <span class="badge {{ 'badge-red' if data.alliance == 'red' else 'badge-blue' }}">{{ data.alliance|title }}</span>
                 {% if data.excluded %}<span class="badge badge-gray">Excluded</span>{% endif %}
+                {% if data.fuel_pending %}<span class="badge badge-amber" title="Scouted on the venue laptop; the AI fuel count runs once it reaches castlescouting.com">Fuel pending</span>{% endif %}
               </td>
               <td class="text-zinc-900 dark:text-zinc-100">
                 {{ data.match_number }}

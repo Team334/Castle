@@ -93,6 +93,20 @@ class VenueAppTests(unittest.TestCase):
         self.assertIn("VENUE_MODE=1", result.output)
         self.db.team_data.delete_many.assert_not_called()
 
+    def test_leaderboard_renders_teams_whose_fuel_is_all_pending(self):
+        team = {"team_number": 254, "matches_played": 2, "auto_climb_pct": 50.0, "climb_l1_pct": 0, "climb_l2_pct": 0,
+                "climb_l3_pct": 0, "climb_success_rate": 0.5, "defense_rating": 3.0, "ferrying_count": 0,
+                "ferrying_rating": 0, "herd_count": 0, "herd_rating": 0, "robot_disabled_list": [],
+                **{field: None for field in ("auto_fuel", "transition_fuel", "ferried_fuel", "teleop_fuel_total",
+                                             "endgame_fuel", "total_fuel")}}
+        client, _ = logged_in_client(self.app)
+        with patch.object(common.scouting_manager, "get_team_leaderboard", return_value=[team]),                 patch.object(common.scouting_manager, "get_leaderboard_events", return_value=[]):
+            response = client.get("/leaderboard")
+        html = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("254", html)
+        self.assertIn("—", html)
+
     def test_venue_user_creates_a_login(self):
         with patch("app.venue.UserManager") as users:
             users.return_value.create_user.return_value = (True, "User created")

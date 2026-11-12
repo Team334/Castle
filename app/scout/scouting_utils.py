@@ -90,6 +90,11 @@ def _parse_time(value) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _fuel_value(field: str) -> dict:
+    """A record's fuel count for averages; None (which $avg skips) while the AI fuel count is still pending."""
+    return {"$cond": [{"$eq": ["$fuel_pending", True]}, None, {"$ifNull": ["$" + field, 0]}]}
+
+
 def _normalise_entry(data: dict) -> dict:
     """The add route's clean-up for uploaded entries: phones queue raw form values."""
     for field in FUEL_FIELDS:
@@ -442,7 +447,8 @@ class ScoutingManager(DatabaseManager):
                     "scouter_name": "$scouter.username",
                     "scouter_team": "$scouter.teamNumber",
                     "device_type": 1,
-                    "excluded": 1
+                    "excluded": 1,
+                    "fuel_pending": 1
                 }
             })
 
@@ -706,15 +712,15 @@ class ScoutingManager(DatabaseManager):
                 "matches_played": {"$sum": 1},
 
                 # Fuel Stats
-                "avg_auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
+                "avg_auto_fuel": {"$avg": _fuel_value("auto_fuel")},
                 "avg_auto_climb": {"$avg": {"$cond": ["$auto_climb", 1, 0]}},
-                "avg_transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
-                "avg_ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
-                "avg_teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
-                "avg_teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
-                "avg_teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
-                "avg_teleop_shift_4_fuel": {"$avg": {"$ifNull": ["$teleop_shift_4_fuel", 0]}},
-                "avg_endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
+                "avg_transition_fuel": {"$avg": _fuel_value("transition_fuel")},
+                "avg_ferried_fuel": {"$avg": _fuel_value("ferried_fuel")},
+                "avg_teleop_shift_1_fuel": {"$avg": _fuel_value("teleop_shift_1_fuel")},
+                "avg_teleop_shift_2_fuel": {"$avg": _fuel_value("teleop_shift_2_fuel")},
+                "avg_teleop_shift_3_fuel": {"$avg": _fuel_value("teleop_shift_3_fuel")},
+                "avg_teleop_shift_4_fuel": {"$avg": _fuel_value("teleop_shift_4_fuel")},
+                "avg_endgame_fuel": {"$avg": _fuel_value("endgame_fuel")},
 
                 # Climb Stats
                 "climb_success_rate": {"$avg": {"$cond": ["$climb_success", 1, 0]}},
@@ -826,18 +832,18 @@ class ScoutingManager(DatabaseManager):
                 "matches_played": {"$sum": 1},
 
                 # Auto Fuel
-                "auto_fuel": {"$avg": {"$ifNull": ["$auto_fuel", 0]}},
-                "transition_fuel": {"$avg": {"$ifNull": ["$transition_fuel", 0]}},
-                "ferried_fuel": {"$avg": {"$ifNull": ["$ferried_fuel", 0]}},
+                "auto_fuel": {"$avg": _fuel_value("auto_fuel")},
+                "transition_fuel": {"$avg": _fuel_value("transition_fuel")},
+                "ferried_fuel": {"$avg": _fuel_value("ferried_fuel")},
 
                 # Teleop Fuel
-                "teleop_shift_1_fuel": {"$avg": {"$ifNull": ["$teleop_shift_1_fuel", 0]}},
-                "teleop_shift_2_fuel": {"$avg": {"$ifNull": ["$teleop_shift_2_fuel", 0]}},
-                "teleop_shift_3_fuel": {"$avg": {"$ifNull": ["$teleop_shift_3_fuel", 0]}},
-                "teleop_shift_4_fuel": {"$avg": {"$ifNull": ["$teleop_shift_4_fuel", 0]}},
+                "teleop_shift_1_fuel": {"$avg": _fuel_value("teleop_shift_1_fuel")},
+                "teleop_shift_2_fuel": {"$avg": _fuel_value("teleop_shift_2_fuel")},
+                "teleop_shift_3_fuel": {"$avg": _fuel_value("teleop_shift_3_fuel")},
+                "teleop_shift_4_fuel": {"$avg": _fuel_value("teleop_shift_4_fuel")},
 
                 # Endgame Fuel
-                "endgame_fuel": {"$avg": {"$ifNull": ["$endgame_fuel", 0]}},
+                "endgame_fuel": {"$avg": _fuel_value("endgame_fuel")},
 
                 # Climb Level
                 "auto_climb_sum": {"$sum": {"$cond": [{"$eq": ["$auto_climb", True]}, 1, 0]}},

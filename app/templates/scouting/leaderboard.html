@@ -180,7 +180,7 @@
 
         <!-- Auto Fuel -->
         <td class="{{ hl if current_sort == 'auto_fuel' else '' }}">
-          {{ "%.1f"|format(team.auto_fuel) }}
+          {{ "%.1f"|format(team.auto_fuel) if team.auto_fuel is not none else "—" }}
         </td>
 
         <!-- Auto Climb -->
@@ -190,27 +190,27 @@
 
         <!-- Transition Fuel -->
         <td>
-          {{ "%.1f"|format(team.transition_fuel) }}
+          {{ "%.1f"|format(team.transition_fuel) if team.transition_fuel is not none else "—" }}
         </td>
 
         <!-- Ferried Fuel -->
         <td class="{{ hl if current_sort == 'ferried_fuel' else '' }}">
-          {{ "%.1f"|format(team.ferried_fuel) }}
+          {{ "%.1f"|format(team.ferried_fuel) if team.ferried_fuel is not none else "—" }}
         </td>
 
         <!-- Teleop Fuel -->
         <td>
-          {{ "%.1f"|format(team.teleop_fuel_total) }}
+          {{ "%.1f"|format(team.teleop_fuel_total) if team.teleop_fuel_total is not none else "—" }}
         </td>
 
         <!-- Endgame Fuel -->
         <td>
-          {{ "%.1f"|format(team.endgame_fuel) }}
+          {{ "%.1f"|format(team.endgame_fuel) if team.endgame_fuel is not none else "—" }}
         </td>
 
         <!-- Total Fuel -->
         <td class="{{ hl if current_sort == 'fuel' else 'font-semibold !text-zinc-900 dark:!text-zinc-100' }}">
-          {{ "%.1f"|format(team.total_fuel) }}
+          {{ "%.1f"|format(team.total_fuel) if team.total_fuel is not none else "—" }}
         </td>
 
         <!-- Defense Rating -->
