@@ -43,6 +43,12 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <a href="{{ url_for('scouting.export_entries') }}" class="btn btn-secondary" title="Every entry you can see this season, for a backup or a venue laptop">Download all (JSON)</a>
+      {% if config.VENUE_MODE %}
+      <form method="post" action="{{ url_for('scouting.export_venue_entries') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary" title="Only the entries scouted on this laptop, to import on castlescouting.com">Download new entries</button>
+      </form>
+      {% endif %}
       <label class="btn btn-secondary cursor-pointer" title="Add entries from a Castle JSON file; ones already here are skipped">
         Import file
         <input type="file" id="importFile" accept=".json,application/json" class="sr-only">
