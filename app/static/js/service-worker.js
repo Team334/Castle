@@ -196,8 +196,9 @@ const SCOUT_FORM = '/scouting/add';
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // A shared phone must never offer the previous user's cached form (it embeds their id and token).
-  if (url.pathname === '/auth/logout') {
+  // A shared phone must never offer the previous user's cached form (it embeds their id and token),
+  // so forget it whenever the account changes: logout, and any login, register, settings or delete POST.
+  if (url.pathname === '/auth/logout' || (url.pathname.startsWith('/auth/') && event.request.method !== 'GET')) {
     event.waitUntil(caches.open(PAGE_CACHE_NAME).then(cache => cache.delete(SCOUT_FORM)));
   }
 

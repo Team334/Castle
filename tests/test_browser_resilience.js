@@ -334,11 +334,11 @@ function cachingWorker() {
     setOnline(value) { online = value; },
     setBody(value) { body = value; },
     redirectTo(url) { finalUrl = url; },
-    async navigate(path) {
+    async navigate(path, method = 'GET') {
       let promise;
       const waits = [];
       handlers.get('fetch')({
-        request: {url: `http://localhost:5000${path}`, method: 'GET', mode: 'navigate', headers: new Headers({accept: 'text/html'})},
+        request: {url: `http://localhost:5000${path}`, method, mode: 'navigate', headers: new Headers({accept: 'text/html'})},
         respondWith: result => { promise = result; },
         waitUntil: p => waits.push(p),
       });
@@ -380,4 +380,14 @@ test('logout clears the cached form', async () => {
   await worker.navigate('/auth/logout');
   worker.setOnline(false);
   assert.notEqual(await worker.navigate('/scouting/add'), 'form v1');
+});
+
+test('any account change clears the cached form', async () => {
+  for (const path of ['/auth/login', '/auth/register', '/auth/settings', '/auth/delete_account']) {
+    const worker = cachingWorker();
+    await worker.navigate('/scouting/add');
+    await worker.navigate(path, 'POST');
+    worker.setOnline(false);
+    assert.notEqual(await worker.navigate('/scouting/add'), 'form v1', path);
+  }
 });
