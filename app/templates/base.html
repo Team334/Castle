@@ -160,6 +160,11 @@
         </div>
     </header>
 
+    {% if config.VENUE_MODE %}
+    <div class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200" role="note">
+        Venue mode: this is a local copy of Castle on this laptop, not castlescouting.com.
+    </div>
+    {% endif %}
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

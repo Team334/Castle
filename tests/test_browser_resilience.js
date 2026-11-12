@@ -391,3 +391,9 @@ test('any account change clears the cached form', async () => {
     assert.notEqual(await worker.navigate('/scouting/add'), 'form v1', path);
   }
 });
+
+test('lead pages load no CDN scripts', () => {
+  for (const page of ['app/templates/lighthouse.html', 'app/templates/lighthouse/auton.html']) {
+    assert.doesNotMatch(fs.readFileSync(page, 'utf8'), /<script[^>]+src="https?:/, page);
+  }
+});

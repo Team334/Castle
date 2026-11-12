@@ -67,7 +67,7 @@ def compare_teams():
 
                     # Get team info from TBA
                     team_key = f"frc{team_num}"
-                    team_info = TBAInterface().get_team(team_key)
+                    team_info = TBAInterface().get_team(team_key) or {}  # None with no internet (venue laptop)
 
                     teams_data[str(team_num)] = {
                         "team_number": team_num,

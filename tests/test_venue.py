@@ -107,6 +107,24 @@ class VenueAppTests(unittest.TestCase):
         self.assertIn("254", html)
         self.assertIn("—", html)
 
+    def test_compare_without_tba(self):
+        stats = {"matches_played": 2, "avg_auto_fuel": 3.0, "avg_teleop_shift_1_fuel": 1, "avg_teleop_shift_2_fuel": 1,
+                 "avg_teleop_shift_3_fuel": 1, "avg_teleop_shift_4_fuel": 1, "avg_endgame_fuel": 1,
+                 "avg_transition_fuel": 0, "avg_ferried_fuel": 0, "avg_climb_level": 1, "climb_success_rate": 0.5,
+                 "defense_rating": 2, "matches": []}
+        client, _ = logged_in_client(self.app)
+        with patch("app.scout.routes.lighthouse.TBAInterface") as tba,                 patch.object(common.scouting_manager, "get_compare_stats", return_value=stats):
+            tba.return_value.get_team.return_value = None  # no internet on the venue laptop
+            response = client.get("/api/compare?team1=254&team2=1678")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sorted(response.json), ["1678", "254"])
+
+    def test_venue_banner_only_in_venue_mode(self):
+        client, _ = logged_in_client(self.app)
+        self.assertIn("Venue mode", client.get("/scouting").get_data(as_text=True))
+        self.app.config["VENUE_MODE"] = False
+        self.assertNotIn("Venue mode", client.get("/scouting").get_data(as_text=True))
+
     def test_venue_user_creates_a_login(self):
         with patch("app.venue.UserManager") as users:
             users.return_value.create_user.return_value = (True, "User created")
