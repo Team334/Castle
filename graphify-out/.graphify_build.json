@@ -1,0 +1,6 @@
+{
+  "excludes": [
+    "app/static/vendor/*",
+    "app/static/js/coloris.js"
+  ]
+}
