@@ -190,9 +190,17 @@ function handleFetchError(error, request) {
   });
 }
 
+// The scout form is the one page that must open with no signal; it is cached under this key.
+const SCOUT_FORM = '/scouting/add';
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  
+
+  // A shared phone must never offer the previous user's cached form (it embeds their id and token).
+  if (url.pathname === '/auth/logout') {
+    event.waitUntil(caches.open(PAGE_CACHE_NAME).then(cache => cache.delete(SCOUT_FORM)));
+  }
+
   // Authenticated API snapshots and connectivity probes must always be fresh.
   // Failed writes must stay failed so the page cannot mistake them for a save.
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') ||
@@ -236,6 +244,23 @@ self.addEventListener('fetch', (event) => {
        event.request.headers.get('accept') && 
        event.request.headers.get('accept').includes('text/html'))) {
     
+    // The scout form: network first; the last good copy is served only when the network fails.
+    if (url.pathname === SCOUT_FORM) {
+      event.respondWith(fetch(event.request)
+        .then(response => {
+          const landed = response.url ? new URL(response.url).pathname : url.pathname;
+          if (response.ok && landed === SCOUT_FORM) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(PAGE_CACHE_NAME).then(cache => cache.put(SCOUT_FORM, copy)));
+          }
+          return response;
+        })
+        .catch(error => caches.open(PAGE_CACHE_NAME)
+          .then(cache => cache.match(SCOUT_FORM))
+          .then(cached => cached || handleFetchError(error, event.request))));
+      return;
+    }
+
     // Keep account-specific HTML out of shared browser caches.
     event.respondWith(fetch(event.request).catch(error =>
       handleFetchError(error, event.request)));

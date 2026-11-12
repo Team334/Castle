@@ -288,3 +288,96 @@ test('the scout form loads no CDN scripts', () => {
   }
   assert.doesNotMatch(fs.readFileSync('app/templates/base.html', 'utf8'), /popperjs/);
 });
+
+// Service worker with real (Map-backed) caches, so offline fallbacks can be exercised.
+function cachingWorker() {
+  const handlers = new Map();
+  const stores = new Map();
+  let online = true;
+  let body = 'form v1';
+  let finalUrl = null;
+  const store = name => {
+    if (!stores.has(name)) stores.set(name, new Map());
+    const map = stores.get(name);
+    const key = request => typeof request === 'string' ? request : new URL(request.url).pathname;
+    return {
+      put: async (request, response) => { map.set(key(request), await response.text()); },
+      match: async request => map.has(key(request)) ? new Response(map.get(key(request))) : undefined,
+      delete: async request => map.delete(key(request)),
+      addAll: async () => {},
+    };
+  };
+  const caches = {
+    open: async name => store(name),
+    match: async request => {
+      for (const name of stores.keys()) {
+        const hit = await store(name).match(request);
+        if (hit) return hit;
+      }
+      return undefined;
+    },
+    keys: async () => [...stores.keys()],
+    delete: async name => stores.delete(name),
+  };
+  const network = async request => {
+    if (!online) throw new TypeError('Failed to fetch');
+    const response = new Response(body, {headers: {'Content-Type': 'text/html'}});
+    Object.defineProperty(response, 'url', {value: finalUrl || request.url});
+    return response;
+  };
+  vm.runInNewContext(fs.readFileSync('app/static/js/service-worker.js', 'utf8'), {
+    self: {location: {origin: 'http://localhost:5000'}, addEventListener: (name, handler) => handlers.set(name, handler),
+           clients: {matchAll: async () => []}},
+    URL, Response, Headers, console: {log() {}, warn() {}, error() {}}, setInterval() {}, fetch: network, caches,
+  });
+  return {
+    setOnline(value) { online = value; },
+    setBody(value) { body = value; },
+    redirectTo(url) { finalUrl = url; },
+    async navigate(path) {
+      let promise;
+      const waits = [];
+      handlers.get('fetch')({
+        request: {url: `http://localhost:5000${path}`, method: 'GET', mode: 'navigate', headers: new Headers({accept: 'text/html'})},
+        respondWith: result => { promise = result; },
+        waitUntil: p => waits.push(p),
+      });
+      const response = await promise;
+      await Promise.all(waits);
+      return response.text();
+    },
+  };
+}
+
+test('online navigation is network only', async () => {
+  const worker = cachingWorker();
+  await worker.navigate('/scouting/add');
+  worker.setBody('fresh');
+  assert.equal(await worker.navigate('/scouting/add'), 'fresh');
+  assert.equal(await worker.navigate('/scouting'), 'fresh');
+});
+
+test('scout form is served from cache only when offline', async () => {
+  const worker = cachingWorker();
+  await worker.navigate('/scouting/add?event=x');
+  worker.setOnline(false);
+  assert.equal(await worker.navigate('/scouting/add?after=Qual%201'), 'form v1');
+  assert.notEqual(await worker.navigate('/scouting'), 'form v1');
+});
+
+test('login redirects are not cached as the form', async () => {
+  const worker = cachingWorker();
+  worker.redirectTo('http://localhost:5000/auth/login');
+  worker.setBody('login page');
+  await worker.navigate('/scouting/add');
+  worker.setOnline(false);
+  assert.notEqual(await worker.navigate('/scouting/add'), 'login page');
+});
+
+test('logout clears the cached form', async () => {
+  const worker = cachingWorker();
+  await worker.navigate('/scouting/add');
+  await worker.navigate('/auth/logout');
+  worker.setOnline(false);
+  assert.notEqual(await worker.navigate('/scouting/add'), 'form v1');
+});
