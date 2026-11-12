@@ -57,3 +57,68 @@ function newDraftId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 }
+
+// ---- Saved schedule: events and their matches, so the form works with no signal ----
+function scheduleKey(userId) {
+  return "castle:schedule:" + userId;
+}
+
+function loadSchedule(storage, userId) {
+  try {
+    const saved = JSON.parse(storage.getItem(scheduleKey(userId)) || "{}");
+    return {events: saved.events || {}, matches: saved.matches || {}};
+  } catch {
+    return {events: {}, matches: {}};
+  }
+}
+
+function writeSchedule(storage, userId, schedule) {
+  try {
+    storage.setItem(scheduleKey(userId), JSON.stringify(schedule));
+  } catch {}
+}
+
+function saveScheduleEvents(storage, userId, events) {
+  const schedule = loadSchedule(storage, userId);
+  for (const [name, data] of Object.entries(events || {})) {
+    if (data?.key) schedule.events[name] = {key: data.key};
+  }
+  writeSchedule(storage, userId, schedule);
+}
+
+function saveScheduleMatches(storage, userId, eventKey, matches) {
+  const schedule = loadSchedule(storage, userId);
+  schedule.matches[eventKey] = matches;
+  writeSchedule(storage, userId, schedule);
+}
+
+// ---- Typed matches: the same labels the dropdown uses (Qual N, Semifinal S-M, Final N) ----
+const LABEL_SHAPES = {qm: /^Qual (\d+)$/, sf: /^Semifinal (\d+)-(\d+)$/, f: /^Final (\d+)$/};
+
+function positiveInt(value) {
+  const text = String(value ?? "");
+  return /^\d+$/.test(text) && Number(text) > 0 ? Number(text) : null;
+}
+
+function typedLabel(level, a, b) {
+  const first = positiveInt(a);
+  if (!first) return null;
+  if (level === "qm") return `Qual ${first}`;
+  if (level === "f") return `Final ${first}`;
+  const second = positiveInt(b);
+  return level === "sf" && second ? `Semifinal ${first}-${second}` : null;
+}
+
+function parseLabel(label) {
+  for (const [level, shape] of Object.entries(LABEL_SHAPES)) {
+    const found = shape.exec(label || "");
+    if (found) return {level, a: Number(found[1]), b: found[2] ? Number(found[2]) : null};
+  }
+  return null;
+}
+
+function nextTypedLabel(label) {
+  const parsed = parseLabel(label);
+  if (!parsed) return null;
+  return parsed.level === "sf" ? typedLabel("sf", parsed.a, parsed.b + 1) : typedLabel(parsed.level, parsed.a + 1);
+}

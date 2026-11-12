@@ -95,3 +95,52 @@ test('draft ids are unique and URL-safe', () => {
   assert.match(a, /^[A-Za-z0-9-]{1,64}$/);
   assert.notEqual(a, f.newDraftId());
 });
+
+test('schedule round-trips per user and merges events', () => {
+  const f = flow();
+  const storage = memoryStorage();
+  f.saveScheduleEvents(storage, 'u', {'Event A': {key: '2026a', start_date: 'x'}});
+  f.saveScheduleEvents(storage, 'u', {'Event B': {key: '2026b'}});
+  f.saveScheduleMatches(storage, 'u', '2026a', {'Qual 1': {red: ['frc1']}});
+  const schedule = f.loadSchedule(storage, 'u');
+  assert.deepEqual(JSON.parse(JSON.stringify(schedule.events)), {'Event A': {key: '2026a'}, 'Event B': {key: '2026b'}});
+  assert.equal(schedule.matches['2026a']['Qual 1'].red[0], 'frc1');
+  assert.deepEqual(Object.keys(f.loadSchedule(storage, 'other').events), []);
+});
+
+test('schedule helpers ignore broken storage', () => {
+  const f = flow();
+  const broken = {getItem() { throw new Error('x'); }, setItem() { throw new Error('x'); }, removeItem() {}};
+  for (const storage of [broken, null]) {
+    assert.deepEqual(Object.keys(f.loadSchedule(storage, 'u').events), []);
+    assert.doesNotThrow(() => f.saveScheduleEvents(storage, 'u', {A: {key: '2026a'}}));
+    assert.doesNotThrow(() => f.saveScheduleMatches(storage, 'u', '2026a', {}));
+  }
+});
+
+test('typed labels match the dropdown labels', () => {
+  const f = flow();
+  assert.equal(f.typedLabel('qm', 12), 'Qual 12');
+  assert.equal(f.typedLabel('sf', 2, 1), 'Semifinal 2-1');
+  assert.equal(f.typedLabel('f', '1'), 'Final 1');
+  for (const args of [['qm', 0], ['qm', 1.5], ['sf', 2], ['x', 1], ['qm', '3a'], ['qm', -1]]) {
+    assert.equal(f.typedLabel(...args), null, args.join());
+  }
+});
+
+test('parseLabel inverts typedLabel', () => {
+  const f = flow();
+  assert.deepEqual({...f.parseLabel('Qual 12')}, {level: 'qm', a: 12, b: null});
+  assert.deepEqual({...f.parseLabel('Semifinal 2-1')}, {level: 'sf', a: 2, b: 1});
+  assert.deepEqual({...f.parseLabel('Final 3')}, {level: 'f', a: 3, b: null});
+  assert.equal(f.parseLabel('Practice 1'), null);
+  assert.equal(f.parseLabel(null), null);
+});
+
+test('next typed label counts up within the level', () => {
+  const f = flow();
+  assert.equal(f.nextTypedLabel('Qual 12'), 'Qual 13');
+  assert.equal(f.nextTypedLabel('Semifinal 2-1'), 'Semifinal 2-2');
+  assert.equal(f.nextTypedLabel('Final 1'), 'Final 2');
+  assert.equal(f.nextTypedLabel('junk'), null);
+});
