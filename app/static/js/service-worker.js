@@ -18,6 +18,7 @@ const STATIC_ASSETS = [
   '/static/js/scout/add-flow.js',
   '/static/js/scout/outbox.js',
   '/static/js/qrf.js',
+  '/static/js/scout/qr-send.js',
   '/static/vendor/qrcode-generator-1.4.4.js',
   '/static/vendor/jsQR-1.4.0.js',
   '/static/vendor/localforage-1.10.0.min.js',

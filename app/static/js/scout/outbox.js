@@ -116,9 +116,12 @@ function renderOutboxBar(count, last) {
   try {
     storage = window.localStorage;
   } catch {}
-  const rejected = Object.values(loadOutbox(storage, document.body.dataset.userId))
-    .filter(entry => entry.rejected).map(entry => `Team ${entry.team_number} ${entry.match_number}: ${entry.rejected}`);
+  const waiting = Object.values(loadOutbox(storage, document.body.dataset.userId));
+  const rejected = waiting.filter(entry => entry.rejected)
+    .map(entry => `Team ${entry.team_number} ${entry.match_number}: ${entry.rejected}`);
+  const handed = waiting.filter(entry => entry.handed_at).length;
   text.textContent = `${count} ${count === 1 ? "entry" : "entries"} waiting to upload` +
+    (handed ? ` (${handed} given to the lead)` : "") +
     (last?.status === "offline" ? " (no connection)" : "") +
     (rejected.length ? `. Not accepted: ${rejected.join("; ")}` : "");
   bar.append(text);
@@ -135,5 +138,13 @@ function renderOutboxBar(count, last) {
     button.textContent = "Upload now";
     button.addEventListener("click", () => window.castleOutbox?.syncNow());
     bar.append(" ", button);
+  }
+  if (typeof showOutboxQR === "function") {
+    const qr = document.createElement("button");
+    qr.type = "button";
+    qr.className = "btn btn-secondary btn-sm";
+    qr.textContent = "Show QR";
+    qr.addEventListener("click", () => showOutboxQR());
+    bar.append(" ", qr);
   }
 }
