@@ -116,6 +116,17 @@ class ImportTests(unittest.TestCase):
             self.assertNotIn(field, doc)
         self.assertEqual(doc["match_key"], "2026nyny_qm12")  # recomputed from the event key and label
 
+    def test_phone_form_values_are_normalised_like_the_add_route(self):
+        # A phone queues raw form values: empty counters and the auto path as JSON text.
+        [result] = self.m.import_matches([entry(auto_fuel="", endgame_fuel="", auto_path='[{"points": [1]}]')],
+                                         USER_ID, 334)
+        self.assertEqual(result["status"], "saved")
+        doc = self.m.db.team_data.insert_one.call_args.args[0]
+        self.assertEqual((doc["auto_fuel"], doc["endgame_fuel"]), (0, 0))
+        self.assertEqual(doc["auto_path"], [{"points": [1]}])
+        self.m.import_matches([entry(client_id="c2", auto_path="{broken")], USER_ID, 334)
+        self.assertEqual(self.m.db.team_data.insert_one.call_args.args[0]["auto_path"], [])
+
     def test_export_shaped_entry_uses_event_key(self):
         exported = {k: v for k, v in entry().items() if k != "_event_key"}
         self.m.import_matches([{**exported, "event_key": "2026nyny"}], USER_ID, 334)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from bson.errors import InvalidId
 from app.models import Team, TeamData
 from app.utils import DatabaseManager, with_mongodb_retry
 
+from .match13_fuel import FUEL_FIELDS
 from .TBA import EVENT_KEY_PATTERN, tba_match_key
 
 logger = logging.getLogger(__name__)
@@ -279,6 +281,15 @@ class ScoutingManager(DatabaseManager):
                 continue
             data = {k: v for k, v in entry.items() if not k.startswith("_") and k not in IMPORT_PROTECTED}
             data["_event_key"] = entry.get("event_key") or entry.get("_event_key")
+            # Same clean-up the add route does: phones queue raw form values.
+            for field in FUEL_FIELDS:
+                if data.get(field) in (None, ""):
+                    data[field] = 0
+            if isinstance(data.get("auto_path"), str):
+                try:
+                    data["auto_path"] = json.loads(data["auto_path"]) if data["auto_path"].strip() else []
+                except ValueError:
+                    data["auto_path"] = []
             # Never reuse the incoming _id here: an insert collision would reveal that another team's id exists.
             status, detail = self._insert_record(
                 data, str(scouter), uploader_team, client_id=client_id,
