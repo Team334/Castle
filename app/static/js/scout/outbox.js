@@ -104,3 +104,36 @@ function startOutbox({storage, userId, render = () => {}}) {
   window.castleOutbox = {syncNow, count, refresh: () => render(count(), last)};
   return window.castleOutbox;
 }
+
+// Browser only: the "N waiting to upload" bar on pages that have #outboxBar.
+function renderOutboxBar(count, last) {
+  const bar = document.getElementById("outboxBar");
+  if (!bar) return;
+  bar.replaceChildren();
+  if (!count) return;
+  const text = document.createElement("span");
+  let storage = null;
+  try {
+    storage = window.localStorage;
+  } catch {}
+  const rejected = Object.values(loadOutbox(storage, document.body.dataset.userId))
+    .filter(entry => entry.rejected).map(entry => `Team ${entry.team_number} ${entry.match_number}: ${entry.rejected}`);
+  text.textContent = `${count} ${count === 1 ? "entry" : "entries"} waiting to upload` +
+    (last?.status === "offline" ? " (no connection)" : "") +
+    (rejected.length ? `. Not accepted: ${rejected.join("; ")}` : "");
+  bar.append(text);
+  if (last?.status === "login") {
+    const login = document.createElement("a");
+    login.href = "/auth/login";
+    login.className = "link";
+    login.textContent = "Log in to upload";
+    bar.append(" · ", login);
+  } else {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-secondary btn-sm";
+    button.textContent = "Upload now";
+    button.addEventListener("click", () => window.castleOutbox?.syncNow());
+    bar.append(" ", button);
+  }
+}

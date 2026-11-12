@@ -74,7 +74,7 @@
 {% set compare_active = endpoint in ['scouting.lighthouse', 'scouting.auton'] %}
 {% set scout_active = endpoint.startswith('scouting.') and not compare_active %}
 {% set team_active = endpoint.startswith('team.') %}
-<body class="flex min-h-screen flex-col">
+<body class="flex min-h-screen flex-col" data-user-id="{{ current_user.get_id() if current_user.is_authenticated else '' }}">
     <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/80">
         <div class="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-6 sm:px-6">
             <a href="{{ url_for('index') }}" class="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
@@ -239,6 +239,18 @@
             });
         }
     </script>
+
+    {% if current_user.is_authenticated %}
+    <!-- Entries saved offline upload themselves from any page once there's a connection -->
+    <script src="{{ url_for('static', filename='js/scout/outbox.js', v='1') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let storage = null;
+            try { storage = window.localStorage; } catch {}
+            startOutbox({storage, userId: document.body.dataset.userId, render: renderOutboxBar});
+        });
+    </script>
+    {% endif %}
 
     <!-- Service Worker Registration -->
     <script src="{{ url_for('static', filename='js/base.js') }}" data-app-version="{{ request.args.get('v', '1.0') }}"></script>

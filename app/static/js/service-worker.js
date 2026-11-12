@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
   '/static/js/team-stats.js',
   '/static/js/scout/add.js',
   '/static/js/scout/add-flow.js',
+  '/static/js/scout/outbox.js',
   '/static/vendor/localforage-1.10.0.min.js',
   '/static/js/coloris.js',
   '/static/css/coloris.css',

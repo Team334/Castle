@@ -83,14 +83,15 @@ document.addEventListener("DOMContentLoaded", function () {
       //     form.submit();
       // }
       form.elements._event_key.value = eventSelect.options[eventSelect.selectedIndex]?.dataset.key || "";
-      form.elements._station.value = stationOf(teamSelect.options[teamSelect.selectedIndex]);
+      const chosenTeam = teamSelect.options[teamSelect.selectedIndex];
+      form.elements._station.value = chosenTeam?.dataset.station || stationOf(chosenTeam);
       // Keep the entry recoverable until the server confirms the save (?saved=<draft id>),
       // but never let draft code (e.g. add-flow.js failing to load) block the save itself.
       try {
         dirty = true;
         persistDraft();
       } finally {
-        form.submit();
+        await sendOrQueue();
       }
     });
   }
@@ -297,6 +298,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const events = await response.json();
       if (events.error) throw new Error(events.error);
       populateEvents(events);
+      saveScheduleEvents(storage, userId, events);
       const pending = response.headers.get("X-Scouting-Pending") === "true";
       if (pending && Date.now() - eventsStarted < 60000) {
         eventStatus.textContent = "Loading events…";
@@ -335,15 +337,25 @@ document.addEventListener("DOMContentLoaded", function () {
       matchStatus.textContent = "Loading matches…";
       matchSearchable.clear();
 
-      // Fetch matches for selected event
-      const matches = await loadEventMatches(selectedEventKey, controller.signal);
+      // Fetch matches for selected event; with no signal, use the schedule saved on this phone.
+      let matches = null;
+      try {
+        matches = await loadEventMatches(selectedEventKey, controller.signal);
+      } catch (error) {
+        if (error.name === "AbortError") throw error;
+      }
       if (controller.signal.aborted || matchesController !== controller) return;
+      let fromSaved = false;
+      if (matches) saveScheduleMatches(storage, userId, selectedEventKey, matches);
+      else fromSaved = !!(matches = loadSchedule(storage, userId).matches[selectedEventKey] || null);
       if (!matches) {
-        matchStatus.textContent = "Match service unavailable. Select the event again to retry.";
+        matchStatus.textContent = "This event's schedule isn't on this phone. Type the match in below.";
+        showTyped();
         return;
       }
 
-      matchStatus.textContent = Object.keys(matches).length ? "" : "No matches available for this event.";
+      matchStatus.textContent = !Object.keys(matches).length ? "No matches available for this event."
+        : fromSaved ? "Offline: using the schedule saved on this phone." : "Saved on this phone for offline use.";
 
       currentMatches = matches;
       matchSelect.innerHTML = '<option value="">Select Match</option>';
@@ -603,7 +615,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (run !== preselectRun) return;
     const values = [...matchSelect.options].map(o => o.value);
     const label = match ? (values.includes(match) ? match : null) : after ? nextMatchValue(values, after) : null;
-    if (!label) return;
+    if (!label) {
+      // Not in the schedule (typed last time, or no schedule saved): continue in the typed panel.
+      const typed = parseLabel(match || nextTypedLabel(after));
+      if (typed) showTyped({...typed, station, team});
+      return;
+    }
     matchSelect.value = label;
     matchSelect.dispatchEvent(new Event("change"));
     const teamOption = team ? [...teamSelect.options].find(o => o.value === team) : stationOption(station);
@@ -661,6 +678,88 @@ document.addEventListener("DOMContentLoaded", function () {
       banner.append(item);
     }
   }
+
+  // ---- Typed matches, for matches missing from the saved schedule ----
+  const typedPanel = document.getElementById("typedMatch");
+  const typedLevel = document.getElementById("typedLevel");
+  const typedA = document.getElementById("typedA");
+  const typedB = document.getElementById("typedB");
+  const typedTeam = document.getElementById("typedTeam");
+  const typedStation = document.getElementById("typedStation");
+
+  function showTyped(prefill = {}) {
+    if (!typedPanel) return;
+    typedPanel.classList.remove("hidden");
+    if (prefill.level) typedLevel.value = prefill.level;
+    if (prefill.a) typedA.value = prefill.a;
+    typedB.value = prefill.b || "";
+    if (prefill.team) typedTeam.value = prefill.team;
+    if (/^(red|blue)[1-3]$/.test(prefill.station || "")) typedStation.value = prefill.station;
+    typedB.classList.toggle("hidden", typedLevel.value !== "sf");
+  }
+
+  function addOption(select, value, text, data = {}) {
+    let option = [...select.options].find(o => o.value === value);
+    if (!option) {
+      option = new Option(text, value);
+      select.appendChild(option);
+    }
+    Object.assign(option.dataset, data);
+    select.value = value;
+    select.dispatchEvent(new Event("change"));
+  }
+
+  document.getElementById("typedToggle")?.addEventListener("click", () => showTyped());
+  typedLevel?.addEventListener("change", () => typedB.classList.toggle("hidden", typedLevel.value !== "sf"));
+  document.getElementById("typedUse")?.addEventListener("click", () => {
+    const label = typedLabel(typedLevel.value, typedA.value, typedB.value);
+    const team = /^\d+$/.test(typedTeam.value) && Number(typedTeam.value) > 0 ? String(Number(typedTeam.value)) : "";
+    if (!label || !team) {
+      alert("Enter a match number and a team number.");
+      return;
+    }
+    addOption(matchSelect, label, `${label} (typed)`);
+    matchSearchable.updateOptions();
+    addOption(teamSelect, team, `Team ${team} (typed)`,
+              {alliance: typedStation.value.replace(/\d/, ""), station: typedStation.value});
+  });
+
+  // ---- Save: send when online; with no signal, queue in the outbox (outbox.js) and go to the next match ----
+  async function sendOrQueue() {
+    if (navigator.onLine !== false) {
+      try {
+        const response = await fetch(window.location.pathname, {method: "POST", body: new FormData(form)});
+        window.location.assign(response.url);
+        return;
+      } catch {}
+    }
+    const id = form.elements._draft_id.value;
+    const eventKey = form.elements._event_key.value;
+    const label = matchSelect.value;
+    const station = form.elements._station.value;
+    const entry = {
+      ...readFields(),
+      event_code: eventSelect.value, match_number: label, team_number: teamSelect.value,
+      alliance: allianceInput.value, event_key: eventKey, client_id: id, scouter_id: userId,
+      created_at: new Date().toISOString(),
+    };
+    let queued = false;
+    try {
+      queued = queueEntry(storage, userId, entry);
+    } catch {}
+    if (!queued) {
+      alert("Couldn't save on this phone (storage is full or blocked). Your entry is still in the form.");
+      return;
+    }
+    const next = new URLSearchParams({saved: id});
+    if (eventKey) next.set("event", eventKey);
+    if (label) next.set("after", label);
+    if (station) next.set("station", station);
+    window.location.assign(`/scouting/add?${next}`);
+  }
+
+  populateEvents(loadSchedule(storage, userId).events);
+  saveScheduleEvents(storage, userId, JSON.parse(document.getElementById("events").textContent));
 
   const params = new URLSearchParams(window.location.search);
   if (params.get("saved")) removeDraft(storage, userId, params.get("saved"));
