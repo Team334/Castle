@@ -87,7 +87,8 @@ The scouting lead builds the pick list right before alliance selection, at the v
   - Credit stays with `scouter_id`.
   - When the uploader isn't the scouter, store `uploaded_by: <uploader id>`.
   - *(My call: any member of the scout's team may upload for them. Teammates can already edit each other's entries.)*
-- **Keeping `_id`.** An entry carrying an `_id` (from an export file) is inserted with that same `_id`, so a later push back to the main server is recognised.
+- **Keeping `_id`.** *(Amended after a security review.)* On the main server, an incoming `_id` or `client_id` only counts as `already_have` when it matches a record the uploader can see (the `access_match` scope). The incoming `_id` is never reused for an insert. Reusing it, or checking it against all teams, would let an uploader probe whether another team's record id exists. Laptop pushes are still recognised by `client_id`. Venue mode (the lead's own laptop) keeps `_id` for its exact copies.
+- **Limits on every path.** A JSON body takes at most 500 matches and 500 pits. A file takes at most 20,000 matches and pits combined.
 - **`created_at`.** Kept from the entry when it's a valid ISO time, otherwise set to now.
 
 **Pit entries.** Same `_id` rule (`already_have` if it exists). Fields are built through the existing pit field builder. Never images.

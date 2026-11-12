@@ -264,9 +264,12 @@ class ScoutingManager(DatabaseManager):
             key = client_id or (str(oid) if oid else str(index))
             seen = [{"_id": oid}] if oid else []
             seen += [{"client_id": client_id}] if client_id else []
+            # Only records the uploader can see count, so a result never reveals another team's record ids.
             # shortcut: unindexed _id/client_id lookup per entry; fine while team_data is small,
             # index client_id if imports slow down.
-            if seen and self.db.team_data.find_one({"$or": seen}, {"_id": 1}):
+            if seen and next(iter(self.db.team_data.aggregate([
+                    {"$match": {"$or": seen}}, SCOUTER_LOOKUP, UNWIND_SCOUTER,
+                    access_match(uploader_id, uploader_team), {"$limit": 1}])), None):
                 results.append({"key": key, "status": "already_have"})
                 continue
             scouter = _object_id(entry.get("scouter_id"))
@@ -276,12 +279,18 @@ class ScoutingManager(DatabaseManager):
                 continue
             data = {k: v for k, v in entry.items() if not k.startswith("_") and k not in IMPORT_PROTECTED}
             data["_event_key"] = entry.get("event_key") or entry.get("_event_key")
+            # Never reuse the incoming _id here: an insert collision would reveal that another team's id exists.
             status, detail = self._insert_record(
-                data, str(scouter), uploader_team, _id=oid, client_id=client_id,
+                data, str(scouter), uploader_team, client_id=client_id,
                 created_at=_parse_time(entry.get("created_at")),
                 uploaded_by=None if str(scouter) == str(uploader_id) else uploader_id)
             results.append({"key": key, "status": status, **({"id": detail} if status == "saved" else {"reason": detail})})
         return results
+
+    def visible_pit_ids(self, user_id: str, team_number) -> set:
+        """Ids of the pit records the user can see."""
+        return {doc["_id"] for doc in self.db.pit_scouting.aggregate(
+            [*self._visible_records(user_id, team_number), {"$project": {"_id": 1}}])}
 
     def export_data(self, user_id: str, team_number, now: datetime | None = None) -> dict:
         """The user's visible current-season match records, pit records and team roster (public fields), JSON-safe."""

@@ -18,7 +18,8 @@ from .common import actor_name, scouting_bp
 
 ENTRY_FORMAT = "castle-entries"
 JSON_MAX_BYTES = 5 * 1024 * 1024
-JSON_MAX_MATCHES = 500
+JSON_MAX_ENTRIES = 500  # per list (matches, pits) in a JSON body: phone sync and QR batches
+FILE_MAX_ENTRIES = 20000  # matches + pits in one file: a season's export, with headroom
 
 
 @scouting_bp.route("/scouting/export")
@@ -48,9 +49,11 @@ def import_entries():
     if not (isinstance(payload, dict) and payload.get("format") == ENTRY_FORMAT and payload.get("version") == 1
             and isinstance(payload.get("matches", []), list) and isinstance(payload.get("pits", []), list)):
         return jsonify(error="That file isn't Castle entry data."), 400
-    matches = payload.get("matches", [])
-    if upload is None and len(matches) > JSON_MAX_MATCHES:
-        return jsonify(error=f"At most {JSON_MAX_MATCHES} entries per upload."), 413
+    matches, pits = payload.get("matches", []), payload.get("pits", [])
+    too_many = (len(matches) + len(pits) > FILE_MAX_ENTRIES if upload is not None
+                else max(len(matches), len(pits)) > JSON_MAX_ENTRIES)
+    if too_many:
+        return jsonify(error="Too many entries in one upload; split it up."), 413
 
     results = common.scouting_manager.import_matches(matches, current_user.get_id(), current_user.teamNumber)
     service = current_app.extensions.get("match13_fuel")
@@ -60,19 +63,21 @@ def import_entries():
                 service.enroll(result["id"], {**entry, "_event_key": entry.get("event_key") or entry.get("_event_key")})
             except Exception:
                 current_app.logger.exception("Imported scouting record; could not enroll its fuel estimate")
-    pit_results = [_pit_result(index, pit) for index, pit in enumerate(payload.get("pits", []))]
+    visible_pits = common.scouting_manager.visible_pit_ids(current_user.get_id(), current_user.teamNumber) if pits else set()
+    pit_results = [_pit_result(index, pit, visible_pits) for index, pit in enumerate(pits)]
 
     counts = Counter(result["status"] for result in results)
     current_app.logger.info(f"Imported entries for user {actor_name(current_user)}: {dict(counts)}")
     return jsonify(results=results, pit_results=pit_results, counts=counts)
 
 
-def _pit_result(index: int, pit) -> dict:
-    """Pit records are only ever copied to a venue laptop, never created here, so the main server just skips them."""
+def _pit_result(index: int, pit, visible: set) -> dict:
+    """Pit records are only ever copied to a venue laptop, never created here, so the main server just skips them.
+    Only pits the uploader can see count as already here; anything else is rejected the same way."""
     try:
         oid = ObjectId(pit.get("_id")) if isinstance(pit, dict) and pit.get("_id") else None
     except (InvalidId, TypeError):
         oid = None
-    if oid and common.scouting_manager.db.pit_scouting.find_one({"_id": oid}, {"_id": 1}):
+    if oid in visible:
         return {"key": str(oid), "status": "already_have"}
     return {"key": str(oid or index), "status": "rejected", "reason": "pit entries are only accepted in venue mode"}

@@ -57,10 +57,14 @@ def entry(**kw):
     return {**form(), "scouter_id": USER_ID, "client_id": "c1", **kw}
 
 
+def visible(existing=(), duplicates=()):
+    """aggregate side effect: the existence lookup (first stage matches $or) sees `existing`; the duplicate check sees `duplicates`."""
+    return lambda pipeline: list(existing if "$or" in pipeline[0].get("$match", {}) else duplicates)
+
+
 class ImportTests(unittest.TestCase):
     def setUp(self):
         self.m = manager()
-        self.m.db.team_data.find_one.return_value = None
 
     def test_new_entry_is_saved_and_credited(self):
         [result] = self.m.import_matches([entry()], USER_ID, 334)
@@ -71,15 +75,22 @@ class ImportTests(unittest.TestCase):
         self.assertNotIn("uploaded_by", doc)
 
     def test_client_id_seen_before_is_already_have(self):
-        self.m.db.team_data.find_one.return_value = {"_id": ObjectId()}
+        self.m.db.team_data.aggregate.side_effect = visible(existing=[{"_id": ObjectId()}])
         results = self.m.import_matches([entry(), entry(client_id=None, _id=str(ObjectId()))], USER_ID, 334)
         self.assertEqual([r["status"] for r in results], ["already_have", "already_have"])
         self.m.db.team_data.insert_one.assert_not_called()
 
-    def test_existing_id_is_kept_for_new_records(self):
+    def test_existence_is_checked_only_among_records_the_uploader_can_see(self):
         oid = ObjectId()
         self.m.import_matches([entry(_id=str(oid))], USER_ID, 334)
-        self.assertEqual(self.m.db.team_data.insert_one.call_args.args[0]["_id"], oid)
+        lookup = self.m.db.team_data.aggregate.call_args_list[0].args[0]
+        self.assertEqual(lookup[0], {"$match": {"$or": [{"_id": oid}, {"client_id": "c1"}]}})
+        self.assertIn({"$match": {"$or": [{"scouter._id": ObjectId(USER_ID)}, {"scouter.teamNumber": 334}]}}, lookup)
+
+    def test_incoming_id_is_never_reused_on_the_main_server(self):
+        # Reusing it would let an uploader probe whether another team's record id exists.
+        self.m.import_matches([entry(_id=str(ObjectId()))], USER_ID, 334)
+        self.assertNotIn("_id", self.m.db.team_data.insert_one.call_args.args[0])
 
     def test_teammate_upload_keeps_credit_and_records_uploader(self):
         mate = str(ObjectId())
@@ -111,11 +122,11 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(self.m.db.team_data.insert_one.call_args.args[0]["match_key"], "2026nyny_qm12")
 
     def test_duplicate_non_dict_and_created_at(self):
-        self.m.db.team_data.aggregate.return_value = [{"scouter": {"username": "sam"}}]
+        self.m.db.team_data.aggregate.side_effect = visible(duplicates=[{"scouter": {"username": "sam"}}])
         results = self.m.import_matches([entry(), "junk"], USER_ID, 334)
         self.assertEqual([r["status"] for r in results], ["duplicate", "rejected"])
         self.assertIn("sam", results[0]["reason"])
-        self.m.db.team_data.aggregate.return_value = []
+        self.m.db.team_data.aggregate.side_effect = visible()
         self.m.import_matches([entry(created_at="2026-03-01T10:00:00")], USER_ID, 334)
         self.assertEqual(self.m.db.team_data.insert_one.call_args.args[0]["created_at"],
                          datetime(2026, 3, 1, 10, tzinfo=timezone.utc))
@@ -231,18 +242,23 @@ class RouteTests(unittest.TestCase):
 
     def test_too_many_or_too_large_json_is_413(self):
         self.assertEqual(self.client.post("/scouting/import", json=envelope([{}] * 501)).status_code, 413)
+        self.assertEqual(self.client.post("/scouting/import", json=envelope([], pits=[{}] * 501)).status_code, 413)
+        many = {"file": (io.BytesIO(json.dumps(envelope([{}] * 15001, pits=[{}] * 5000)).encode()), "x.json")}
+        self.assertEqual(self.client.post("/scouting/import", data=many, content_type="multipart/form-data").status_code, 413)
+        self.manager.import_matches.assert_not_called()
         big = json.dumps(envelope([{"notes": "x" * (5 * 1024 * 1024)}])).encode()
         self.assertEqual(self.client.post("/scouting/import", data=big, content_type="application/json").status_code, 413)
 
     def test_pit_entries_outside_venue_mode(self):
         existing = ObjectId()
         self.manager.import_matches.return_value = []
-        self.manager.db.pit_scouting.find_one.side_effect = (
-            lambda query, *args: {"_id": existing} if query == {"_id": existing} else None)
+        self.manager.visible_pit_ids.return_value = {existing}
         response = self.client.post("/scouting/import", json=envelope([], pits=[{"_id": str(existing)},
                                                                                 {"_id": str(ObjectId())}, {}, "x"]))
         self.assertEqual([p["status"] for p in response.json["pit_results"]],
                          ["already_have", "rejected", "rejected", "rejected"])
+        self.assertEqual(self.manager.visible_pit_ids.call_args.args, (USER_ID, 334))
+        self.manager.db.pit_scouting.find_one.assert_not_called()  # no unscoped existence check
 
     def test_teamless_uploader_is_403(self):
         self.user.teamNumber = None
